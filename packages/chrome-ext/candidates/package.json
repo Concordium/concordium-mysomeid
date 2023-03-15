@@ -1,0 +1,13 @@
+{
+  "name": "mysome-api",
+  "version": "1.0.0",
+  "main": "srs/index.ts",
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "http-server ./",
+    "build": "echo ok"
+  }
+}

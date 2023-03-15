@@ -1,0 +1,33 @@
+{
+  "short_name": "MySoMeID Validator Extension",
+  "name": "MySoMeID Validator",
+  "description": "Use the MySoMeID to validate the authencity of social media profiles.",
+  "version": "1.0",
+  "manifest_version": 3,
+  "icons": {
+    "16": "logo192.png",
+    "48": "logo192.png",
+    "128": "logo192.png"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Open the popup"
+  },
+  "permissions": [
+    "webNavigation",
+    "tabs",
+    "background",
+    "storage",
+    "tabGroups"
+  ],
+  "background": {
+    "service_worker": "background/index.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/index.js"]
+    }
+  ],
+  "host_permissions": ["https://twitter.com/*/*", "https://linkedin.com/*/*"]
+}

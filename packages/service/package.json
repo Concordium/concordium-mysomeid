@@ -1,0 +1,13 @@
+{
+  "name": "@mysomeid/services",
+  "version": "0.0.1",
+  "license": "Commercial",
+  "homepage": ".",
+  "dependencies": {
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "docker": "docker compose down && docker compose build && docker compose up"
+  }
+}

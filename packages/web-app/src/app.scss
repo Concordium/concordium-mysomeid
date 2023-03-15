@@ -1,0 +1,36 @@
+* {
+  margin: 0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+.fieldset {
+  border: solid;
+  color: #424242;
+  border-radius: 6px;
+  margin: 2em 1em 1em;
+  padding:0 1em 1em;
+}
+
+.panel-root {
+  overflow: scroll;
+  height: 100vh;
+}
+
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  max-width: 250px;  
+}
+
+.legend {
+  transform: translatey(-50%);
+  width: max-content;
+  background: white;
+  padding: 0 0.15em;
+  font-size: 17px;
+}
+
+.fieldset li {
+  list-style-type: " - ";
+}

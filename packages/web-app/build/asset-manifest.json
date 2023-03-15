@@ -1,0 +1,28 @@
+{
+  "files": {
+    "main.css": "/static/css/main.7ea26b50.css",
+    "main.js": "/static/js/main.e6a25205.js",
+    "static/media/concordium_rust_bindings_bg.wasm": "/static/media/concordium_rust_bindings_bg.2986ba72d7f1f07bc037.wasm",
+    "static/media/ClearSans-Medium.ttf": "/static/media/ClearSans-Medium.dae1db728224a6f59422.ttf",
+    "static/media/ClearSans-Regular.ttf": "/static/media/ClearSans-Regular.43ea7d2123718b0cfd2c.ttf",
+    "static/media/ClearSans-Light.ttf": "/static/media/ClearSans-Light.aff84b698fedbda65fea.ttf",
+    "static/media/ClearSans-Bold.ttf": "/static/media/ClearSans-Bold.abc586c1bb1f12c8d3d2.ttf",
+    "static/media/small-screenshot.png": "/static/media/small-screenshot.c8554105d3a453524176.png",
+    "static/media/linkedin-user-name-help.png": "/static/media/linkedin-user-name-help.42c08ba3e0454cadc864.png",
+    "static/media/logo-grey.svg": "/static/media/logo-grey.9b783b8b362cb3917245da27218c36e6.svg",
+    "static/media/logo-white.svg": "/static/media/logo-white.a7c0d93c7ac8ad071a74ddc91e7b41ea.svg",
+    "static/media/qr.svg": "/static/media/qr.ba21e4ae60b5bf38d5cc8ba4d846a495.svg",
+    "static/media/tiktok-icon.svg": "/static/media/tiktok-icon.6a2aa6a416563aac0c1afd1404e8a6f1.svg",
+    "static/media/tx.svg": "/static/media/tx.855ec326e6159979dbee300ca5dad428.svg",
+    "static/media/platform-linked-in.svg": "/static/media/platform-linked-in.ca042d153a872c7c20548563456a325f.svg",
+    "static/media/mastodon-icon.svg": "/static/media/mastodon-icon.8fd46e770145bca2589239e551d8907b.svg",
+    "static/media/concordium-logo.svg": "/static/media/concordium-logo.2324b5890ddf581659844eaf7dfb74f9.svg",
+    "index.html": "/index.html",
+    "static/media/hamburger.svg": "/static/media/hamburger.01f8f3fa8385be892ac8ef09111e6426.svg",
+    "static/media/X.svg": "/static/media/X.a821255202a0a603ba55335ce8adc150.svg"
+  },
+  "entrypoints": [
+    "static/css/main.7ea26b50.css",
+    "static/js/main.e6a25205.js"
+  ]
+}

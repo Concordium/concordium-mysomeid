@@ -1,0 +1,18 @@
+{
+  "name": "@mysomeid/root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "submodules": "git submodule update --init --recursive"
+  },
+  "workspaces": {
+    "packages": [
+      "packages/portal",
+      "packages/chrome-ext"
+    ],
+    "nohoist": [
+      "ansi-html-community",
+      "*ansi-html-community*"
+    ]
+  }
+}

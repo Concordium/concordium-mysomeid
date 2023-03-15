@@ -1,0 +1,1 @@
+{"version":3,"file":"static/css/main.2ffe21be.css","mappings":"AAAA,WACE,8BAAiC,CAC4E,gBAA7G,0HACF","sources":["index.css"],"sourcesContent":["@font-face {\n  font-family: \"DIN Alternate Bold\";\n  src: local(\"DIN Alternate Bold\"), url(\"./fonts/DIN Alternate Bold.ttf\") format(\"truetype\"); font-weight: bold;\n}\n"],"names":[],"sourceRoot":""}

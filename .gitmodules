@@ -1,0 +1,3 @@
+[submodule "packages/service/packages/verifier/deps/concordium-rust-sdk"]
+	path = packages/service/packages/verifier/deps/concordium-rust-sdk
+	url = https://github.com/Concordium/concordium-rust-sdk.git

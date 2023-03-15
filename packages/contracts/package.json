@@ -1,0 +1,41 @@
+{
+  "name": "hello-ccd",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "ssh": "ssh root@128.199.145.11",
+    "ssh:proxy": "ssh -NL localhost:10001:146.190.94.164:10001 root@146.190.94.164",
+    "ssh:proxy2": "ssh -NL localhost:20001:146.190.94.164:20001 root@146.190.94.164",
+    "localnode:info": "concordium-client block show --grpc-port 10001",
+    "build": "yarn contract:build",
+    "test": "RUST_BACKTRACE=1 cargo test",
+    "print-name": "source .env && echo $C_NAME",
+    "dev": "yarn build && yarn test && yarn contract:deploy && yarn contract:init && yarn contract:mint && yarn contract:view && yarn contract:proof",
+    "contract:build": "cargo concordium build --out dist/mysomeid.wasm.v1 --schema-out dist/mysomeid.schema.bin",
+    "contract:deploy": "node env-tmp-env.js && source .env-tmp && printf \"\n\" | concordium-client module deploy dist/mysomeid.wasm.v1  --no-confirm  --name $C_NAME --sender 4FSkV8ckXL9o3KxbY2kdD76a4Je3JWvV4EBmXkFNwjYddjc5zY --grpc-ip 146.190.94.164 --grpc-port 10001 2>&1 | tee deploy.log && node env-create.js",
+    "contract:init": "source .env && printf \"\n\" | concordium-client contract init $C_NAME --no-confirm --contract mysomeid --sender 4FSkV8ckXL9o3KxbY2kdD76a4Je3JWvV4EBmXkFNwjYddjc5zY --energy 30000 --grpc-ip 146.190.94.164 --grpc-port 10001 2>&1 | tee init.log && node env-store_index.js",
+    "contract:name": "source .env && printf \"\n\" | concordium-client contract name $C_IDX --no-confirm --name \"MySoMeID\"",
+    "contract:ownTokens": "source .env && printf \"\n\" | concordium-client contract invoke $C_IDX --entrypoint ownTokens --parameter-json artifacts/own_tokens.json --schema dist/mysomeid.schema.bin --grpc-ip 146.190.94.164  --grpc-port 10001",
+    "contract:view": "source .env && printf \"\n\" | concordium-client contract invoke $C_IDX --entrypoint view --schema dist/mysomeid.schema.bin --grpc-ip 146.190.94.164 --grpc-port 10001",
+    "contract:mint": "source .env && printf \"\n\" | concordium-client contract update $C_IDX --no-confirm --entrypoint mint --parameter-json artifacts/mint.json --schema ./dist/mysomeid.schema.bin --sender 4FSkV8ckXL9o3KxbY2kdD76a4Je3JWvV4EBmXkFNwjYddjc5zY --energy 6000 --grpc-ip 146.190.94.164  --grpc-port 10001 2>&1 | tee mint.log",
+    "contract:meta": "source .env && printf \"\n\" | concordium-client contract invoke $C_IDX  --entrypoint tokenMetadata --parameter-json artifacts/meta.json --schema ./dist/mysomeid.schema.bin --grpc-ip 146.190.94.164  --grpc-port 10001 2>&1 | tee view.log",
+    "contract:proof": "source .env && printf \"\n\" | concordium-client contract invoke $C_IDX  --entrypoint proof --parameter-json artifacts/proof.json --schema ./dist/mysomeid.schema.bin --grpc-ip 146.190.94.164  --grpc-port 10001 2>&1 | tee mint.log",
+    "contract:revoke": "source .env && printf \"\n\" | concordium-client contract update $C_IDX  --no-confirm --entrypoint burn --parameter-json artifacts/revoke.json --schema ./dist/mysomeid.schema.bin --sender 4FSkV8ckXL9o3KxbY2kdD76a4Je3JWvV4EBmXkFNwjYddjc5zY --energy 6000 --grpc-ip 146.190.94.164 --grpc-port 10001  2>&1 | tee revoke.log",
+    "test:integration": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.4.0",
+    "env-cmd": "^10.1.0",
+    "jest": "^29.4.2",
+    "ts-jest": "^29.0.5",
+    "typescript": "^4.9.5"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.spec.(ts|js)"
+    ]
+  }
+}

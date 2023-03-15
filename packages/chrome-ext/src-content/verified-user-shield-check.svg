@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="19px" height="23px" viewBox="0 0 19 23" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>verified-user-shield-check</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="verified-user-shield-check" transform="translate(-3.000000, -1.000000)">
+            <polygon id="Path" points="0 0 25 0 25 25 0 25"></polygon>
+            <path d="M12.5,1.04166667 L3.125,5.20833333 L3.125,11.4583333 C3.125,17.2395833 7.125,22.6458333 12.5,23.9583333 C17.875,22.6458333 21.875,17.2395833 21.875,11.4583333 L21.875,5.20833333 L12.5,1.04166667 Z M10.4166667,17.7083333 L6.25,13.5416667 L7.71875,12.0729167 L10.4166667,14.7604167 L17.28125,7.89583333 L18.75,9.375 L10.4166667,17.7083333 Z" id="Shape" fill="#4285F5" fill-rule="nonzero"></path>
+        </g>
+    </g>
+</svg>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Test page</title>
+    </head>
+
+    <body>
+        <div style="position: relative; z-index: 99999999999" >
+            <button id="toggle-button" onclick="window.toggleFollow()">follow</button>
+            <button id="toggle-button" onclick="window.showPopup()">show popup</button>
+            <button id="toggle-button" onclick="window.showFrame()">show frame</button>
+            <button id="toggle-button" onclick="window.showMySoMeIdButton()">show mysome button</button>
+        </div>
+        <div id="test-div_" style="width: 100px; height: 100px; left: 50px; top: 50px; background: yellow; position: absolute;">DIV</div>
+    </body>
+
+    <script type="text/javascript">
+        let follow = false;
+        window.toggleFollow = () => {
+            follow = !follow;
+        }
+        window.showPopup = () => {
+            window.mysomeid.methods.createPopupWidget();
+        }
+        window.showFrame = () => {
+            window.mysome.createFrame("chrome-extension://djpgalkjihkfbccfmlfdpginepddgeho/widget/index.html");
+        }
+        window.showPopup = () => {
+            window.mysome.createFrame("chrome-extension://djpgalkjihkfbccfmlfdpginepddgeho/widget/index.html");
+        };
+        window.showMySoMeIdButton = () => {
+            /*if ( document.getElementById("mysome-button") ) {
+                return;
+            }
+            const e = document.createElement('div');
+            e.id = `mysome-button`;
+            const top = ''; // 'top: calc(50% - 32px)';
+            const bottom = 'bottom: 12px';
+            e.innerHTML = `
+                <div id="mysome-access-button" style="position: fixed; left: 16px; ${top}; ${bottom}; z-index: 9998; display: flex; cursor: pointer; filter: drop-shadow(1px 0px 4px #2b2b2b61);">
+                    <a style="display: flex;" onclick="window.showFrame()">
+                        <img src="/logo.svg" width="60" height="60">
+                        <span style="position: absolute; top: -1px; right: 5px; border-radius: 50%; background: red; color: white; width: 18px; text-align: center; height: 18px;">!</span>
+                    </a>
+                </div>
+            `;
+            document.body.appendChild(e);*/
+            window.mysome.createButton();
+        };
+        
+
+        window.addEventListener("mousemove", (e) => {
+            if ( !follow ) {
+                return;
+            }
+            // console.log();
+            const pos = {
+                x: e.clientX,
+                y: e.clientY,
+            };
+            // console.log(pos);
+            const el = document.getElementById("test-div");
+            if ( el ) {
+                el.style.left = `${Math.round(e.clientX)}px`;
+                el.style.top = `${Math.round(e.clientY)}px`;
+            }
+        });
+    </script>
+</html>

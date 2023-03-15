@@ -1,0 +1,17 @@
+{
+    "owner": {
+        "Account": ["4FSkV8ckXL9o3KxbY2kdD76a4Je3JWvV4EBmXkFNwjYddjc5zY"]
+    },
+    "token": "a869aef6",
+    "platform": "li",
+    "credential": "97c2491a18d8316a0f73dfd82c5c012d942c91c8f3f8190804297b35458cba170920a35f98add6b27c420dd9d2f63745",
+    "challenge": "ae94a1bedd3ad7a4bbb338ffb6f15d3aec7865a2506a2efe2a6bf93956e1a93f",
+    "first_name": "123123",
+    "last_name": "456456",
+    "user_data": "696969",
+    "proofs": [
+        [1, "8b7392977eee55bcba1887579ea372a7254b9150b6fdc1959122d5ee174d1e8a557bcf5dec403c340fe1741fff49944f038e9aa17197a2a53d52dcb483235541"],
+        [2, "872bce6bec774e86dcc72abbfae211195cc7786e9a851f9f851d1eb5bf197d522bc0c3f364ac6eaf424a296f20ed65f6212d56e7ac274eddfdbe9dcc8f4924c5"],
+        [3, "c38b4f40cf43d4aa9280cee5abe6ff52f0c4e2b72abd655bec54d4349ce352613e3230043cbd65a05d136f0b41aadc159a57beca49b0adb8cb4ed614d439d5d1"]
+    ]
+}
