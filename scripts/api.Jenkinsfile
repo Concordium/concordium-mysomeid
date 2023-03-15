@@ -12,7 +12,7 @@ pipeline {
         }
         stage('build') {
             environment {
-                image_repo = "${ecr_repo_domain}/concordium/mysomeid-dapp"
+                image_repo = "${ecr_repo_domain}/concordium/mysomeid-api"
                 image_name = "${image_repo}:${image_tag}"
             }
             steps {
