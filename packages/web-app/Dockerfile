@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN run yarn
+RUN yarn
 
 RUN yarn build
 
