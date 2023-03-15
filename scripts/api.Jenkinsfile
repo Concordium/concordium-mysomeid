@@ -14,6 +14,7 @@ pipeline {
             environment {
                 image_repo = "${ecr_repo_domain}/concordium/mysomeid-api"
                 image_name = "${image_repo}:${image_tag}"
+                DOCKER_BUILDKIT = "1"
             }
             steps {
                 dir('packages/service/packages/api') {
