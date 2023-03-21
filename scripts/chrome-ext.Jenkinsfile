@@ -16,8 +16,11 @@ pipeline {
                 docker { 
                     image 'node:16-alpine'
                     reuseNode true
-                    args '--user node'
                 }
+            }
+            environment {
+                CI = false
+                NODE_ENV = "production"
             }
             steps {
                 dir('packages/chrome-ext') {
@@ -26,6 +29,16 @@ pipeline {
                         yarn build
                     '''.stripIndent()
                     zip(zipFile: 'out.zip', archive: false, dir: './build')
+                }
+            }
+            post {
+                cleanup {
+                    sh '''\
+                        # Docker image has to run as root, otherwise user dosen't have access to node
+                        # this means all generated files a owned by root, in workdir mounted from host
+                        # meaning jenkins can't clean the files, so set owner of all files to jenkins
+                        chown -R 1000:1000 .
+                    '''.stripIndent()
                 }
             }
         }
