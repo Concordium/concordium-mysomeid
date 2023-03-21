@@ -13,7 +13,11 @@ pipeline {
         }
         stage('build') {
             agent {
-                docker { image 'node:16-alpine' }
+                docker { 
+                    image 'node:16-alpine'
+                    reuseNode true
+                    args '--user node'
+                }
             }
             steps {
                 dir('packages/chrome-ext') {
