@@ -20,7 +20,7 @@ pipeline {
             }
             environment {
                 CI = false
-                NODE_ENV = "production"
+                // NODE_ENV = "production"
             }
             steps {
                 dir('packages/chrome-ext') {
