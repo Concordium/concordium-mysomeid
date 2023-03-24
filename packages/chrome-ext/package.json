@@ -37,7 +37,7 @@
     "start:popup": "nodemon --watch 'src-popup/**/*' -e tsx,ts,js --exec yarn build:popup",
     "start:popup:browser": "yarn add ansi-html-community && react-app-rewired start",
     "start:content": "nodemon --watch 'src-content/**/*' -e tsx,ts,js --exec yarn build:content",
-    "build": "yarn build:popup && yarn build:widget && yarn build:background && yarn build:content && yarn build:injected",
+    "build": "yarn build:popup && yarn build:widget && yarn build:background && yarn build:content && yarn build:injected && yes | cp assets/icon.png build && yes | cp assets/manifest.json build",
     "build:popup": "INLINE_RUNTIME_CHUNK=false PUBLIC_URL=/popup/ react-app-rewired build",
     "build:content": "webpack --config webpack.content.config.js",
     "build:widget": "webpack --config webpack.widget.config.js",

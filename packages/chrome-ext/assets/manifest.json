@@ -1,0 +1,59 @@
+{
+  "short_name": "MYSOMEID",
+  "name": "MYSOMEID - Browser Extension",
+  "description": "Validate the authencity of your social media profiles with the MYSOMEID browser extension.",
+  "version": "1.0",
+  "manifest_version": 3,
+
+  "content_scripts": [
+      {
+          "run_at": "document_idle",
+          "all_frames": false,
+          "js": ["content/index.js"],
+          "matches": ["file://*/*", "http://*/*", "https://*/*"],
+          "match_origin_as_fallback": true
+      }
+  ],
+
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "permissions": [
+    "tabs",
+    "webNavigation",
+    "activeTab",
+    "storage",
+    "unlimitedStorage",
+    "scripting",
+    "webRequest"
+  ],
+
+  "background": {
+    "service_worker": "background/index.js"
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline'; object-src 'self'"
+  },
+
+  "web_accessible_resources": [
+    {
+        "resources": ["content/index.js", "injected/index.js", "widget/index.html", "widget/main.js"],
+        "matches": ["<all_urls>"]
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "Open the popup"
+  }
+
+}
