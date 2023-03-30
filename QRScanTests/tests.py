@@ -24,8 +24,8 @@ BACKGROUNDS = [
 INDEX_LENGTH = 8  # number of bytes used for "smart contract index"
 KEY_LENGTH = 32  # number of bytes used for decryption key
 BOX_SIZES = [3, 4]
-QUIET_ZONE_SIZES = 4  # number of white boxes around QR code.
-# Note: quiet_zone_size should be at least 4 according to the specification.
+QUIET_ZONE_SIZE = 4  # number of white boxes around QR code.
+# Note: QUIET_ZONE_SIZE should be at least 4 according to the specification.
 EC_LEVELS = [
     qrcode.constants.ERROR_CORRECT_L,
     # qrcode.constants.ERROR_CORRECT_M,
@@ -333,7 +333,7 @@ def create_and_read(
     qr_img = generate_qr_code(
         data=original_data,
         box_size=box_size,
-        quiet_zone_size=QUIET_ZONE_SIZES,
+        quiet_zone_size=QUIET_ZONE_SIZE,
         error_correction=error_correction,
         border_color=border_color,
     )
