@@ -20,9 +20,9 @@ const platform = detectPlatform();
 (window as any).mysome = mysome;
 
 // Here to make it easy to open the debugger on the correct process.
-if ( window.location.href.indexOf('linkedin.com') > 0 ) {
+/* if ( window.location.href.indexOf('linkedin.com') > 0 ) {
 	debugger;
-}
+}*/
 
 if ( platform !== null ) {
 	console.log("Creating message handler");
