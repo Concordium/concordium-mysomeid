@@ -2,8 +2,9 @@
 // - add a role that can mint instead of "owner"
 // - add upgrade of the contract.
 // - reinstate tests
-// - any view functions?
 // - allow anybody to mint for themselves.
+// - add ability to change base URL
+// - any view functions?
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -54,8 +55,7 @@ struct MintParams {
     /// Owner of the newly minted token.
     owner: AccountAddress,
     token: ContractTokenId,
-    #[concordium(size_length = 1)] // i.e., "li"
-    platform: String,
+    platform: Platform,
     // The data, which includes the proof, challenge, name, linkedin URL.
     #[concordium(size_length = 2)]
     data: Vec<u8>,
@@ -77,12 +77,32 @@ impl<S: HasStateApi> AddressState<S> {
     }
 }
 
+// Platform is a string of two bytes that are a valid UTF8 string
+#[derive(Serial, SchemaType, Clone, Copy)]
+struct Platform([u8; 2]);
+
+impl Deserial for Platform {
+    fn deserial<R: Read>(_source: &mut R) -> ParseResult<Self> {
+        let x = <[u8; 2]>::deserial(_source)?;
+        if core::str::from_utf8(&x).is_ok() {
+            Ok(Self(x))
+        } else {
+            Err(ParseError {})
+        }
+    }
+}
+
+impl core::fmt::Display for Platform {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(unsafe { core::str::from_utf8_unchecked(&self.0) })
+    }
+}
+
 #[derive(Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
 struct TokenState<S: HasStateApi> {
     revoked: bool,
-    #[concordium(size_length = 1)]
-    platform: String,
+    platform: Platform,
     data: StateBox<Vec<u8>, S>,
 }
 
@@ -174,7 +194,7 @@ impl<S: HasStateApi> State<S> {
         &mut self,
         token: ContractTokenId,
         owner: AccountAddress,
-        platform: String,
+        platform: Platform,
         data: Vec<u8>,
         state_builder: &mut StateBuilder<S>,
     ) -> ContractResult<()> {
@@ -269,7 +289,11 @@ impl<S: HasStateApi> State<S> {
 
 /// Build a string from TOKEN_METADATA_BASE_URL appended with the token ID
 /// encoded as hex.
-fn build_token_metadata_url(token_id: &ContractTokenId, platform: &str, revoked: bool) -> String {
+fn build_token_metadata_url(
+    token_id: &ContractTokenId,
+    platform: Platform,
+    revoked: bool,
+) -> String {
     let mut token_metadata_url = String::from(TOKEN_METADATA_BASE_URL);
     token_metadata_url.push_str(&format!(
         "{}?p={}&r={}",
@@ -298,8 +322,7 @@ fn contract_init<S: HasStateApi>(
 #[derive(Serial, SchemaType)]
 struct ViewData {
     pub token: ContractTokenId,
-    #[concordium(size_length = 1)] // i.e., "li"
-    pub platform: String,
+    pub platform: Platform,
     // The data, which includes the proof, challenge, name, linkedin URL.
     #[concordium(size_length = 2)]
     pub data: Vec<u8>,
@@ -322,7 +345,7 @@ fn contract_view_data<S: HasStateApi>(
     if let Some(token) = token {
         let data = ViewData {
             token: param,
-            platform: token.platform.clone(),
+            platform: token.platform,
             data: token.data.clone(),
         };
         Ok(Some(data))
@@ -424,7 +447,7 @@ fn contract_mint<S: HasStateApi>(
         TokenMetadataEvent {
             token_id: params.token.clone(),
             metadata_url: MetadataUrl {
-                url: build_token_metadata_url(&params.token, &params.platform, false),
+                url: build_token_metadata_url(&params.token, params.platform, false),
                 hash: None,
             },
         },
@@ -605,7 +628,7 @@ fn contract_token_metadata<S: HasStateApi>(
         // Check the token exists.
         if let Some(v) = host.state().all_tokens.get(&token_id) {
             let metadata_url = MetadataUrl {
-                url: build_token_metadata_url(&token_id, &v.platform, v.revoked),
+                url: build_token_metadata_url(&token_id, v.platform, v.revoked),
                 hash: None,
             };
             response.push(metadata_url);
