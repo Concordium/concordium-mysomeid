@@ -14,11 +14,13 @@
     "default_title": "Open the popup"
   },
   "permissions": [
-    "webNavigation",
     "tabs",
-    "background",
+    "webNavigation",
+    "activeTab",
     "storage",
-    "tabGroups"
+    "unlimitedStorage",
+    "scripting",
+    "webRequest"
   ],
   "background": {
     "service_worker": "background/index.js"
