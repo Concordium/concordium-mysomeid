@@ -123,3 +123,6 @@ packages/mobile-app/ios
 packages/mobile-app/android/
 
 packages/mobile-app/android
+
+# Rust stuff
+**/target
