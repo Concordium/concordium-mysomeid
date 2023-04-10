@@ -1,6 +1,6 @@
 use anyhow::Context;
 use axum::{
-    body::{BoxBody, Bytes, StreamBody},
+    body::Bytes,
     extract::{Path, Query, State},
     headers::ContentType,
     http::StatusCode,
@@ -20,6 +20,7 @@ use concordium::{
     v2::BlockIdentifier,
 };
 use concordium_rust_sdk as concordium;
+use image::GenericImageView;
 use postgres_types::FromSql;
 use reqwest::Url;
 use sha2::Digest;
@@ -123,6 +124,7 @@ struct Api {
 }
 #[derive(Debug, Clone)]
 struct ServiceState {
+    pub client:            reqwest::Client,
     pub concordium_client: concordium::v2::Client,
     pub crypto_params:     Arc<GlobalContext<ArCurve>>,
     pub base_url:          Arc<Url>,
@@ -191,6 +193,12 @@ async fn main() -> anyhow::Result<()> {
         axum::Router::new()
     };
 
+    // TODO: Add limits
+    let client = reqwest::ClientBuilder::new()
+        .connect_timeout(std::time::Duration::from_secs(2))
+        .build()
+        .context("Unable to build network client.")?;
+
     let state = ServiceState {
         concordium_client,
         crypto_params: Arc::new(global_context),
@@ -206,6 +214,7 @@ async fn main() -> anyhow::Result<()> {
         nft_image_revoked: Bytes::from(
             std::fs::read(app.nft_image_revoked).context("Unable to read the NFT image")?,
         ),
+        client,
     };
 
     // build our application with a route
@@ -229,6 +238,14 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/proof/:proof/img",
             axum::routing::get(get_img),
+        )
+        .route(
+            "/qr/validate",
+            axum::routing::get(parse_qr),
+        )
+        .route(
+            "/qr/image/scan", // TODO: This is duplicate, there is no point in this.
+            axum::routing::get(parse_qr),
         )
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http().
@@ -289,7 +306,7 @@ struct MetadataQueryParams {
     #[serde(rename = "r")]
     revoked:  u8,
 }
-#[tracing::instrument(level = "debug")]
+#[tracing::instrument(level = "debug", skip_all)]
 /// Get the statement
 async fn get_metadata(
     // TODO: ProofId should not be a string. It should be a base64
@@ -347,7 +364,8 @@ struct ImgQueryParams {
     #[serde(rename = "r")]
     revoked:  u8,
 }
-#[tracing::instrument(level = "debug")]
+
+#[tracing::instrument(level = "debug", skip_all)]
 /// Get the NFT image.
 /// TODO: This currently returns the same image for everything. It ignores all
 /// parameters apart from "revoked".
@@ -366,6 +384,88 @@ async fn get_img(
     } else {
         (TypedHeader(ContentType::png()), nft_image)
     }
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ParseQRParams {
+    url: Url,
+}
+
+// 2MB
+const MAX_IMAGE_SIZE: u64 = 2_000_000;
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn parse_qr(
+    Query(ParseQRParams { url }): Query<ParseQRParams>,
+    State(ServiceState { client, .. }): State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    let mut data = match client
+        .get(url)
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+    {
+        Ok(data) => data,
+        Err(e) => {
+            tracing::debug!("Unable to access image: {e}");
+            return Err(Error::InvalidRequest(
+                "Unable to access the requested image.".into(),
+            ));
+        }
+    };
+    if !data.status().is_success() {
+        return Err(Error::InvalidRequest("Cannot access the image.".into()));
+    }
+    // TODO: Can we afford to reject if content_length is not set?
+    if let Some(img_size) = data.content_length() {
+        if img_size > MAX_IMAGE_SIZE {
+            return Err(Error::InvalidRequest(
+                "The image is too large ({img_size})B.".into(),
+            ));
+        }
+    }
+    let mut img_data = Vec::new();
+    // TODO: Make sure that chunk sizes are sufficiently small.
+    while let Some(chunk) = data
+        .chunk()
+        .await
+        .map_err(|_| Error::InvalidRequest("Unable to access requested image.".into()))?
+    {
+        if img_data.len().saturating_add(chunk.len()) > MAX_IMAGE_SIZE as usize {
+            return Err(Error::InvalidRequest(
+                "The image is too large ({img_size})B.".into(),
+            ));
+        }
+        img_data.extend_from_slice(&chunk);
+    }
+    let img = match image::load_from_memory(&img_data) {
+        Ok(img) => img,
+        Err(e) => {
+            tracing::debug!("Cannot decode image: {e}");
+            return Err(Error::InvalidRequest("Unreadable image.".into()));
+        }
+    };
+    let (width, height) = img.dimensions();
+    let mut scanner = zbar_rust::ZBarImageScanner::new();
+    let results = match scanner.scan_y800(img.into_luma8().into_raw(), width, height) {
+        Ok(results) => results,
+        Err(e) => {
+            tracing::debug!("Cannot scan image: {e}");
+            return Err(Error::InvalidRequest("Unreadable image.".into()));
+        }
+    };
+    // Return the first match.
+    for result in results {
+        match String::from_utf8(result.data) {
+            Ok(v) => {
+                return Ok(axum::Json(serde_json::json!({ "result": Some(v)})));
+            }
+            Err(e) => {
+                tracing::debug!("Not a UTF8 string in the code: {e}");
+            }
+        }
+    }
+    return Ok(axum::Json(serde_json::json!({"result": None::<String>})));
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -390,7 +490,7 @@ struct ChallengeParams {
     user_data: String,
 }
 
-#[tracing::instrument(level = "debug")]
+#[tracing::instrument(level = "debug", skip_all)]
 /// Get the statement
 async fn get_challenge(
     Query(ChallengeParams {
@@ -422,12 +522,11 @@ struct VerifyParams {
 }
 
 /// Get the statement
-#[tracing::instrument(level = "debug")]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn verify_proof(
     State(ServiceState {
         mut concordium_client,
         crypto_params,
-        base_url,
         statement,
         ..
     }): State<ServiceState>,
