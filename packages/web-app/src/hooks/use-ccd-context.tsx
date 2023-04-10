@@ -1,4 +1,3 @@
-import WalletConnectProvider from "@walletconnect/web3-provider";
 import React, {
   ReactElement,
   useCallback,

@@ -302,7 +302,7 @@ export function MyProofs({}) {
         </Typography>
 
         <Box sx={{display: 'flex', marginTop: '24px'}}>
-          <SecondaryButton sx={{marginTop: '8px',}} onClick={connect}>Connect</SecondaryButton>
+          <SecondaryButton sx={{marginTop: '5px',}} onClick={connect}>Connect</SecondaryButton>
           <CreateProofButton {...{marginLeft: '16px', disabled: loading, onClick: createNewProof}} />
         </Box>
       </Box>
