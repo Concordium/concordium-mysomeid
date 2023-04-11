@@ -1,5 +1,4 @@
 // TODO:
-// - reinstate tests
 // - allow anybody to mint for themselves (future version of contract).
 // - any view functions?
 
@@ -571,7 +570,6 @@ fn contract_init<S: HasStateApi>(
         role: Roles::Admin,
     }))?;
 
-    // Construct the initial contract state.
     Ok(state)
 }
 
@@ -587,7 +585,7 @@ struct ViewData {
 /// View the token data.
 #[receive(
     contract = "mysomeid",
-    name = "view_data",
+    name = "viewData",
     return_value = "Option<ViewData>",
     parameter = "ContractTokenId",
     error = "ContractError"
@@ -619,7 +617,7 @@ struct ListTokens {
 /// View the token data.
 #[receive(
     contract = "mysomeid",
-    name = "list_owned_tokens",
+    name = "listOwnedTokens",
     return_value = "ListTokens",
     parameter = "AccountAddress",
     error = "ContractError"
@@ -1223,414 +1221,449 @@ fn contract_view_roles<S: HasStateApi>(
 
 // Tests
 
-// #[concordium_cfg_test]
-// mod tests {
-//     use super::*;
-//     use test_infrastructure::*;
+#[concordium_cfg_test]
+mod tests {
+    use super::*;
+    use test_infrastructure::*;
 
-//     const ACCOUNT_0: AccountAddress = AccountAddress([0u8; 32]);
-//     const ADDRESS_0: Address = Address::Account(ACCOUNT_0);
-//     const ACCOUNT_1: AccountAddress = AccountAddress([1u8; 32]);
-//     const ADDRESS_1: Address = Address::Account(ACCOUNT_1);
-//     const TOKEN_0: ContractTokenId = TokenIdU32(0);
-//     const TOKEN_1: ContractTokenId = TokenIdU32(42);
-//     const TOKEN_2: ContractTokenId = TokenIdU32(43);
+    const ACCOUNT_0: AccountAddress = AccountAddress([0u8; 32]);
+    const ADDRESS_0: Address = Address::Account(ACCOUNT_0);
+    const ACCOUNT_1: AccountAddress = AccountAddress([1u8; 32]);
+    const ADDRESS_1: Address = Address::Account(ACCOUNT_1);
+    const ADMIN_ACCOUNT: AccountAddress = AccountAddress([2u8; 32]);
+    const ADMIN_ADDRESS: Address = Address::Account(ADMIN_ACCOUNT);
+    const SETTER_ACCOUNT: AccountAddress = AccountAddress([3u8; 32]);
+    const SETTER_ADDRESS: Address = Address::Account(SETTER_ACCOUNT);
+    const MINTER_ACCOUNT: AccountAddress = AccountAddress([4u8; 32]);
+    const MINTER_ADDRESS: Address = Address::Account(MINTER_ACCOUNT);
+    const TOKEN_0: ContractTokenId = ContractTokenId(String::new());
 
-//     /// Test helper function which creates a contract state with two tokens with
-//     /// id `TOKEN_0` and id `TOKEN_1` owned by `ADDRESS_0`
-//     fn initial_state<S: HasStateApi>(state_builder: &mut StateBuilder<S>) -> State<S> {
-//         let mut state = State::empty(state_builder);
-//         state
-//             .mint(TOKEN_0, &ADDRESS_0, state_builder)
-//             .expect_report("Failed to mint TOKEN_0");
-//         state
-//             .mint(TOKEN_1, &ADDRESS_0, state_builder)
-//             .expect_report("Failed to mint TOKEN_1");
-//         state
-//     }
+    const PLATFORM: Platform = Platform([01, 01]);
+    //   ("LINKEDIN_0".to_string());
 
-//     /// Test initialization succeeds.
-//     #[concordium_test]
-//     fn test_init() {
-//         // Setup the context
-//         let ctx = TestInitContext::empty();
-//         let mut builder = TestStateBuilder::new();
+    // The metadata url for this nft contract.
+    const TOKEN_METADATA_BASE_URL: &str = "https://some.example/url/";
 
-//         // Call the contract function.
-//         let result = contract_init(&ctx, &mut builder);
+    fn initial_state<S: HasStateApi>(state_builder: &mut StateBuilder<S>) -> State<S> {
+        let metadata_url = MetadataUrl {
+            url: TOKEN_METADATA_BASE_URL.to_string(),
+            hash: None,
+        };
+        let mut state = State::empty(state_builder, metadata_url);
+        // state
+        //     .mint(&TOKEN_ID, token_amount(400), &ADDRESS_0, state_builder)
+        //     .expect_report("Failed to setup state");
+        state.grant_role(&ADMIN_ADDRESS, Roles::Admin, state_builder);
+        state
+    }
 
-//         // Check the result
-//         let state = result.expect_report("Contract initialization failed");
+    // Test initialization succeeds.
+    #[concordium_test]
+    fn test_init() {
+        // Setup the context
+        let mut ctx = TestInitContext::empty();
+        let mut builder = TestStateBuilder::new();
 
-//         // Check the state
-//         // Note. This is rather expensive as an iterator is created and then traversed -
-//         // should be avoided when writing smart contracts.
-//         claim_eq!(
-//             state.all_tokens.iter().count(),
-//             0,
-//             "No token should be initialized"
-//         );
-//     }
+        let mut logger = TestLogger::init();
 
-//     /// Test minting, ensuring the new tokens are owned by the given address and
-//     /// the appropriate events are logged.
-//     #[concordium_test]
-//     fn test_mint() {
-//         // Setup the context
-//         let mut ctx = TestReceiveContext::empty();
-//         ctx.set_sender(ADDRESS_0);
-//         ctx.set_owner(ACCOUNT_0);
+        ctx.set_init_origin(ADMIN_ACCOUNT);
 
-//         // and parameter.
-//         let mut tokens = collections::BTreeSet::new();
-//         tokens.insert(TOKEN_0);
-//         tokens.insert(TOKEN_1);
-//         tokens.insert(TOKEN_2);
-//         let parameter = MintParams {
-//             tokens,
-//             owner: ADDRESS_0,
-//         };
+        // Set up the parameter.
+        let parameter = SetMetadataUrlParams {
+            url: TOKEN_METADATA_BASE_URL.to_string(),
+        };
+        let parameter_bytes = to_bytes(&parameter);
+        ctx.set_parameter(&parameter_bytes);
 
-//         let parameter_bytes = to_bytes(&parameter);
-//         ctx.set_parameter(&parameter_bytes);
+        // Call the contract function.
+        let result = contract_init(&ctx, &mut builder, &mut logger);
 
-//         let mut logger = TestLogger::init();
-//         let mut state_builder = TestStateBuilder::new();
-//         let state = State::empty(&mut state_builder);
-//         let mut host = TestHost::new(state, state_builder);
+        // Check the result
+        let state = result.expect_report("Contract initialization failed");
 
-//         // Call the contract function.
-//         let result: ContractResult<()> = contract_mint(&ctx, &mut host, &mut logger);
+        // Check the state
+        claim_eq!(
+            state.all_tokens.iter().count(),
+            0,
+            "No token should be initialized"
+        );
 
-//         // Check the result
-//         claim!(result.is_ok(), "Results in rejection");
+        // Check the logs
+        claim_eq!(logger.logs.len(), 1, "Exactly one event should be logged");
+        claim!(
+            logger
+                .logs
+                .contains(&to_bytes(&Event::GrantRole(GrantRoleEvent {
+                    address: ADMIN_ADDRESS,
+                    role: Roles::Admin,
+                }))),
+            "Missing event which grants the admin role"
+        );
+    }
 
-//         // Check the state
-//         // Note. This is rather expensive as an iterator is created and then traversed -
-//         // should be avoided when writing smart contracts.
-//         claim_eq!(
-//             host.state().all_tokens.iter().count(),
-//             3,
-//             "Expected three tokens in the state."
-//         );
+    /// Test only Setter can setMetadataUrl
+    #[concordium_test]
+    fn test_set_metadata_url() {
+        let mut state_builder = TestStateBuilder::new();
 
-//         let balance0 = host
-//             .state()
-//             .balance(&TOKEN_0, &ADDRESS_0)
-//             .expect_report("Token is expected to exist");
-//         claim_eq!(
-//             balance0,
-//             1.into(),
-//             "Tokens should be owned by the given address 0"
-//         );
+        let metadata_url = concordium_cis2::MetadataUrl {
+            url: TOKEN_METADATA_BASE_URL.to_string(),
+            hash: None,
+        };
 
-//         let balance1 = host
-//             .state()
-//             .balance(&TOKEN_1, &ADDRESS_0)
-//             .expect_report("Token is expected to exist");
-//         claim_eq!(
-//             balance1,
-//             1.into(),
-//             "Tokens should be owned by the given address 0"
-//         );
+        let mut state = State::empty(&mut state_builder, metadata_url);
+        state.grant_role(&SETTER_ADDRESS, Roles::Setter, &mut state_builder);
+        let mut host = TestHost::new(state, state_builder);
 
-//         let balance2 = host
-//             .state()
-//             .balance(&TOKEN_2, &ADDRESS_0)
-//             .expect_report("Token is expected to exist");
-//         claim_eq!(
-//             balance2,
-//             1.into(),
-//             "Tokens should be owned by the given address 0"
-//         );
+        // Set up the context
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_sender(SETTER_ADDRESS);
 
-//         // Check the logs
-//         claim!(
-//             logger.logs.contains(&to_bytes(&Cis2Event::Mint(MintEvent {
-//                 owner: ADDRESS_0,
-//                 token_id: TOKEN_0,
-//                 amount: ContractTokenAmount::from(1),
-//             }))),
-//             "Expected an event for minting TOKEN_0"
-//         );
-//         claim!(
-//             logger.logs.contains(&to_bytes(&Cis2Event::Mint(MintEvent {
-//                 owner: ADDRESS_0,
-//                 token_id: TOKEN_1,
-//                 amount: ContractTokenAmount::from(1),
-//             }))),
-//             "Expected an event for minting TOKEN_1"
-//         );
-//         claim!(
-//             logger.logs.contains(&to_bytes(
-//                 &Cis2Event::TokenMetadata::<_, ContractTokenAmount>(TokenMetadataEvent {
-//                     token_id: TOKEN_0,
-//                     metadata_url: MetadataUrl {
-//                         url: format!("{}00000000", TOKEN_METADATA_BASE_URL),
-//                         hash: None,
-//                     },
-//                 })
-//             )),
-//             "Expected an event for token metadata for TOKEN_0"
-//         );
-//         claim!(
-//             logger.logs.contains(&to_bytes(
-//                 &Cis2Event::TokenMetadata::<_, ContractTokenAmount>(TokenMetadataEvent {
-//                     token_id: TOKEN_1,
-//                     metadata_url: MetadataUrl {
-//                         url: format!("{}2A000000", TOKEN_METADATA_BASE_URL),
-//                         hash: None,
-//                     },
-//                 })
-//             )),
-//             "Expected an event for token metadata for TOKEN_1"
-//         );
-//     }
+        // Create a new_url
+        let new_url = "https://some.example/updated".to_string();
 
-//     /// Test transfer succeeds, when `from` is the sender.
-//     #[concordium_test]
-//     fn test_transfer_account() {
-//         // Setup the context
-//         let mut ctx = TestReceiveContext::empty();
-//         ctx.set_sender(ADDRESS_0);
+        // Set up the parameter.
+        let parameter = SetMetadataUrlParams {
+            url: new_url.clone(),
+        };
+        let parameter_bytes = to_bytes(&parameter);
+        ctx.set_parameter(&parameter_bytes);
 
-//         // and parameter.
-//         let transfer = Transfer {
-//             token_id: TOKEN_0,
-//             amount: ContractTokenAmount::from(1),
-//             from: ADDRESS_0,
-//             to: Receiver::from_account(ACCOUNT_1),
-//             data: AdditionalData::empty(),
-//         };
-//         let parameter = TransferParams::from(vec![transfer]);
-//         let parameter_bytes = to_bytes(&parameter);
-//         ctx.set_parameter(&parameter_bytes);
+        // Call the contract function.
+        let result = contract_state_set_metadata_url(&ctx, &mut host);
 
-//         let mut logger = TestLogger::init();
-//         let mut state_builder = TestStateBuilder::new();
-//         let state = initial_state(&mut state_builder);
-//         let mut host = TestHost::new(state, state_builder);
+        // Check the result.
+        claim!(result.is_ok(), "Results in rejection");
 
-//         // Call the contract function.
-//         let result: ContractResult<()> = contract_transfer(&ctx, &mut host, &mut logger);
-//         // Check the result.
-//         claim!(result.is_ok(), "Results in rejection");
+        // Check the state.
+        let url = host.state().metadata_url.url.clone();
+        let hash = host.state().metadata_url.hash;
+        claim_eq!(url, new_url, "Expected url being updated");
+        claim_eq!(hash, None, "Expected hash being None");
 
-//         // Check the state.
-//         let balance0 = host
-//             .state()
-//             .balance(&TOKEN_0, &ADDRESS_0)
-//             .expect_report("Token is expected to exist");
-//         let balance1 = host
-//             .state()
-//             .balance(&TOKEN_0, &ADDRESS_1)
-//             .expect_report("Token is expected to exist");
-//         let balance2 = host
-//             .state()
-//             .balance(&TOKEN_1, &ADDRESS_0)
-//             .expect_report("Token is expected to exist");
-//         claim_eq!(
-//             balance0,
-//             0.into(),
-//             "Token owner balance should be decreased by the transferred amount"
-//         );
-//         claim_eq!(
-//             balance1,
-//             1.into(),
-//             "Token receiver balance should be increased by the transferred amount"
-//         );
-//         claim_eq!(
-//             balance2,
-//             1.into(),
-//             "Token receiver balance for token 1 should be the same as before"
-//         );
+        // Check only the admin can update the metadata URL
+        ctx.set_sender(ADDRESS_0);
 
-//         // Check the logs.
-//         claim_eq!(logger.logs.len(), 1, "Only one event should be logged");
-//         claim_eq!(
-//             logger.logs[0],
-//             to_bytes(&Cis2Event::Transfer(TransferEvent {
-//                 from: ADDRESS_0,
-//                 to: ADDRESS_1,
-//                 token_id: TOKEN_0,
-//                 amount: ContractTokenAmount::from(1),
-//             })),
-//             "Incorrect event emitted"
-//         )
-//     }
+        // Call the contract function.
+        let err = contract_state_set_metadata_url(&ctx, &mut host);
 
-//     /// Test transfer token fails, when sender is neither the owner or an
-//     /// operator of the owner.
-//     #[concordium_test]
-//     fn test_transfer_not_authorized() {
-//         // Setup the context
-//         let mut ctx = TestReceiveContext::empty();
-//         ctx.set_sender(ADDRESS_1);
+        // Check that ADDRESS_0 was not successful in updating the metadata url.
+        claim_eq!(
+            err,
+            Err(ContractError::Unauthorized),
+            "Error is expected to be Unauthorized"
+        )
+    }
 
-//         // and parameter.
-//         let transfer = Transfer {
-//             from: ADDRESS_0,
-//             to: Receiver::from_account(ACCOUNT_1),
-//             token_id: TOKEN_0,
-//             amount: ContractTokenAmount::from(1),
-//             data: AdditionalData::empty(),
-//         };
-//         let parameter = TransferParams::from(vec![transfer]);
-//         let parameter_bytes = to_bytes(&parameter);
-//         ctx.set_parameter(&parameter_bytes);
+    /// Test minting, ensuring the new token is owned by the given address and
+    /// the appropriate events are logged.
+    #[concordium_test]
+    fn test_mint() {
+        // Setup the context
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_sender(MINTER_ADDRESS);
 
-//         let mut logger = TestLogger::init();
-//         let mut state_builder = TestStateBuilder::new();
-//         let state = initial_state(&mut state_builder);
-//         let mut host = TestHost::new(state, state_builder);
+        // and parameter.
+        let parameter = MintParams {
+            token: TOKEN_0,
+            owner: ACCOUNT_0,
+            platform: PLATFORM,
+            data: vec![12],
+        };
 
-//         // Call the contract function.
-//         let result: ContractResult<()> = contract_transfer(&ctx, &mut host, &mut logger);
-//         // Check the result.
-//         let err = result.expect_err_report("Expected to fail");
-//         claim_eq!(
-//             err,
-//             ContractError::Unauthorized,
-//             "Error is expected to be Unauthorized"
-//         )
-//     }
+        let parameter_bytes = to_bytes(&parameter);
+        ctx.set_parameter(&parameter_bytes);
 
-//     /// Test transfer succeeds when sender is not the owner, but is an operator
-//     /// of the owner.
-//     #[concordium_test]
-//     fn test_operator_transfer() {
-//         // Setup the context
-//         let mut ctx = TestReceiveContext::empty();
-//         ctx.set_sender(ADDRESS_1);
+        let mut logger = TestLogger::init();
+        let mut state_builder = TestStateBuilder::new();
 
-//         // and parameter.
-//         let transfer = Transfer {
-//             from: ADDRESS_0,
-//             to: Receiver::from_account(ACCOUNT_1),
-//             token_id: TOKEN_0,
-//             amount: ContractTokenAmount::from(1),
-//             data: AdditionalData::empty(),
-//         };
-//         let parameter = TransferParams::from(vec![transfer]);
-//         let parameter_bytes = to_bytes(&parameter);
-//         ctx.set_parameter(&parameter_bytes);
+        let metadata_url = concordium_cis2::MetadataUrl {
+            url: TOKEN_METADATA_BASE_URL.to_string(),
+            hash: None,
+        };
 
-//         let mut logger = TestLogger::init();
+        let mut state = State::empty(&mut state_builder, metadata_url);
+        let url = state.build_token_metadata_url(&TOKEN_0, PLATFORM, false);
+        state.grant_role(&MINTER_ADDRESS, Roles::Minter, &mut state_builder);
 
-//         let mut state_builder = TestStateBuilder::new();
-//         let mut state = initial_state(&mut state_builder);
-//         state.add_operator(&ADDRESS_0, &ADDRESS_1, &mut state_builder);
-//         let mut host = TestHost::new(state, state_builder);
+        let mut host = TestHost::new(state, state_builder);
 
-//         // Call the contract function.
-//         let result: ContractResult<()> = contract_transfer(&ctx, &mut host, &mut logger);
+        // Call the contract function.
+        let result: ContractResult<()> = contract_mint(&ctx, &mut host, &mut logger);
 
-//         // Check the result.
-//         claim!(result.is_ok(), "Results in rejection");
+        // Check the result
+        claim!(result.is_ok(), "Results in rejection");
 
-//         // Check the state.
-//         let balance0 = host
-//             .state()
-//             .balance(&TOKEN_0, &ADDRESS_0)
-//             .expect_report("Token is expected to exist");
-//         let balance1 = host
-//             .state_mut()
-//             .balance(&TOKEN_0, &ADDRESS_1)
-//             .expect_report("Token is expected to exist");
-//         claim_eq!(
-//             balance0,
-//             0.into(),
-//             "Token owner balance should be decreased by the transferred amount"
-//         );
-//         claim_eq!(
-//             balance1,
-//             1.into(),
-//             "Token receiver balance should be increased by the transferred amount"
-//         );
+        // Check the state
+        claim_eq!(
+            host.state().all_tokens.iter().count(),
+            1,
+            "Expected one token in the state."
+        );
 
-//         // Check the logs.
-//         claim_eq!(logger.logs.len(), 1, "Only one event should be logged");
-//         claim_eq!(
-//             logger.logs[0],
-//             to_bytes(&Cis2Event::Transfer(TransferEvent {
-//                 from: ADDRESS_0,
-//                 to: ADDRESS_1,
-//                 token_id: TOKEN_0,
-//                 amount: ContractTokenAmount::from(1),
-//             })),
-//             "Incorrect event emitted"
-//         )
-//     }
+        let balance0 = host
+            .state()
+            .balance(&TOKEN_0, &ADDRESS_0)
+            .expect_report("Token is expected to exist");
+        claim_eq!(
+            balance0,
+            1.into(),
+            "Tokens should be owned by the given address 0"
+        );
 
-//     /// Test adding an operator succeeds and the appropriate event is logged.
-//     #[concordium_test]
-//     fn test_add_operator() {
-//         // Setup the context
-//         let mut ctx = TestReceiveContext::empty();
-//         ctx.set_sender(ADDRESS_0);
+        // Check the logs
+        claim!(
+            logger.logs.contains(&to_bytes(&Cis2Event::Mint(MintEvent {
+                owner: ADDRESS_0,
+                token_id: TOKEN_0,
+                amount: ContractTokenAmount::from(1),
+            }))),
+            "Expected an event for minting TOKEN_0"
+        );
+        claim!(
+            logger.logs.contains(&to_bytes(
+                &Cis2Event::TokenMetadata::<_, ContractTokenAmount>(TokenMetadataEvent {
+                    token_id: TOKEN_0,
+                    metadata_url: MetadataUrl { url, hash: None },
+                })
+            )),
+            "Expected an event for token metadata for TOKEN_0"
+        );
+    }
 
-//         // and parameter.
-//         let update = UpdateOperator {
-//             update: OperatorUpdate::Add,
-//             operator: ADDRESS_1,
-//         };
-//         let parameter = UpdateOperatorParams(vec![update]);
-//         let parameter_bytes = to_bytes(&parameter);
-//         ctx.set_parameter(&parameter_bytes);
+    /// Test cannot transfer.
+    #[concordium_test]
+    fn test_transfer() {
+        // Setup the context
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_sender(ADDRESS_0);
 
-//         let mut logger = TestLogger::init();
-//         let mut state_builder = TestStateBuilder::new();
-//         let state = initial_state(&mut state_builder);
-//         let mut host = TestHost::new(state, state_builder);
+        // and parameter.
+        let transfer = Transfer {
+            token_id: TOKEN_0,
+            amount: ContractTokenAmount::from(1),
+            from: ADDRESS_0,
+            to: Receiver::from_account(ACCOUNT_1),
+            data: AdditionalData::empty(),
+        };
+        let parameter = TransferParams::from(vec![transfer]);
+        let parameter_bytes = to_bytes(&parameter);
+        ctx.set_parameter(&parameter_bytes);
 
-//         // Call the contract function.
-//         let result: ContractResult<()> = contract_update_operator(&ctx, &mut host, &mut logger);
+        let mut state_builder = TestStateBuilder::new();
+        let state = initial_state(&mut state_builder);
+        let mut host = TestHost::new(state, state_builder);
 
-//         // Check the result.
-//         claim!(result.is_ok(), "Results in rejection");
+        // Call the contract function.
+        let err: ContractResult<()> = contract_transfer(&ctx, &mut host);
 
-//         // Check the state.
-//         let is_operator = host.state().is_operator(&ADDRESS_1, &ADDRESS_0);
-//         claim!(is_operator, "Account should be an operator");
+        // Check that invoke failed.
+        claim_eq!(
+            err,
+            Err(ContractError::Unauthorized),
+            "Transfer should be Unauthorized"
+        );
+    }
 
-//         // Checking that `ADDRESS_1` is an operator in the query response of the
-//         // `contract_operator_of` function as well.
-//         // Setup parameter.
-//         let operator_of_query = OperatorOfQuery {
-//             address: ADDRESS_1,
-//             owner: ADDRESS_0,
-//         };
+    /// Test cannot update operator.
+    #[concordium_test]
+    fn test_add_operator() {
+        // Setup the context
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_sender(ADDRESS_0);
 
-//         let operator_of_query_vector = OperatorOfQueryParams {
-//             queries: vec![operator_of_query],
-//         };
-//         let parameter_bytes = to_bytes(&operator_of_query_vector);
+        // and parameter.
+        let update = UpdateOperator {
+            update: OperatorUpdate::Add,
+            operator: ADDRESS_1,
+        };
+        let parameter = UpdateOperatorParams(vec![update]);
+        let parameter_bytes = to_bytes(&parameter);
+        ctx.set_parameter(&parameter_bytes);
 
-//         ctx.set_parameter(&parameter_bytes);
+        let mut state_builder = TestStateBuilder::new();
+        let state = initial_state(&mut state_builder);
+        let mut host = TestHost::new(state, state_builder);
 
-//         // Checking the return value of the `contract_operator_of` function
-//         let result: ContractResult<OperatorOfQueryResponse> = contract_operator_of(&ctx, &host);
+        // Call the contract function.
+        let err: ContractResult<()> = contract_update_operator(&ctx, &mut host);
 
-//         claim_eq!(
-//             result.expect_report("Failed getting result value").0,
-//             [true],
-//             "Account should be an operator in the query response"
-//         );
+        // Check that invoke failed.
+        claim_eq!(
+            err,
+            Err(ContractError::Unauthorized),
+            "Update operator should be Unauthorized"
+        );
 
-//         // Check the logs.
-//         claim_eq!(logger.logs.len(), 1, "One event should be logged");
-//         claim_eq!(
-//             logger.logs[0],
-//             to_bytes(
-//                 &Cis2Event::<ContractTokenId, ContractTokenAmount>::UpdateOperator(
-//                     UpdateOperatorEvent {
-//                         owner: ADDRESS_0,
-//                         operator: ADDRESS_1,
-//                         update: OperatorUpdate::Add,
-//                     }
-//                 )
-//             ),
-//             "Incorrect event emitted"
-//         )
-//     }
-// }
+        // Checking that `ADDRESS_1` is NOT an operator
+        let operator_of_query = OperatorOfQuery {
+            address: ADDRESS_1,
+            owner: ADDRESS_0,
+        };
+
+        let operator_of_query_vector = OperatorOfQueryParams {
+            queries: vec![operator_of_query],
+        };
+        let parameter_bytes = to_bytes(&operator_of_query_vector);
+
+        ctx.set_parameter(&parameter_bytes);
+
+        // Checking the return value of the `contract_operator_of` function
+        let result = contract_operator_of(&ctx, &host);
+
+        claim_eq!(
+            result.expect_report("Failed getting result value").0,
+            [false],
+            "Account should not be an operator in the query response"
+        );
+    }
+
+    /// Test `view_roles` function displays the `roles` content of the state.
+    /// Add the ADMIN and MINTER role to ACCOUNT_0 and the SETTER role to
+    /// ACCOUNT_1.
+    #[concordium_test]
+    fn test_view_roles() {
+        // Setup the context
+        let mut ctx = TestInitContext::empty();
+        ctx.set_init_origin(ADMIN_ACCOUNT);
+        let mut logger = TestLogger::init();
+
+        let mut builder = TestStateBuilder::new();
+
+        // and parameter.
+        let init_params = SetMetadataUrlParams {
+            url: TOKEN_METADATA_BASE_URL.to_string().to_string(),
+        };
+        let parameter_bytes = to_bytes(&init_params);
+        ctx.set_parameter(&parameter_bytes);
+
+        // Call the contract function.
+        let result = contract_init(&ctx, &mut builder, &mut logger);
+
+        // Check the result
+        let state = result.expect_report("Contract initialization failed");
+
+        let mut host = TestHost::new(state, builder);
+        let parameter = GrantRoleParams {
+            address: ADDRESS_1,
+            role: Roles::Setter,
+        };
+        let parameter_bytes = to_bytes(&parameter);
+        let mut ctx = TestReceiveContext::empty();
+
+        ctx.set_sender(ADMIN_ADDRESS);
+        ctx.set_parameter(&parameter_bytes);
+        let grant_role_result = contract_grant_role(&ctx, &mut host, &mut logger);
+        claim!(
+            grant_role_result.is_ok(),
+            "ADMIN_ADDRESS is allowed to grant role"
+        );
+
+        let parameter = GrantRoleParams {
+            address: ADMIN_ADDRESS,
+            role: Roles::Minter,
+        };
+        let parameter_bytes = to_bytes(&parameter);
+        let mut ctx = TestReceiveContext::empty();
+
+        ctx.set_sender(ADMIN_ADDRESS);
+        ctx.set_parameter(&parameter_bytes);
+        let grant_role_result2 = contract_grant_role(&ctx, &mut host, &mut logger);
+        claim!(
+            grant_role_result2.is_ok(),
+            "ADMIN_ADDRESS is allowed to grant role"
+        );
+
+        // Testing the `viewRoles` function
+        let roles_result = contract_view_roles(&ctx, &host);
+
+        let roles = roles_result.expect_report("Calling contract_view_roles expected to succeed");
+
+        // Check the roles_result
+        claim_eq!(
+            roles.all_roles.len(),
+            2,
+            "Exactly 2 accounts should have roles"
+        );
+        claim_eq!(
+            roles.all_roles[0],
+            (
+                concordium_std::Address::Account(ACCOUNT_1),
+                ViewRolesState {
+                    roles: vec![Roles::Setter],
+                }
+            ),
+            "ACCOUNT_1 should have the role Setter"
+        );
+        claim_eq!(
+            roles.all_roles[1],
+            (
+                concordium_std::Address::Account(ADMIN_ACCOUNT),
+                ViewRolesState {
+                    roles: vec![Roles::Admin, Roles::Minter],
+                }
+            ),
+            "ADMIN_ADDRESS should have the roles Admin and Minter"
+        );
+
+        let parameter = RemoveRoleParams {
+            address: ADDRESS_1,
+            role: Roles::Setter,
+        };
+        let parameter_bytes = to_bytes(&parameter);
+        let mut ctx = TestReceiveContext::empty();
+
+        ctx.set_sender(ADMIN_ADDRESS);
+        ctx.set_parameter(&parameter_bytes);
+        let remove_role_result = contract_remove_role(&ctx, &mut host, &mut logger);
+        claim!(
+            remove_role_result.is_ok(),
+            "ADMIN_ADDRESS is allowed to remove role"
+        );
+
+        let parameter = RemoveRoleParams {
+            address: ADMIN_ADDRESS,
+            role: Roles::Minter,
+        };
+        let parameter_bytes = to_bytes(&parameter);
+        let mut ctx = TestReceiveContext::empty();
+
+        ctx.set_sender(ADMIN_ADDRESS);
+        ctx.set_parameter(&parameter_bytes);
+        let remove_role_result2 = contract_remove_role(&ctx, &mut host, &mut logger);
+        claim!(
+            remove_role_result2.is_ok(),
+            "ADMIN_ADDRESS is allowed to remove role"
+        );
+
+        // Testing the `viewRoles` function
+        let roles_result = contract_view_roles(&ctx, &host);
+
+        let roles = roles_result.expect_report("Calling contract_view_roles expected to succeed");
+
+        // Check the roles_result
+        claim_eq!(
+            roles.all_roles.len(),
+            2,
+            "Exactly 2 accounts should have roles"
+        );
+        claim_eq!(
+            roles.all_roles[0],
+            (
+                concordium_std::Address::Account(ACCOUNT_1),
+                ViewRolesState { roles: vec![] }
+            ),
+            "ACCOUNT_1 should have no role"
+        );
+        claim_eq!(
+            roles.all_roles[1],
+            (
+                concordium_std::Address::Account(ADMIN_ACCOUNT),
+                ViewRolesState {
+                    roles: vec![Roles::Admin],
+                }
+            ),
+            "ADMIN_ADDRESS should have the roles Admin"
+        );
+    }
+}
