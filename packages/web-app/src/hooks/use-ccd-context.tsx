@@ -21,6 +21,9 @@ import {
 } from "src/constants";
 import ShortUniqueId from 'short-unique-id';
 import { toBuffer } from "@concordium/web-sdk";
+import {
+  useInterval
+} from 'use-interval';
 
 type ProofData = {
   id?: string;
@@ -143,6 +146,7 @@ type MintTx = {
 };
 
 export type CCDContextData = {
+  installed: boolean | null;
   isConnected: boolean;
   connect: () => void;
   disconnect: () => void;
@@ -196,6 +200,18 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
   });
   const [mintTxs, setMintTxs] = useState<MintTx[] | null>(null);
   const [addedMintTxsInfoToMyProofs, setAddedMintTxsInfoToMyProofs] = useState(false);
+  const [installed, setInstalled] = useState<boolean | null>(null);
+
+  useInterval(() => {
+    if ( installed !== null ) {
+      return;
+    }
+    if ( (window as any).concordium === undefined ) {
+      return;
+    }
+    console.log('!!(window as any).concordium ', !!(window as any).concordium);
+    setInstalled(!!(window as any).concordium);
+  }, 100, true);
 
   const _getTransactions = useCallback(async (accountAddress: string, limit: number = 1000, order: 'ascending' | 'descending' = 'descending', from: string | null = null): Promise<WalletProxyTransaction[]> => {
     const proxyPath =
@@ -316,6 +332,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         });
     // TODO: Implment disconnection here.
   }, []);
+
 
   const createProofStatement = useCallback(async (args: CreateProofStatementArgs): Promise<CreateProofStatementResult> => {
     const {
@@ -653,6 +670,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     proofDataProofStatement,
     loadingMyProofs,
     loadProof,
+    installed,
   }), [
     isConnected,
     account,
@@ -675,6 +693,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     proofDataProofStatement,
     loadingMyProofs,
     loadProof,
+    installed,
   ]);
 
   return <CCDContext.Provider {...{value}}>{children}</CCDContext.Provider>;
