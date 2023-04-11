@@ -1,6 +1,6 @@
 console.log("Installing MySoMeId Injected.");
 
-type MessageTypes = 'show-popup' | 'create-tour' | 'create-badge' | 'get-state' | 'update-registration' | 'create-popup' | 'widget-create' | 'get-url';
+type MessageTypes = 'show-popup' | 'create-tour' | 'create-badge' | 'get-state' | 'set-state' | 'update-registration' | 'create-popup' | 'widget-create' | 'get-url';
 type ToTypes = 'content' | 'popup' | 'background' | 'injected-widget';
 const widgets: Record<string, any> = {};
 const messageContexts: Record<number, any> = {};
@@ -160,21 +160,41 @@ const updateRegistration = async (state: any) => {
     throw new Error('Invalid state for registration');
   }
   return await messageHandler.sendMessageWResponse("background", "update-registration", {
-    state
+    store: 'state',
+    state,
   });
-}
+};
+
+const getPlatformRequests = async () => {
+  const response = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'platform-requests' });
+  const requests = response?.store?.array ?? [];
+  console.log("getPlatform requests (state) ", requests );
+  return requests?.store?.array ?? [];
+};
+
+const createPlatformRequest = async (platform: string, requestType: string) => {
+  const response = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'platform-requests' });
+  console.log("createPlatformRequest requests (before adding) ", response?.store?.array );
+  const value = [
+    ...(response?.store?.array ?? []),
+    {
+      id: Math.round(Math.random() * 99999999).toString(),
+      created: new Date().getTime(),
+      platform,
+      requestType,
+      status: 'created',
+    }
+  ];
+  console.log("new request list ", value );
+  await messageHandler.sendMessageWResponse("background", "set-state", {store: 'platform-requests', key: 'array', value});
+  debugger;
+};
 
 const getRegistrations = async () => {
   console.log("getRegistrations");
-  const state = await messageHandler.sendMessageWResponse("background", "get-state", {});
+  const state = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'state'});
   console.log("getRegistrations return ", {state} );
-  if( state ) {
-    if ( !state?.state?.['regs'] ) {
-      console.warn("Regs didnt exist.");
-    }
-    return state?.state?.['regs'] ?? null;
-  }
-  return null;
+  return state?.state?.['regs'] ?? null;
 };
 
 class MySoMeAPI {
@@ -190,6 +210,8 @@ class MySoMeAPI {
   updateReg = updateRegistration;
   updateRegistration = updateRegistration;
   getRegistrations = getRegistrations;
+  getPlatformRequests = getPlatformRequests;
+  createPlatformRequest = createPlatformRequest;
 }
 
 (window as any).mysome = new MySoMeAPI();

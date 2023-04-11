@@ -154,8 +154,7 @@ export const storage = new (class {
 			return;
 		}
 		return new Promise<void>(resolve => {
-			debugger;
-			chrome.runtime.sendMessage({type: "get-state", origin: 'mysome'}, ({state}: any) => {
+			chrome.runtime.sendMessage({type: "get-state", origin: 'mysome', payload: {store: 'state'}}, ({state}: any) => {
 				debugger;
 				this.state = state;
 				resolve();
@@ -170,7 +169,7 @@ export const storage = new (class {
 		}
 
 		return new Promise<void>(resolve => {
-			chrome.runtime.sendMessage({type: "set-state", args: {key, value}, origin: 'mysome'}, () => {
+			chrome.runtime.sendMessage({type: "set-state", payload: {key, value, store: 'state'}, origin: 'mysome'}, () => {
 				this.state = {
 					...(this.state ?? {}),
 					[key]: value,

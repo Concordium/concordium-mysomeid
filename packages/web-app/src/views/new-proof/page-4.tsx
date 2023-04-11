@@ -500,15 +500,7 @@ export default connect(state => ({
           image: dataUrl, // this is the image url.
         }).then (forward => {
           if ( forward ) {
-            setTimeout(() => {
-              // window.location.href = profilePageUrl; 
-              console.log("DONE!!!!");
-              ext.getRegistrations().then(regs => {
-                console.log("registrations ", regs);
-                debugger;
-                window.location.href = profilePageUrl;
-              });
-            }, 1000);
+            ext.openLinkedInSinceRegistrationIsDone(profilePageUrl);
             return;
           } else {
             downloadBase64File(dataUrl, 'mysomeid-linkedin-proof.png');

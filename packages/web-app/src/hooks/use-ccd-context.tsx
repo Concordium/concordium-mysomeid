@@ -381,7 +381,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       console.log("body ", body);
 
       if (!body.result) {
-        console.error("Failed - result is not existing.");
+        console.error("Proof deemed invalid", { challenge, proof, account });
         return null; 
       }
 

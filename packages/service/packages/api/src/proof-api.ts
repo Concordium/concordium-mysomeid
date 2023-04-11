@@ -144,7 +144,7 @@ export default (app: Express) => {
 
     const proxyPath =
       `v1/accTransactions/${account}?limit=${limit}&order=${order}&includeRawRejectReason${from ? `&from=${from}` : ''}`;
-      const base = process.env.WALLET_PROXY_BASE ?? "https://wallet-proxy.testnet.concordium.com";
+    const base = process.env.WALLET_PROXY_BASE ?? "https://wallet-proxy.testnet.concordium.com";
 
     const response = await fetch(`${base}/${proxyPath}`, {
       method: 'GET',

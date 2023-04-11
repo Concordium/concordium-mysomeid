@@ -32,6 +32,10 @@ export type ExtensionData = {
 
   sendMessage: (to: string, type: string, payload: any) => void;
   sendMessageWResponse: (to: string, type: string, payload: any) => Promise<any>;
+
+  startRegistration: (profileInfo: {platform: string}) => void;
+
+  openLinkedInSinceRegistrationIsDone: (profilePageUrl: string) => void;
 } | null;
 
 type MySoMeAPI = {
@@ -41,8 +45,8 @@ type MySoMeAPI = {
   getRegistrations(): Promise<any>;
   sendMessage: (to: string, type: string, payload: any) => void;
   sendMessageWResponse: (to: string, type: string, payload: any) => Promise<any>;
+  createPlatformRequest: (platform: string, request: 'fetch-profile') => Promise<any>;
 };
-
 
 const ExtensionContext = createContext<ExtensionData>(null);
 
@@ -50,11 +54,6 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
   const [installed, setInstalled] = useState(null);
   const [tsCreated, setTSCreated] = useState(new Date().getTime());
   const [mysome, setMySoMeAPI] = useState<MySoMeAPI | null>(null);
-
-  // Test
-  /*useInterval(() => {
-    setInstalled(!installed);
-  }, 3000);*/
 
   // Use interval to detect when/if the plugin installs itself.
   useInterval(() => {
@@ -90,16 +89,11 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     image: dataUrl,
   }*/
   const updateRegistration = useCallback(async (reg: Registration): Promise<boolean> => {
-    console.log("Stored registration ", reg);
+    console.log("Updated registration ", reg);
 
     // Storing in local storage is good but can fail.
     try {
-      /*const registrations = {
-        ...JSON.parse((localStorage.getItem('registrations') ?? '{}')),
-        [reg.userData]: reg,
-      };*/
       localStorage.setItem("reg_store_bg_" + reg.proofId, reg.backgroundImage );
-      // localStorage.setItem("registrations", JSON.stringify(registrations) );
     } catch(e) {
       console.error(e);
     }
@@ -140,6 +134,30 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     return mysome.sendMessage(to, type, payload);
   };
 
+  const startRegistration = (platformInfo: {platform: string}) => {
+    // platformInfo
+    if ( platformInfo?.platform !== 'li' ) {
+      throw new Error('invalid platform : ' + platformInfo?.platform);
+    }
+
+    (async () => {
+      await mysome.createPlatformRequest(platformInfo?.platform, 'fetch-profile');
+    })();
+    
+    setTimeout(() => {
+      window.location.href = 'https://linkedin.com';
+    }, 1000);
+
+  };
+
+  const openLinkedInSinceRegistrationIsDone = (profilePageUrl: string) => {
+    setTimeout(() => {
+      // window.location.href = profilePageUrl; 
+      getRegistrations().then(_regs => {
+        window.location.href = profilePageUrl;
+      });
+    }, 1000);
+  };
 
   const value: ExtensionData = useMemo(() => ({
     installed,
@@ -149,6 +167,8 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     getRegistrations,
     sendMessage,
     sendMessageWResponse,
+    startRegistration,
+    openLinkedInSinceRegistrationIsDone,
   }), [
     installed,
     mysome,
@@ -157,6 +177,8 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     getRegistrations,
     sendMessage,
     sendMessageWResponse,
+    startRegistration,
+    openLinkedInSinceRegistrationIsDone,
   ]);
 
   return <ExtensionContext.Provider {...{value}}>{children}</ExtensionContext.Provider>;

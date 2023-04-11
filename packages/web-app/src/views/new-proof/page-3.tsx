@@ -329,7 +329,7 @@ export default connect(state => ({
             {
               showLoading ?
                 <Box sx={{display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                  <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof." />
+                  <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof" />
                 </Box>
                 :
                 undefined
