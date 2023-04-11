@@ -1,33 +1,31 @@
 // TODO:
-// - add a role that can mint instead of "owner"
-// - add upgrade of the contract.
 // - reinstate tests
-// - allow anybody to mint for themselves.
-// - add ability to change base URL
+// - allow anybody to mint for themselves (future version of contract).
 // - any view functions?
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use concordium_cis2::*;
+use concordium_std::{collections::BTreeMap, *};
 use core::fmt::Display;
 
-use concordium_cis2::*;
-use concordium_std::*;
-
-/// The baseurl for the token metadata, gets appended with the token ID as hex
-/// encoding before emitted in the TokenMetadata event.
-const TOKEN_METADATA_BASE_URL: &str = "https://api.mysomeid.dev/v1/proof/meta/";
+use std::fmt::Write as _;
 
 /// List of supported standards by this contract address.
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =
     [CIS0_STANDARD_IDENTIFIER, CIS2_STANDARD_IDENTIFIER];
 
+/// Tag for the GrantRole event.
+pub const GRANT_ROLE_EVENT_TAG: u8 = 0;
+/// Tag for the RevokeRole event.
+pub const REVOKE_ROLE_EVENT_TAG: u8 = 1;
+
 // Types
 
 /// Contract token ID type.
-/// To save bytes we use a token ID type limited to a `u32`.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Serialize, Clone)]
 #[repr(transparent)]
-struct ContractTokenId(#[concordium(size_length = 1)] String);
+pub struct ContractTokenId(#[concordium(size_length = 1)] String);
 
 impl schema::SchemaType for ContractTokenId {
     fn get_type() -> crate::schema::Type {
@@ -59,6 +57,19 @@ struct MintParams {
     // The data, which includes the proof, challenge, name, linkedin URL.
     #[concordium(size_length = 2)]
     data: Vec<u8>,
+}
+
+/// The parameter type for the contract function `upgrade`.
+/// Takes the new module and optionally an entrypoint to call in the new module
+/// after triggering the upgrade. The upgrade is reverted if the entrypoint
+/// fails. This is useful for doing migration in the same transaction triggering
+/// the upgrade.
+#[derive(Debug, Serialize, SchemaType)]
+struct UpgradeParams {
+    /// The new module reference.
+    module: ModuleReference,
+    /// Optional entrypoint to call in the new module after upgrade.
+    migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
 }
 
 /// The state for each address.
@@ -106,12 +117,20 @@ struct TokenState<S: HasStateApi> {
     data: StateBox<Vec<u8>, S>,
 }
 
+#[derive(Serial, DeserialWithState, Deletable)]
+#[concordium(state_parameter = "S")]
+struct AddressRoleState<S> {
+    roles: StateSet<Roles, S>,
+}
+
 /// The contract state.
 // Note: The specification does not specify how to structure the contract state
 // and this could be structured in a more space efficient way depending on the use case.
 #[derive(Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
 struct State<S: HasStateApi> {
+    // Roles that are granted to special addresses.
+    roles: StateMap<Address, AddressRoleState<S>, S>,
     /// The state for each address.
     state: StateMap<AccountAddress, AddressState<S>, S>,
     /// All of the token IDs
@@ -119,6 +138,18 @@ struct State<S: HasStateApi> {
     /// Map with contract addresses providing implementations of additional
     /// standards.
     implementors: StateMap<StandardIdentifierOwned, Vec<ContractAddress>, S>,
+    /// The MetadataUrl of the token.
+    /// `StateBox` allows for lazy loading data. This is helpful
+    /// in the situations when one wants to do a partial update not touching
+    /// this field, which can be large.
+    metadata_url: StateBox<concordium_cis2::MetadataUrl, S>,
+}
+
+/// The parameter type for the contract function `setMetadataUrl`.
+#[derive(Serialize, SchemaType, Clone)]
+struct SetMetadataUrlParams {
+    /// The URL following the specification RFC1738.
+    url: String,
 }
 
 /// The parameter type for the contract function `setImplementors`.
@@ -147,6 +178,16 @@ enum CustomContractError {
     TokenIdAlreadyExists,
     /// Failed to invoke a contract.
     InvokeContractError,
+    /// Upgrade failed because the new module does not exist.
+    FailedUpgradeMissingModule,
+    /// Upgrade failed because the new module does not contain a contract with a
+    /// matching name.
+    FailedUpgradeMissingContract,
+    /// Upgrade failed because the smart contract version of the module is not
+    /// supported.
+    FailedUpgradeUnsupportedModuleVersion,
+    // Role not assigned
+    RoleNotAssigned,
 }
 
 /// Wrapping the custom errors in a type with CIS2 errors.
@@ -160,6 +201,18 @@ impl From<LogError> for CustomContractError {
         match le {
             LogError::Full => Self::LogFull,
             LogError::Malformed => Self::LogMalformed,
+        }
+    }
+}
+
+/// Mapping errors related to contract upgrades to CustomContractError.
+impl From<UpgradeError> for CustomContractError {
+    #[inline(always)]
+    fn from(ue: UpgradeError) -> Self {
+        match ue {
+            UpgradeError::MissingModule => Self::FailedUpgradeMissingModule,
+            UpgradeError::MissingContract => Self::FailedUpgradeMissingContract,
+            UpgradeError::UnsupportedModuleVersion => Self::FailedUpgradeUnsupportedModuleVersion,
         }
     }
 }
@@ -178,15 +231,53 @@ impl From<CustomContractError> for ContractError {
     }
 }
 
+#[derive(Serialize, PartialEq, Eq, Reject, Clone, Copy)]
+pub enum Roles {
+    Admin,
+    Minter,
+    Upgrader,
+    Setter,
+}
+
 // Functions for creating, updating and querying the contract state.
 impl<S: HasStateApi> State<S> {
     /// Creates a new state with no tokens.
-    fn empty(state_builder: &mut StateBuilder<S>) -> Self {
+    fn empty(
+        state_builder: &mut StateBuilder<S>,
+        metadata_url: concordium_cis2::MetadataUrl,
+    ) -> Self {
         State {
+            roles: state_builder.new_map(),
             state: state_builder.new_map(),
             all_tokens: state_builder.new_map(),
             implementors: state_builder.new_map(),
+            metadata_url: state_builder.new_box(metadata_url),
         }
+    }
+
+    fn has_role(&self, account: &Address, role: Roles) -> bool {
+        return match self.roles.get(account) {
+            None => false,
+            Some(roles) => roles.roles.contains(&role),
+        };
+    }
+
+    fn grant_role(&mut self, account: &Address, role: Roles, state_builder: &mut StateBuilder<S>) {
+        self.roles
+            .entry(*account)
+            .or_insert_with(|| AddressRoleState {
+                roles: state_builder.new_set(),
+            });
+
+        self.roles.entry(*account).and_modify(|entry| {
+            entry.roles.insert(role);
+        });
+    }
+
+    fn remove_role(&mut self, account: &Address, role: Roles) {
+        self.roles.entry(*account).and_modify(|entry| {
+            entry.roles.remove(&role);
+        });
     }
 
     /// Mint a new token with a given address as the owner
@@ -285,23 +376,164 @@ impl<S: HasStateApi> State<S> {
     ) {
         self.implementors.insert(std_id, implementors);
     }
+
+    /// Build a string from metadata_url appended with the token ID
+    /// encoded as hex.
+    fn build_token_metadata_url(
+        &self,
+        token_id: &ContractTokenId,
+        platform: Platform,
+        revoked: bool,
+    ) -> String {
+        let mut token_metadata_url = self.metadata_url.url.clone();
+
+        let _ = write!(
+            token_metadata_url,
+            "{}",
+            &format!("{}?p={}&r={}", token_id, platform, u8::from(revoked))
+        );
+        token_metadata_url
+    }
 }
 
-/// Build a string from TOKEN_METADATA_BASE_URL appended with the token ID
-/// encoded as hex.
-fn build_token_metadata_url(
-    token_id: &ContractTokenId,
-    platform: Platform,
-    revoked: bool,
-) -> String {
-    let mut token_metadata_url = String::from(TOKEN_METADATA_BASE_URL);
-    token_metadata_url.push_str(&format!(
-        "{}?p={}&r={}",
-        token_id,
-        platform,
-        u8::from(revoked)
-    ));
-    token_metadata_url
+/// The parameter type for the contract function `hasRole`.
+// Note: the order of the fields cannot be changed.
+#[derive(Serialize, SchemaType)]
+pub struct HasRoleQueryParamaters {
+    pub address: Address,
+    pub role: Roles,
+}
+
+/// The response which is sent back when calling the contract function
+/// `hasRole`.
+#[derive(Serialize, SchemaType)]
+pub struct HasRoleQueryResponse(pub bool);
+impl From<bool> for HasRoleQueryResponse {
+    fn from(ok: bool) -> Self {
+        HasRoleQueryResponse(ok)
+    }
+}
+
+// A GrantRoleEvent introduced by this smart contract.
+#[derive(Serialize, SchemaType)]
+pub struct GrantRoleEvent {
+    /// Address that has been given the role
+    address: Address,
+    role: Roles,
+}
+// A RevokeRoleEvent introduced by this smart contract.
+#[derive(Serialize, SchemaType)]
+pub struct RevokeRoleEvent {
+    /// Address that has been revoked the role
+    address: Address,
+    role: Roles,
+}
+
+/// Tagged event to be serialized for the event log.
+pub enum Event {
+    GrantRole(GrantRoleEvent),
+    RevokeRole(RevokeRoleEvent),
+    Cis2Event(Cis2Event<ContractTokenId, ContractTokenAmount>),
+}
+
+impl Serial for Event {
+    fn serial<W: Write>(&self, out: &mut W) -> Result<(), W::Err> {
+        match self {
+            Event::GrantRole(event) => {
+                out.write_u8(GRANT_ROLE_EVENT_TAG)?;
+                event.serial(out)
+            }
+            Event::RevokeRole(event) => {
+                out.write_u8(REVOKE_ROLE_EVENT_TAG)?;
+                event.serial(out)
+            }
+            Event::Cis2Event(event) => event.serial(out),
+        }
+    }
+}
+/// Manual implementation of the `EventSchema` which includes both the
+/// events specified in this contract and the events specified in the CIS-2
+/// library. The events are tagged to distinguish them on-chain.
+impl schema::SchemaType for Event {
+    fn get_type() -> schema::Type {
+        let mut event_map = BTreeMap::new();
+        event_map.insert(
+            GRANT_ROLE_EVENT_TAG,
+            (
+                "GrantRole".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("address"), Address::get_type()),
+                    (String::from("role"), Roles::get_type()),
+                ]),
+            ),
+        );
+        event_map.insert(
+            REVOKE_ROLE_EVENT_TAG,
+            (
+                "RevokeRole".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("address"), Address::get_type()),
+                    (String::from("role"), Roles::get_type()),
+                ]),
+            ),
+        );
+        event_map.insert(
+            TRANSFER_EVENT_TAG,
+            (
+                "Transfer".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("token_id"), ContractTokenId::get_type()),
+                    (String::from("amount"), ContractTokenAmount::get_type()),
+                    (String::from("from"), Address::get_type()),
+                    (String::from("to"), Address::get_type()),
+                ]),
+            ),
+        );
+        event_map.insert(
+            MINT_EVENT_TAG,
+            (
+                "Mint".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("token_id"), ContractTokenId::get_type()),
+                    (String::from("amount"), ContractTokenAmount::get_type()),
+                    (String::from("owner"), Address::get_type()),
+                ]),
+            ),
+        );
+        event_map.insert(
+            BURN_EVENT_TAG,
+            (
+                "Burn".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("token_id"), ContractTokenId::get_type()),
+                    (String::from("amount"), ContractTokenAmount::get_type()),
+                    (String::from("owner"), Address::get_type()),
+                ]),
+            ),
+        );
+        event_map.insert(
+            UPDATE_OPERATOR_EVENT_TAG,
+            (
+                "UpdateOperator".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("update"), OperatorUpdate::get_type()),
+                    (String::from("owner"), Address::get_type()),
+                    (String::from("operator"), Address::get_type()),
+                ]),
+            ),
+        );
+        event_map.insert(
+            TOKEN_METADATA_EVENT_TAG,
+            (
+                "TokenMetadata".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("token_id"), ContractTokenId::get_type()),
+                    (String::from("metadata_url"), MetadataUrl::get_type()),
+                ]),
+            ),
+        );
+        schema::Type::TaggedEnum(event_map)
+    }
 }
 
 // Contract functions
@@ -309,14 +541,38 @@ fn build_token_metadata_url(
 /// Initialize contract instance with no token types initially.
 #[init(
     contract = "mysomeid",
-    event = "Cis2Event<ContractTokenId, ContractTokenAmount>"
+    event = "Event",
+    parameter = "SetMetadataUrlParams",
+    enable_logger
 )]
 fn contract_init<S: HasStateApi>(
-    _ctx: &impl HasInitContext,
+    ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
+    logger: &mut impl HasLogger,
 ) -> InitResult<State<S>> {
+    // Parse the parameter.
+    let params: SetMetadataUrlParams = ctx.parameter_cursor().get()?;
+
+    // Create the metadata_url
+    let metadata_url = MetadataUrl {
+        url: params.url,
+        hash: None,
+    };
+
     // Construct the initial contract state.
-    Ok(State::empty(state_builder))
+    let mut state = State::empty(state_builder, metadata_url);
+
+    // Get the instantiater of this contract instance.
+    let invoker = Address::Account(ctx.init_origin());
+
+    state.grant_role(&invoker, Roles::Admin, state_builder);
+    logger.log(&Event::GrantRole(GrantRoleEvent {
+        address: invoker,
+        role: Roles::Admin,
+    }))?;
+
+    // Construct the initial contract state.
+    Ok(state)
 }
 
 #[derive(Serial, SchemaType)]
@@ -386,7 +642,7 @@ fn contract_list_owned_tokens<S: HasStateApi>(
 }
 
 /// Mint new tokens with a given address as the owner of these tokens.
-/// Can only be called by the contract owner.
+/// Can only be called by an address with Roles::Minter.
 /// Logs a `Mint` and a `TokenMetadata` event for each token.
 /// The url for the token metadata is the token ID encoded in hex, appended on
 /// the `TOKEN_METADATA_BASE_URL`.
@@ -414,23 +670,23 @@ fn contract_mint<S: HasStateApi>(
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     logger: &mut impl HasLogger,
 ) -> ContractResult<()> {
-    // Get the contract owner
-    let owner = ctx.owner();
     // Get the sender of the transaction
     let sender = ctx.sender();
 
-    ensure!(sender.matches_account(&owner), ContractError::Unauthorized);
+    let (state, builder) = host.state_and_builder();
+    ensure!(
+        state.has_role(&sender, Roles::Minter),
+        ContractError::Unauthorized
+    );
 
     // Parse the parameter.
     let params: MintParams = ctx.parameter_cursor().get()?;
-
-    let (state, builder) = host.state_and_builder();
 
     // Mint the token in the state.
     state.mint(
         params.token.clone(),
         params.owner,
-        params.platform.clone(),
+        params.platform,
         params.data,
         builder,
     )?;
@@ -447,7 +703,9 @@ fn contract_mint<S: HasStateApi>(
         TokenMetadataEvent {
             token_id: params.token.clone(),
             metadata_url: MetadataUrl {
-                url: build_token_metadata_url(&params.token, params.platform, false),
+                url: host
+                    .state()
+                    .build_token_metadata_url(&params.token, params.platform, false),
                 hash: None,
             },
         },
@@ -489,6 +747,7 @@ fn contract_burn<S: HasStateApi>(
     Ok(())
 }
 
+#[allow(dead_code)]
 type TransferParameter = TransferParams<ContractTokenId, ContractTokenAmount>;
 
 /// Execute a list of token transfers, in the order of the list.
@@ -556,10 +815,7 @@ fn contract_operator_of<S: HasStateApi>(
     // Parse the parameter.
     let params: OperatorOfQueryParams = ctx.parameter_cursor().get()?;
     // Build the response.
-    let mut response = Vec::with_capacity(params.queries.len());
-    for _ in params.queries {
-        response.push(false);
-    }
+    let response = vec![false; params.queries.len()];
     let result = OperatorOfQueryResponse::from(response);
     Ok(result)
 }
@@ -628,7 +884,9 @@ fn contract_token_metadata<S: HasStateApi>(
         // Check the token exists.
         if let Some(v) = host.state().all_tokens.get(&token_id) {
             let metadata_url = MetadataUrl {
-                url: build_token_metadata_url(&token_id, v.platform, v.revoked),
+                url: host
+                    .state()
+                    .build_token_metadata_url(&token_id, v.platform, v.revoked),
                 hash: None,
             };
             response.push(metadata_url);
@@ -700,6 +958,267 @@ fn contract_set_implementor<S: HasStateApi>(
     host.state_mut()
         .set_implementors(params.id, params.implementors);
     Ok(())
+}
+
+/// Update the metadata URL in this smart contract instance.
+///
+/// It rejects if:
+/// - Sender is an address with Roles::Setter of the contract instance.
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "mysomeid",
+    name = "setMetadataUrl",
+    parameter = "SetMetadataUrlParams",
+    error = "ContractError",
+    mutable
+)]
+fn contract_state_set_metadata_url<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+) -> ContractResult<()> {
+    // Get the sender of the transaction
+    let sender = ctx.sender();
+
+    // Check that only an address with Roles::Setter is authorized to update the URL.
+    ensure!(
+        host.state().has_role(&sender, Roles::Setter),
+        ContractError::Unauthorized
+    );
+
+    // Parse the parameter.
+    let params: SetMetadataUrlParams = ctx.parameter_cursor().get()?;
+
+    // Create the metadata_url
+    let metadata_url = MetadataUrl {
+        url: params.url,
+        hash: None,
+    };
+
+    // Update the hash variable.
+    *host.state_mut().metadata_url = metadata_url;
+
+    Ok(())
+}
+
+/// Upgrade this smart contract instance to a new module and call optionally a
+/// migration function after the upgrade.
+///
+/// It rejects if:
+/// - Sender is not the an address with Roles::Upgrader.
+/// - It fails to parse the parameter.
+/// - If the ugrade fails.
+/// - If the migration invoke fails.
+///
+/// This function is marked as `low_level`. This is **necessary** since the
+/// high-level mutable functions store the state of the contract at the end of
+/// execution. This conflicts with migration since the shape of the state
+/// **might** be changed by the migration function. If the state is then written
+/// by this function it would overwrite the state stored by the migration
+/// function.
+///     host: &impl HasHost<State<S>, StateApiType = S>,
+///   host: &mut impl HasHost<S>,
+#[receive(
+    contract = "mysomeid",
+    name = "upgrade",
+    parameter = "UpgradeParams",
+    error = "ContractError",
+    low_level
+)]
+fn contract_upgrade<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<S>,
+) -> ContractResult<()> {
+    // Get the sender of the transaction
+    let sender = ctx.sender();
+
+    // Read the top-level contract state.
+    let state: State<S> = host.state().read_root()?;
+
+    // Check that only and address with Roles::Upgrader is authorized to upgrade the smart contract.
+    ensure!(
+        state.has_role(&sender, Roles::Admin),
+        ContractError::Unauthorized
+    );
+    // Parse the parameter.
+    let params: UpgradeParams = ctx.parameter_cursor().get()?;
+    // Trigger the upgrade.
+    host.upgrade(params.module)?;
+    // Call the migration function if provided.
+    if let Some((func, parameters)) = params.migrate {
+        host.invoke_contract_raw(
+            &ctx.self_address(),
+            parameters.as_parameter(),
+            func.as_entrypoint_name(),
+            Amount::zero(),
+        )?;
+    }
+    Ok(())
+}
+
+/// Check if an address has a role.
+/// TODO Should this be batched like the rest of the functions ?
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "mysomeid",
+    name = "hasRole",
+    parameter = "HasRoleQueryParamaters",
+    return_value = "HasRoleQueryResponse"
+)]
+fn contract_has_role<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ContractResult<HasRoleQueryResponse> {
+    let mut cursor = ctx.parameter_cursor();
+    let query: HasRoleQueryParamaters = cursor.get()?;
+    let address = query.address;
+    let role = query.role;
+    let has_role = host.state().has_role(&address, role);
+    Ok(HasRoleQueryResponse::from(has_role))
+}
+
+/// The parameter type for the contract function `grantRole`.
+#[derive(Serialize, SchemaType)]
+pub struct GrantRoleParams {
+    pub address: Address,
+    pub role: Roles,
+}
+
+/// Manual implementation of the `Roles` schema.
+impl schema::SchemaType for Roles {
+    fn get_type() -> schema::Type {
+        schema::Type::Enum(vec![
+            ("Admin".to_string(), schema::Fields::None),
+            ("Minter".to_string(), schema::Fields::None),
+            ("Upgrader".to_string(), schema::Fields::None),
+            ("Setter".to_string(), schema::Fields::None),
+        ])
+    }
+}
+
+/// Grant Permission to an address
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+/// - The sender does not have the required permission
+#[receive(
+    contract = "mysomeid",
+    name = "grantRole",
+    parameter = "GrantRoleParams",
+    enable_logger,
+    mutable
+)]
+fn contract_grant_role<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+    logger: &mut impl HasLogger,
+) -> ContractResult<()> {
+    // Parse the parameter.
+    let params: GrantRoleParams = ctx.parameter_cursor().get()?;
+
+    // Get the sender who invoked this contract function.
+    let sender = ctx.sender();
+
+    let (state, state_builder) = host.state_and_builder();
+    ensure!(
+        state.has_role(&sender, Roles::Admin),
+        ContractError::Unauthorized
+    );
+
+    state.grant_role(&params.address, params.role, state_builder);
+    logger.log(&Event::GrantRole(GrantRoleEvent {
+        address: params.address,
+        role: params.role,
+    }))?;
+    Ok(())
+}
+
+/// The parameter type for the contract function `removeRole`.
+#[derive(Serialize, SchemaType)]
+pub struct RemoveRoleParams {
+    pub address: Address,
+    pub role: Roles,
+}
+
+/// Remove Permission to an address
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+/// - The sender does not have the required permission
+/// - the address does not have the role
+#[receive(
+    contract = "mysomeid",
+    name = "removeRole",
+    parameter = "RemoveRoleParams",
+    enable_logger,
+    mutable
+)]
+fn contract_remove_role<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+    logger: &mut impl HasLogger,
+) -> ContractResult<()> {
+    // Parse the parameter.
+    let params: RemoveRoleParams = ctx.parameter_cursor().get()?;
+
+    // Get the sender who invoked this contract function.
+    let sender = ctx.sender();
+
+    let (state, _) = host.state_and_builder();
+    ensure!(
+        state.has_role(&sender, Roles::Admin),
+        ContractError::Unauthorized
+    );
+
+    ensure!(
+        state.has_role(&params.address, params.role),
+        ContractError::Custom(CustomContractError::RoleNotAssigned)
+    );
+
+    state.remove_role(&params.address, params.role);
+    logger.log(&Event::RevokeRole(RevokeRoleEvent {
+        address: params.address,
+        role: params.role,
+    }))?;
+    Ok(())
+}
+
+/// Part of the return parameter of the `viewRoles` function.
+#[derive(Serialize, SchemaType, PartialEq)]
+struct ViewRolesState {
+    /// Vector of roles.
+    roles: Vec<Roles>,
+}
+
+/// Return parameter of the `viewRoles` function.
+#[derive(Serialize, SchemaType)]
+struct ViewAllRolesState {
+    /// Vector specifiying for each address a vector of its associated roles.
+    all_roles: Vec<(Address, ViewRolesState)>,
+}
+
+/// View function that returns the entire `roles` content of the state. Meant
+/// for monitoring.
+#[receive(
+    contract = "mysomeid",
+    name = "viewRoles",
+    return_value = "ViewAllRolesState"
+)]
+fn contract_view_roles<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<ViewAllRolesState> {
+    let state = host.state();
+
+    let mut all_roles = Vec::new();
+    for (address, a_state) in state.roles.iter() {
+        let roles: Vec<Roles> = a_state.roles.iter().map(|x| *x).collect();
+
+        all_roles.push((*address, ViewRolesState { roles }));
+    }
+
+    Ok(ViewAllRolesState { all_roles })
 }
 
 // Tests
