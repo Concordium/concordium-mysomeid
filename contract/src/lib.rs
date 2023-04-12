@@ -1,6 +1,5 @@
 // TODO:
 // - allow anybody to mint for themselves (future version of contract).
-// - any view functions?
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -45,49 +44,7 @@ impl Display for ContractTokenId {
 /// most 1 and it is fine to use a small type for representing token amounts.
 type ContractTokenAmount = TokenAmountU8;
 
-/// The parameter for the contract function `mint` which mints a number of
-/// tokens to a given address.
-#[derive(Serial, Deserial, SchemaType)]
-struct MintParams {
-    /// Owner of the newly minted token.
-    owner: AccountAddress,
-    token: ContractTokenId,
-    platform: Platform,
-    // The data, which includes the proof, challenge, name, linkedin URL.
-    #[concordium(size_length = 2)]
-    data: Vec<u8>,
-}
-
-/// The parameter type for the contract function `upgrade`.
-/// Takes the new module and optionally an entrypoint to call in the new module
-/// after triggering the upgrade. The upgrade is reverted if the entrypoint
-/// fails. This is useful for doing migration in the same transaction triggering
-/// the upgrade.
-#[derive(Debug, Serialize, SchemaType)]
-struct UpgradeParams {
-    /// The new module reference.
-    module: ModuleReference,
-    /// Optional entrypoint to call in the new module after upgrade.
-    migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
-}
-
-/// The state for each address.
-#[derive(Serial, DeserialWithState, Deletable, StateClone)]
-#[concordium(state_parameter = "S")]
-struct AddressState<S> {
-    /// The tokens owned by this address.
-    owned_tokens: StateSet<ContractTokenId, S>,
-}
-
-impl<S: HasStateApi> AddressState<S> {
-    fn empty(state_builder: &mut StateBuilder<S>) -> Self {
-        AddressState {
-            owned_tokens: state_builder.new_set(),
-        }
-    }
-}
-
-// Platform is a string of two bytes that are a valid UTF8 string
+/// Platform is a string of two bytes that are a valid UTF8 string
 #[derive(Serial, SchemaType, Clone, Copy)]
 struct Platform([u8; 2]);
 
@@ -108,11 +65,32 @@ impl core::fmt::Display for Platform {
     }
 }
 
+// State
+
+/// The state for each address.
+#[derive(Serial, DeserialWithState, Deletable, StateClone)]
+#[concordium(state_parameter = "S")]
+struct AddressState<S> {
+    /// The tokens owned by this address.
+    owned_tokens: StateSet<ContractTokenId, S>,
+}
+
+impl<S: HasStateApi> AddressState<S> {
+    fn empty(state_builder: &mut StateBuilder<S>) -> Self {
+        AddressState {
+            owned_tokens: state_builder.new_set(),
+        }
+    }
+}
+
 #[derive(Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
 struct TokenState<S: HasStateApi> {
+    /// The tokens owned by this address.
     revoked: bool,
+    /// Platform associated with the token.
     platform: Platform,
+    /// The data, which includes the proof, challenge, name, social media URL (e.g linkedin URL).
     data: StateBox<Vec<u8>, S>,
 }
 
@@ -128,7 +106,7 @@ struct AddressRoleState<S> {
 #[derive(Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
 struct State<S: HasStateApi> {
-    // Roles that are granted to special addresses.
+    /// Roles that are granted to special addresses.
     roles: StateMap<Address, AddressRoleState<S>, S>,
     /// The state for each address.
     state: StateMap<AccountAddress, AddressState<S>, S>,
@@ -142,100 +120,6 @@ struct State<S: HasStateApi> {
     /// in the situations when one wants to do a partial update not touching
     /// this field, which can be large.
     metadata_url: StateBox<concordium_cis2::MetadataUrl, S>,
-}
-
-/// The parameter type for the contract function `setMetadataUrl`.
-#[derive(Serialize, SchemaType, Clone)]
-struct SetMetadataUrlParams {
-    /// The URL following the specification RFC1738.
-    url: String,
-}
-
-/// The parameter type for the contract function `setImplementors`.
-/// Takes a standard identifier and list of contract addresses providing
-/// implementations of this standard.
-#[derive(Debug, Serialize, SchemaType)]
-struct SetImplementorsParams {
-    /// The identifier for the standard.
-    id: StandardIdentifierOwned,
-    /// The addresses of the implementors of the standard.
-    implementors: Vec<ContractAddress>,
-}
-
-/// The custom errors the contract can produce.
-#[derive(Serialize, Debug, PartialEq, Eq, Reject, SchemaType)]
-enum CustomContractError {
-    /// Failed parsing the parameter.
-    #[from(ParseError)]
-    ParseParams,
-    /// Failed logging: Log is full.
-    LogFull,
-    /// Failed logging: Log is malformed.
-    LogMalformed,
-    /// Failing to mint new tokens because one of the token IDs already exists
-    /// in this contract.
-    TokenIdAlreadyExists,
-    /// Failed to invoke a contract.
-    InvokeContractError,
-    /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule,
-    /// Upgrade failed because the new module does not contain a contract with a
-    /// matching name.
-    FailedUpgradeMissingContract,
-    /// Upgrade failed because the smart contract version of the module is not
-    /// supported.
-    FailedUpgradeUnsupportedModuleVersion,
-    // Role not assigned
-    RoleNotAssigned,
-}
-
-/// Wrapping the custom errors in a type with CIS2 errors.
-type ContractError = Cis2Error<CustomContractError>;
-
-type ContractResult<A> = Result<A, ContractError>;
-
-/// Mapping the logging errors to CustomContractError.
-impl From<LogError> for CustomContractError {
-    fn from(le: LogError) -> Self {
-        match le {
-            LogError::Full => Self::LogFull,
-            LogError::Malformed => Self::LogMalformed,
-        }
-    }
-}
-
-/// Mapping errors related to contract upgrades to CustomContractError.
-impl From<UpgradeError> for CustomContractError {
-    #[inline(always)]
-    fn from(ue: UpgradeError) -> Self {
-        match ue {
-            UpgradeError::MissingModule => Self::FailedUpgradeMissingModule,
-            UpgradeError::MissingContract => Self::FailedUpgradeMissingContract,
-            UpgradeError::UnsupportedModuleVersion => Self::FailedUpgradeUnsupportedModuleVersion,
-        }
-    }
-}
-
-/// Mapping errors related to contract invocations to CustomContractError.
-impl<T> From<CallContractError<T>> for CustomContractError {
-    fn from(_cce: CallContractError<T>) -> Self {
-        Self::InvokeContractError
-    }
-}
-
-/// Mapping CustomContractError to ContractError
-impl From<CustomContractError> for ContractError {
-    fn from(c: CustomContractError) -> Self {
-        Cis2Error::Custom(c)
-    }
-}
-
-#[derive(Serialize, PartialEq, Eq, Reject, Clone, Copy)]
-pub enum Roles {
-    Admin,
-    Minter,
-    Upgrader,
-    Setter,
 }
 
 // Functions for creating, updating and querying the contract state.
@@ -273,7 +157,7 @@ impl<S: HasStateApi> State<S> {
         });
     }
 
-    fn remove_role(&mut self, account: &Address, role: Roles) {
+    fn revoke_role(&mut self, account: &Address, role: Roles) {
         self.roles.entry(*account).and_modify(|entry| {
             entry.roles.remove(&role);
         });
@@ -376,8 +260,7 @@ impl<S: HasStateApi> State<S> {
         self.implementors.insert(std_id, implementors);
     }
 
-    /// Build a string from metadata_url appended with the token ID
-    /// encoded as hex.
+    /// Build a string from the metadata_url appended with the tokenId, platform and if it is revoked using the URL query string format.
     fn build_token_metadata_url(
         &self,
         token_id: &ContractTokenId,
@@ -395,11 +278,170 @@ impl<S: HasStateApi> State<S> {
     }
 }
 
+// Errors
+
+/// The custom errors the contract can produce.
+#[derive(Serialize, Debug, PartialEq, Eq, Reject, SchemaType)]
+enum CustomContractError {
+    /// Failed parsing the parameter.
+    #[from(ParseError)]
+    ParseParams,
+    /// Failed logging: Log is full.
+    LogFull,
+    /// Failed logging: Log is malformed.
+    LogMalformed,
+    /// Failing to mint new token because the tokenId already exists
+    /// in this contract.
+    TokenIdAlreadyExists,
+    /// Failed to invoke a contract.
+    InvokeContractError,
+    /// Upgrade failed because the new module does not exist.
+    FailedUpgradeMissingModule,
+    /// Upgrade failed because the new module does not contain a contract with a
+    /// matching name.
+    FailedUpgradeMissingContract,
+    /// Upgrade failed because the smart contract version of the module is not
+    /// supported.
+    FailedUpgradeUnsupportedModuleVersion,
+    // Role is not assigned.
+    RoleNotAssigned,
+}
+
+/// Wrapping the custom errors in a type with CIS2 errors.
+type ContractError = Cis2Error<CustomContractError>;
+
+type ContractResult<A> = Result<A, ContractError>;
+
+/// Mapping the logging errors to CustomContractError.
+impl From<LogError> for CustomContractError {
+    fn from(le: LogError) -> Self {
+        match le {
+            LogError::Full => Self::LogFull,
+            LogError::Malformed => Self::LogMalformed,
+        }
+    }
+}
+
+/// Mapping errors related to contract upgrades to CustomContractError.
+impl From<UpgradeError> for CustomContractError {
+    #[inline(always)]
+    fn from(ue: UpgradeError) -> Self {
+        match ue {
+            UpgradeError::MissingModule => Self::FailedUpgradeMissingModule,
+            UpgradeError::MissingContract => Self::FailedUpgradeMissingContract,
+            UpgradeError::UnsupportedModuleVersion => Self::FailedUpgradeUnsupportedModuleVersion,
+        }
+    }
+}
+
+/// Mapping errors related to contract invocations to CustomContractError.
+impl<T> From<CallContractError<T>> for CustomContractError {
+    fn from(_cce: CallContractError<T>) -> Self {
+        Self::InvokeContractError
+    }
+}
+
+/// Mapping CustomContractError to ContractError
+impl From<CustomContractError> for ContractError {
+    fn from(c: CustomContractError) -> Self {
+        Cis2Error::Custom(c)
+    }
+}
+
+// Parameters
+
+/// The parameter for the contract function `mint` which mints a number of
+/// tokens to a given address.
+#[derive(Serial, Deserial, SchemaType)]
+struct MintParams {
+    /// Owner of the newly minted token.
+    owner: AccountAddress,
+    /// TokenId of the newly minted token.
+    token: ContractTokenId,
+    /// Platform associated with the newly minted token.
+    platform: Platform,
+    /// The data, which includes the proof, challenge, name, social media URL (e.g linkedin URL).
+    #[concordium(size_length = 2)]
+    data: Vec<u8>,
+}
+
+/// The parameter type for the contract function `upgrade`.
+/// Takes the new module and optionally an entrypoint to call in the new module
+/// after triggering the upgrade. The upgrade is reverted if the entrypoint
+/// fails. This is useful for doing migration in the same transaction triggering
+/// the upgrade.
+#[derive(Debug, Serialize, SchemaType)]
+struct UpgradeParams {
+    /// The new module reference.
+    module: ModuleReference,
+    /// Optional entrypoint to call in the new module after upgrade.
+    migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
+}
+
+/// The parameter type for the contract function `setMetadataUrl`.
+#[derive(Serialize, SchemaType, Clone)]
+struct SetMetadataUrlParams {
+    /// The URL following the specification RFC1738.
+    url: String,
+}
+
+/// The parameter type for the contract function `setImplementors`.
+/// Takes a standard identifier and list of contract addresses providing
+/// implementations of this standard.
+#[derive(Debug, Serialize, SchemaType)]
+struct SetImplementorsParams {
+    /// The identifier for the standard.
+    id: StandardIdentifierOwned,
+    /// The addresses of the implementors of the standard.
+    implementors: Vec<ContractAddress>,
+}
+
+/// Enum of the roles present in this contract.
+#[derive(Serialize, PartialEq, Eq, Reject, Clone, Copy)]
+pub enum Roles {
+    /// The admin can grant and revoke all other roles.
+    Admin,
+    /// The minter can mint new tokens.
+    Minter,
+    /// The upgrader can upgrade this contract.
+    Upgrader,
+    /// The setter can update the metadata URL.
+    Setter,
+}
+
+/// Manual implementation of the `Roles` schema.
+impl schema::SchemaType for Roles {
+    fn get_type() -> schema::Type {
+        schema::Type::Enum(vec![
+            ("Admin".to_string(), schema::Fields::None),
+            ("Minter".to_string(), schema::Fields::None),
+            ("Upgrader".to_string(), schema::Fields::None),
+            ("Setter".to_string(), schema::Fields::None),
+        ])
+    }
+}
+
+/// The parameter type for the contract function `grantRole`.
+#[derive(Serialize, SchemaType)]
+pub struct GrantRoleParams {
+    pub address: Address,
+    pub role: Roles,
+}
+
+/// The parameter type for the contract function `revokeRole`.
+#[derive(Serialize, SchemaType)]
+pub struct RevokeRoleParams {
+    pub address: Address,
+    pub role: Roles,
+}
+
 /// The parameter type for the contract function `hasRole`.
 // Note: the order of the fields cannot be changed.
 #[derive(Serialize, SchemaType)]
 pub struct HasRoleQueryParamaters {
+    /// Address to query if it was granted the role.
     pub address: Address,
+    /// Role to query if it was granted to the above address.
     pub role: Roles,
 }
 
@@ -407,24 +449,28 @@ pub struct HasRoleQueryParamaters {
 /// `hasRole`.
 #[derive(Serialize, SchemaType)]
 pub struct HasRoleQueryResponse(pub bool);
+
 impl From<bool> for HasRoleQueryResponse {
     fn from(ok: bool) -> Self {
         HasRoleQueryResponse(ok)
     }
 }
 
-// A GrantRoleEvent introduced by this smart contract.
+/// A GrantRoleEvent introduced by this smart contract.
 #[derive(Serialize, SchemaType)]
 pub struct GrantRoleEvent {
-    /// Address that has been given the role
+    /// Address that has been given the role.
     address: Address,
+    /// The role that was give to above address.
     role: Roles,
 }
-// A RevokeRoleEvent introduced by this smart contract.
+
+/// A RevokeRoleEvent introduced by this smart contract.
 #[derive(Serialize, SchemaType)]
 pub struct RevokeRoleEvent {
-    /// Address that has been revoked the role
+    /// Address that has been revoked the role.
     address: Address,
+    /// The role that was roveked from the above address.
     role: Roles,
 }
 
@@ -450,6 +496,7 @@ impl Serial for Event {
         }
     }
 }
+
 /// Manual implementation of the `EventSchema` which includes both the
 /// events specified in this contract and the events specified in the CIS-2
 /// library. The events are tagged to distinguish them on-chain.
@@ -564,7 +611,9 @@ fn contract_init<S: HasStateApi>(
     // Get the instantiater of this contract instance.
     let invoker = Address::Account(ctx.init_origin());
 
+    // Grant admin role.
     state.grant_role(&invoker, Roles::Admin, state_builder);
+
     logger.log(&Event::GrantRole(GrantRoleEvent {
         address: invoker,
         role: Roles::Admin,
@@ -573,11 +622,14 @@ fn contract_init<S: HasStateApi>(
     Ok(state)
 }
 
+/// The return type for the contract function `viewData`.
 #[derive(Serial, SchemaType)]
 struct ViewData {
+    /// TokenId of the token.
     pub token: ContractTokenId,
+    /// Platform associated with the token.
     pub platform: Platform,
-    // The data, which includes the proof, challenge, name, linkedin URL.
+    /// The data, which includes the proof, challenge, name, social media URL (e.g linkedin URL).
     #[concordium(size_length = 2)]
     pub data: Vec<u8>,
 }
@@ -608,6 +660,7 @@ fn contract_view_data<S: HasStateApi>(
     }
 }
 
+/// The return type for the contract function `listOwnedTokens`.
 #[derive(Serial, SchemaType)]
 struct ListTokens {
     #[concordium(size_length = 2)]
@@ -633,28 +686,22 @@ fn contract_list_owned_tokens<S: HasStateApi>(
         for token in tokens.owned_tokens.iter() {
             ret.push(token.clone());
         }
-        Ok(ListTokens { tokens: ret })
-    } else {
-        Ok(ListTokens { tokens: Vec::new() })
     }
+    Ok(ListTokens { tokens: ret })
 }
 
 /// Mint new tokens with a given address as the owner of these tokens.
 /// Can only be called by an address with Roles::Minter.
 /// Logs a `Mint` and a `TokenMetadata` event for each token.
-/// The url for the token metadata is the token ID encoded in hex, appended on
-/// the `TOKEN_METADATA_BASE_URL`.
+/// The url for the token metadata is the metadata_url appended with the tokenId, platform and if it is revoked using the URL query string format.
 ///
 /// It rejects if:
-/// - The sender is not the contract instance owner.
+/// - Sender is not an address with Roles::Minter.
 /// - Fails to parse parameter.
 /// - Any of the tokens fails to be minted, which could be if:
 ///     - The minted token ID already exists.
 ///     - Fails to log Mint event
 ///     - Fails to log TokenMetadata event
-///
-/// Note: Can at most mint 32 token types in one call due to the limit on the
-/// number of logs a smart contract can produce on each function call.
 #[receive(
     contract = "mysomeid",
     name = "mint",
@@ -711,6 +758,14 @@ fn contract_mint<S: HasStateApi>(
     Ok(())
 }
 
+/// Burns/Revokes a token.
+/// Can only be called by the owner of the tokenId.
+/// Logs a `Burn` event.
+///
+/// It rejects if:
+/// - Sender is not in possession of the tokenId.
+/// - Fails to parse parameter.
+/// - Fails to log Burn event
 #[receive(
     contract = "mysomeid",
     name = "burn",
@@ -748,20 +803,8 @@ fn contract_burn<S: HasStateApi>(
 #[allow(dead_code)]
 type TransferParameter = TransferParams<ContractTokenId, ContractTokenAmount>;
 
-/// Execute a list of token transfers, in the order of the list.
-///
-/// Logs a `Transfer` event and invokes a receive hook function for every
-/// transfer in the list.
-///
-/// It rejects if:
-/// - It fails to parse the parameter.
-/// - Any of the transfers fail to be executed, which could be if:
-///     - The `token_id` does not exist.
-///     - The sender is not the owner of the token, or an operator for this
-///       specific `token_id` and `from` address.
-///     - The token is not owned by the `from`.
-/// - Fails to log event.
-/// - Any of the receive hook function calls rejects.
+/// The `transfer` function of the CIS-2 standard.
+/// This function always rejects.
 #[receive(
     contract = "mysomeid",
     name = "transfer",
@@ -775,12 +818,8 @@ fn contract_transfer<S: HasStateApi>(
     Err(ContractError::Unauthorized)
 }
 
-/// Enable or disable addresses as operators of the sender address.
-/// Logs an `UpdateOperator` event.
-///
-/// It rejects if:
-/// - It fails to parse the parameter.
-/// - Fails to log event.
+/// The `updateOperator` function of the CIS-2 standard.
+/// This function always rejects.
 #[receive(
     contract = "mysomeid",
     name = "updateOperator",
@@ -795,7 +834,7 @@ fn contract_update_operator<S: HasStateApi>(
 }
 
 /// Takes a list of queries. Each query is an owner address and some address to
-/// check as an operator of the owner address.
+/// check as an operator of the owner address. It returns `false` for every query.
 ///
 /// It rejects if:
 /// - It fails to parse the parameter.
@@ -961,7 +1000,7 @@ fn contract_set_implementor<S: HasStateApi>(
 /// Update the metadata URL in this smart contract instance.
 ///
 /// It rejects if:
-/// - Sender is an address with Roles::Setter of the contract instance.
+/// - Sender is not an address with Roles::Setter.
 /// - It fails to parse the parameter.
 #[receive(
     contract = "mysomeid",
@@ -1002,7 +1041,7 @@ fn contract_state_set_metadata_url<S: HasStateApi>(
 /// migration function after the upgrade.
 ///
 /// It rejects if:
-/// - Sender is not the an address with Roles::Upgrader.
+/// - Sender is not an address with Roles::Upgrader.
 /// - It fails to parse the parameter.
 /// - If the ugrade fails.
 /// - If the migration invoke fails.
@@ -1013,8 +1052,6 @@ fn contract_state_set_metadata_url<S: HasStateApi>(
 /// **might** be changed by the migration function. If the state is then written
 /// by this function it would overwrite the state stored by the migration
 /// function.
-///     host: &impl HasHost<State<S>, StateApiType = S>,
-///   host: &mut impl HasHost<S>,
 #[receive(
     contract = "mysomeid",
     name = "upgrade",
@@ -1054,7 +1091,6 @@ fn contract_upgrade<S: HasStateApi>(
 }
 
 /// Check if an address has a role.
-/// TODO Should this be batched like the rest of the functions ?
 ///
 /// It rejects if:
 /// - It fails to parse the parameter.
@@ -1068,38 +1104,16 @@ fn contract_has_role<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ContractResult<HasRoleQueryResponse> {
-    let mut cursor = ctx.parameter_cursor();
-    let query: HasRoleQueryParamaters = cursor.get()?;
-    let address = query.address;
-    let role = query.role;
-    let has_role = host.state().has_role(&address, role);
+    let query: HasRoleQueryParamaters = ctx.parameter_cursor().get()?;
+    let has_role = host.state().has_role(&query.address, query.role);
     Ok(HasRoleQueryResponse::from(has_role))
-}
-
-/// The parameter type for the contract function `grantRole`.
-#[derive(Serialize, SchemaType)]
-pub struct GrantRoleParams {
-    pub address: Address,
-    pub role: Roles,
-}
-
-/// Manual implementation of the `Roles` schema.
-impl schema::SchemaType for Roles {
-    fn get_type() -> schema::Type {
-        schema::Type::Enum(vec![
-            ("Admin".to_string(), schema::Fields::None),
-            ("Minter".to_string(), schema::Fields::None),
-            ("Upgrader".to_string(), schema::Fields::None),
-            ("Setter".to_string(), schema::Fields::None),
-        ])
-    }
 }
 
 /// Grant Permission to an address
 ///
 /// It rejects if:
+/// - Sender is not an address with Roles::Admin.
 /// - It fails to parse the parameter.
-/// - The sender does not have the required permission
 #[receive(
     contract = "mysomeid",
     name = "grantRole",
@@ -1112,9 +1126,6 @@ fn contract_grant_role<S: HasStateApi>(
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     logger: &mut impl HasLogger,
 ) -> ContractResult<()> {
-    // Parse the parameter.
-    let params: GrantRoleParams = ctx.parameter_cursor().get()?;
-
     // Get the sender who invoked this contract function.
     let sender = ctx.sender();
 
@@ -1124,42 +1135,37 @@ fn contract_grant_role<S: HasStateApi>(
         ContractError::Unauthorized
     );
 
+    // Parse the parameter.
+    let params: GrantRoleParams = ctx.parameter_cursor().get()?;
+
     state.grant_role(&params.address, params.role, state_builder);
+
     logger.log(&Event::GrantRole(GrantRoleEvent {
         address: params.address,
         role: params.role,
     }))?;
+
     Ok(())
 }
 
-/// The parameter type for the contract function `removeRole`.
-#[derive(Serialize, SchemaType)]
-pub struct RemoveRoleParams {
-    pub address: Address,
-    pub role: Roles,
-}
-
-/// Remove Permission to an address
+/// Revoke Permission to an address
 ///
 /// It rejects if:
+/// - Sender is not an address with Roles::Admin.
 /// - It fails to parse the parameter.
-/// - The sender does not have the required permission
-/// - the address does not have the role
+/// - The address does not have the role.
 #[receive(
     contract = "mysomeid",
-    name = "removeRole",
-    parameter = "RemoveRoleParams",
+    name = "revokeRole",
+    parameter = "RevokeRoleParams",
     enable_logger,
     mutable
 )]
-fn contract_remove_role<S: HasStateApi>(
+fn contract_revoke_role<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     logger: &mut impl HasLogger,
 ) -> ContractResult<()> {
-    // Parse the parameter.
-    let params: RemoveRoleParams = ctx.parameter_cursor().get()?;
-
     // Get the sender who invoked this contract function.
     let sender = ctx.sender();
 
@@ -1169,16 +1175,21 @@ fn contract_remove_role<S: HasStateApi>(
         ContractError::Unauthorized
     );
 
+    // Parse the parameter.
+    let params: RevokeRoleParams = ctx.parameter_cursor().get()?;
+
     ensure!(
         state.has_role(&params.address, params.role),
         ContractError::Custom(CustomContractError::RoleNotAssigned)
     );
 
-    state.remove_role(&params.address, params.role);
+    state.revoke_role(&params.address, params.role);
+
     logger.log(&Event::RevokeRole(RevokeRoleEvent {
         address: params.address,
         role: params.role,
     }))?;
+
     Ok(())
 }
 
@@ -1239,10 +1250,9 @@ mod tests {
     const TOKEN_0: ContractTokenId = ContractTokenId(String::new());
 
     const PLATFORM: Platform = Platform([01, 01]);
-    //   ("LINKEDIN_0".to_string());
 
     // The metadata url for this nft contract.
-    const TOKEN_METADATA_BASE_URL: &str = "https://some.example/url/";
+    const TOKEN_METADATA_BASE_URL: &str = "https://api.mysomeid.dev/v1/proof/meta/";
 
     fn initial_state<S: HasStateApi>(state_builder: &mut StateBuilder<S>) -> State<S> {
         let metadata_url = MetadataUrl {
@@ -1250,9 +1260,6 @@ mod tests {
             hash: None,
         };
         let mut state = State::empty(state_builder, metadata_url);
-        // state
-        //     .mint(&TOKEN_ID, token_amount(400), &ADDRESS_0, state_builder)
-        //     .expect_report("Failed to setup state");
         state.grant_role(&ADMIN_ADDRESS, Roles::Admin, state_builder);
         state
     }
@@ -1520,7 +1527,9 @@ mod tests {
 
     /// Test `view_roles` function displays the `roles` content of the state.
     /// Add the ADMIN and MINTER role to ACCOUNT_0 and the SETTER role to
-    /// ACCOUNT_1.
+    /// ACCOUNT_1. Check the `view_roles` function after these changes.
+    /// Then revoke the MINTER role from ACCOUNT_0 and the SETTER role from
+    /// ACCOUNT_1. Check the `view_roles` function after these changes.
     #[concordium_test]
     fn test_view_roles() {
         // Setup the context
@@ -1606,7 +1615,7 @@ mod tests {
             "ADMIN_ADDRESS should have the roles Admin and Minter"
         );
 
-        let parameter = RemoveRoleParams {
+        let parameter = RevokeRoleParams {
             address: ADDRESS_1,
             role: Roles::Setter,
         };
@@ -1615,13 +1624,13 @@ mod tests {
 
         ctx.set_sender(ADMIN_ADDRESS);
         ctx.set_parameter(&parameter_bytes);
-        let remove_role_result = contract_remove_role(&ctx, &mut host, &mut logger);
+        let revoke_role_result = contract_revoke_role(&ctx, &mut host, &mut logger);
         claim!(
-            remove_role_result.is_ok(),
-            "ADMIN_ADDRESS is allowed to remove role"
+            revoke_role_result.is_ok(),
+            "ADMIN_ADDRESS is allowed to revoke role"
         );
 
-        let parameter = RemoveRoleParams {
+        let parameter = RevokeRoleParams {
             address: ADMIN_ADDRESS,
             role: Roles::Minter,
         };
@@ -1630,10 +1639,10 @@ mod tests {
 
         ctx.set_sender(ADMIN_ADDRESS);
         ctx.set_parameter(&parameter_bytes);
-        let remove_role_result2 = contract_remove_role(&ctx, &mut host, &mut logger);
+        let revoke_role_result2 = contract_revoke_role(&ctx, &mut host, &mut logger);
         claim!(
-            remove_role_result2.is_ok(),
-            "ADMIN_ADDRESS is allowed to remove role"
+            revoke_role_result2.is_ok(),
+            "ADMIN_ADDRESS is allowed to revoke role"
         );
 
         // Testing the `viewRoles` function
