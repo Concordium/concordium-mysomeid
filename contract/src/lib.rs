@@ -4,10 +4,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use concordium_cis2::*;
+use concordium_std::fmt::Write as _;
 use concordium_std::{collections::BTreeMap, *};
 use core::fmt::Display;
-
-use std::fmt::Write as _;
 
 /// List of supported standards by this contract address.
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =
