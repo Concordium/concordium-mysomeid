@@ -6,7 +6,6 @@
 use concordium_cis2::*;
 use concordium_std::fmt::Write as _;
 use concordium_std::{collections::BTreeMap, *};
-use core::fmt::Display;
 
 /// List of supported standards by this contract address.
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =
@@ -20,23 +19,7 @@ pub const REVOKE_ROLE_EVENT_TAG: u8 = 1;
 // Types
 
 /// Contract token ID type.
-#[derive(Ord, PartialOrd, Eq, PartialEq, Serialize, Clone)]
-#[repr(transparent)]
-pub struct ContractTokenId(#[concordium(size_length = 1)] String);
-
-impl schema::SchemaType for ContractTokenId {
-    fn get_type() -> crate::schema::Type {
-        TokenIdVec::get_type()
-    }
-}
-
-impl IsTokenId for ContractTokenId {}
-
-impl Display for ContractTokenId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
+pub type ContractTokenId = TokenIdU64;
 
 /// Contract token amount.
 /// Since the tokens are non-fungible the total supply of any token will be at
@@ -105,6 +88,8 @@ struct AddressRoleState<S> {
 #[derive(Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
 struct State<S: HasStateApi> {
+    /// Token id of the next minted token.
+    next_token_id: u64,
     /// Roles that are granted to special addresses.
     roles: StateMap<Address, AddressRoleState<S>, S>,
     /// The state for each address.
@@ -129,6 +114,7 @@ impl<S: HasStateApi> State<S> {
         metadata_url: concordium_cis2::MetadataUrl,
     ) -> Self {
         State {
+            next_token_id: 0,
             roles: state_builder.new_map(),
             state: state_builder.new_map(),
             all_tokens: state_builder.new_map(),
@@ -162,31 +148,29 @@ impl<S: HasStateApi> State<S> {
         });
     }
 
-    /// Mint a new token with a given address as the owner
+    /// Mint a new token with a given address as the owner.
+    /// Return the ID of the newly minted token.
     fn mint(
         &mut self,
-        token: ContractTokenId,
         owner: AccountAddress,
         platform: Platform,
         data: Vec<u8>,
         state_builder: &mut StateBuilder<S>,
-    ) -> ContractResult<()> {
-        let entry = self
-            .all_tokens
-            .entry(token.clone())
-            .vacant_or(CustomContractError::TokenIdAlreadyExists)?;
+    ) -> ContractResult<ContractTokenId> {
+        let token = TokenIdU64(self.next_token_id);
+        self.next_token_id += 1;
         let token_state = TokenState {
             data: state_builder.new_box(data),
             revoked: false,
             platform,
         };
-        entry.insert(token_state);
+        self.all_tokens.insert(token, token_state);
         let mut owner_state = self
             .state
             .entry(owner)
             .or_insert_with(|| AddressState::empty(state_builder));
         owner_state.owned_tokens.insert(token);
-        Ok(())
+        Ok(token)
     }
 
     fn burn(&mut self, token_id: &ContractTokenId, owner: &Address) -> ContractResult<()> {
@@ -271,7 +255,7 @@ impl<S: HasStateApi> State<S> {
         let _ = write!(
             token_metadata_url,
             "{}",
-            &format!("{}?p={}&r={}", token_id, platform, u8::from(revoked))
+            &format!("{}?p={}&r={}", token_id.0, platform, u8::from(revoked))
         );
         token_metadata_url
     }
@@ -289,9 +273,6 @@ enum CustomContractError {
     LogFull,
     /// Failed logging: Log is malformed.
     LogMalformed,
-    /// Failing to mint new token because the tokenId already exists
-    /// in this contract.
-    TokenIdAlreadyExists,
     /// Failed to invoke a contract.
     InvokeContractError,
     /// Upgrade failed because the new module does not exist.
@@ -355,8 +336,6 @@ impl From<CustomContractError> for ContractError {
 struct MintParams {
     /// Owner of the newly minted token.
     owner: AccountAddress,
-    /// TokenId of the newly minted token.
-    token: ContractTokenId,
     /// Platform associated with the newly minted token.
     platform: Platform,
     /// The data, which includes the proof, challenge, name, social media URL (e.g linkedin URL).
@@ -727,17 +706,11 @@ fn contract_mint<S: HasStateApi>(
     let params: MintParams = ctx.parameter_cursor().get()?;
 
     // Mint the token in the state.
-    state.mint(
-        params.token.clone(),
-        params.owner,
-        params.platform,
-        params.data,
-        builder,
-    )?;
+    let token = state.mint(params.owner, params.platform, params.data, builder)?;
 
     // Event for minted NFT.
     logger.log(&Cis2Event::Mint(MintEvent {
-        token_id: params.token.clone(),
+        token_id: token,
         amount: ContractTokenAmount::from(1),
         owner: params.owner.into(),
     }))?;
@@ -745,11 +718,11 @@ fn contract_mint<S: HasStateApi>(
     // Metadata URL for the NFT.
     logger.log(&Cis2Event::TokenMetadata::<_, ContractTokenAmount>(
         TokenMetadataEvent {
-            token_id: params.token.clone(),
+            token_id: token,
             metadata_url: MetadataUrl {
                 url: host
                     .state()
-                    .build_token_metadata_url(&params.token, params.platform, false),
+                    .build_token_metadata_url(&token, params.platform, false),
                 hash: None,
             },
         },
@@ -1246,7 +1219,7 @@ mod tests {
     const SETTER_ADDRESS: Address = Address::Account(SETTER_ACCOUNT);
     const MINTER_ACCOUNT: AccountAddress = AccountAddress([4u8; 32]);
     const MINTER_ADDRESS: Address = Address::Account(MINTER_ACCOUNT);
-    const TOKEN_0: ContractTokenId = ContractTokenId(String::new());
+    const TOKEN_0: ContractTokenId = TokenIdU64(0);
 
     const PLATFORM: Platform = Platform([01, 01]);
 
@@ -1371,7 +1344,6 @@ mod tests {
 
         // and parameter.
         let parameter = MintParams {
-            token: TOKEN_0,
             owner: ACCOUNT_0,
             platform: PLATFORM,
             data: vec![12],
