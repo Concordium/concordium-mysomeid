@@ -1,4 +1,8 @@
-use anyhow::Context;
+use aes_gcm::{
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce,
+};
+pub use anyhow::Context;
 use axum::{
     body::Bytes,
     extract::{Path, Query, State},
@@ -9,22 +13,29 @@ use axum::{
 use axum_prometheus::PrometheusMetricLayerBuilder;
 use clap::Parser;
 use concordium::{
-    common::{Versioned, VERSION_0},
+    common::{self, Versioned, VERSION_0},
     id::{
         constants::{ArCurve, AttributeKind},
         id_proof_types::{Proof, Statement},
         types::{AccountCredentialWithoutProofs, GlobalContext},
     },
-    smart_contracts::common::AccountAddress,
-    types::CredentialRegistrationID,
-    v2::BlockIdentifier,
+    smart_contracts::{self, common::AccountAddress},
+    types::{ContractAddress, CredentialRegistrationID, Energy, WalletAccount},
+    v2::{self, BlockIdentifier},
+};
+use concordium_base::{
+    contracts_common::Amount,
+    smart_contracts::{OwnedParameter, OwnedReceiveName},
+    transactions::{self, BlockItem, EncodedPayload, UpdateContractPayload},
 };
 use concordium_rust_sdk as concordium;
 use image::GenericImageView;
 use postgres_types::FromSql;
+use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
-use std::{borrow::Cow, path::PathBuf, sync::Arc};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
+use tokio::sync::mpsc::error::TrySendError;
 use tokio_postgres::NoTls;
 use tonic::transport::ClientTlsConfig;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse};
@@ -48,6 +59,22 @@ struct Api {
         default_value = "10"
     )]
     concordium_request_timeout: u64,
+    /// Location of the keys used to send transactions.
+    #[clap(
+        long,
+        help = "Path to the key file.",
+        env = "MYSOMEID_WALLET",
+        default_value = "10"
+    )]
+    concordium_wallet: std::path::PathBuf,
+    /// Address of the mysomeid contract.
+    #[clap(
+        long,
+        help = "Address of the instance of mysomeid..",
+        env = "MYSOMEID_CONTRACT",
+        default_value = "10"
+    )]
+    concordium_contract: ContractAddress,
     /// Request timeout for Concordium node requests.
     #[clap(
         long = "base-url",
@@ -122,6 +149,7 @@ struct Api {
     )]
     log_headers: bool,
 }
+
 #[derive(Debug, Clone)]
 struct ServiceState {
     pub client:            reqwest::Client,
@@ -131,6 +159,11 @@ struct ServiceState {
     pub statement:         Arc<Statement<ArCurve, AttributeKind>>,
     pub nft_image:         Bytes,
     pub nft_image_revoked: Bytes,
+    pub signer:            Arc<WalletAccount>,
+    pub contract_address:  ContractAddress,
+    pub nonce_counter:     Arc<std::sync::atomic::AtomicU64>,
+    pub tx_sender:
+        tokio::sync::mpsc::Sender<(concordium_rust_sdk::types::Nonce, BlockItem<EncodedPayload>)>,
 }
 
 #[tokio::main]
@@ -193,14 +226,31 @@ async fn main() -> anyhow::Result<()> {
         axum::Router::new()
     };
 
+    let signer =
+        WalletAccount::from_json_file(app.concordium_wallet).context("Unable to read keys.")?;
+
+    let starting_nonce = concordium_client
+        .get_next_account_sequence_number(&signer.address)
+        .await
+        .context("Unable to get starting nonce.")?;
+    anyhow::ensure!(
+        starting_nonce.all_final,
+        "There are unfinalized transactions. Refusing to start."
+    );
+
+    let nonce_counter = std::sync::atomic::AtomicU64::new(starting_nonce.nonce.nonce);
+
     // TODO: Add limits
     let client = reqwest::ClientBuilder::new()
         .connect_timeout(std::time::Duration::from_secs(2))
         .build()
         .context("Unable to build network client.")?;
 
+    let (sender, receiver) = tokio::sync::mpsc::channel(10);
+
     let state = ServiceState {
-        concordium_client,
+        client,
+        concordium_client: concordium_client.clone(),
         crypto_params: Arc::new(global_context),
         base_url: Arc::new(app.base_url),
         statement: Arc::new(
@@ -214,7 +264,10 @@ async fn main() -> anyhow::Result<()> {
         nft_image_revoked: Bytes::from(
             std::fs::read(app.nft_image_revoked).context("Unable to read the NFT image")?,
         ),
-        client,
+        signer: Arc::new(signer),
+        contract_address: app.concordium_contract,
+        nonce_counter: Arc::new(nonce_counter),
+        tx_sender: sender,
     };
 
     // build our application with a route
@@ -230,6 +283,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/proof/verify",
             axum::routing::post(verify_proof),
+        )
+        .route(
+            "/proof/nft",
+            axum::routing::post(mint_nft),
         )
         .route(
             "/proof/meta/:proof",
@@ -279,6 +336,9 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    let tx_sender_handle =
+        tokio::spawn(tx_sender(starting_nonce.nonce, receiver, concordium_client));
+
     // run our app with hyper
     tracing::debug!("listening on {}", app.listen_address);
     axum::Server::bind(&app.listen_address)
@@ -297,7 +357,7 @@ async fn get_statement(
 }
 
 // TODO: ProofId should not be a string. It should be a base64
-type ProofId = String;
+type ProofId = u64;
 
 #[derive(Debug, serde::Deserialize)]
 struct MetadataQueryParams {
@@ -458,14 +518,14 @@ async fn parse_qr(
     for result in results {
         match String::from_utf8(result.data) {
             Ok(v) => {
-                return Ok(axum::Json(serde_json::json!({ "result": Some(v)})));
+                return Ok(axum::Json(serde_json::json!({ "result": Some(v) })));
             }
             Err(e) => {
                 tracing::debug!("Not a UTF8 string in the code: {e}");
             }
         }
     }
-    return Ok(axum::Json(serde_json::json!({"result": None::<String>})));
+    return Ok(axum::Json(serde_json::json!({ "result": None::<String> })));
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -473,6 +533,25 @@ async fn parse_qr(
 enum SupportedPlatform {
     #[serde(rename = "li")]
     LinkedIn,
+}
+
+impl smart_contracts::common::Serial for SupportedPlatform {
+    fn serial<W: smart_contracts::common::Write>(&self, out: &mut W) -> Result<(), W::Err> {
+        out.write_all(b"li")
+    }
+}
+
+impl smart_contracts::common::Deserial for SupportedPlatform {
+    fn deserial<R: smart_contracts::common::Read>(
+        source: &mut R,
+    ) -> smart_contracts::common::ParseResult<Self> {
+        let data: [u8; 2] = <[u8; 2]>::deserial(source)?;
+        if &data == b"li" {
+            Ok(Self::LinkedIn)
+        } else {
+            Err(smart_contracts::common::ParseError {})
+        }
+    }
 }
 
 impl std::fmt::Display for SupportedPlatform {
@@ -490,6 +569,32 @@ struct ChallengeParams {
     user_data: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, common::Serialize)]
+#[serde(into = "String", try_from = "String")]
+struct Challenge {
+    challenge: [u8; 32],
+}
+
+impl From<Challenge> for String {
+    fn from(value: Challenge) -> Self { hex::encode(value.challenge) }
+}
+
+impl TryFrom<String> for Challenge {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        anyhow::ensure!(
+            value.len() == 64,
+            "Incorrect challenge length. Expected 64 hex characters."
+        );
+        let bytes = hex::decode(value)?;
+        let challenge = bytes
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Incorrect challenge length."))?;
+        Ok(Self { challenge })
+    }
+}
+
 #[tracing::instrument(level = "debug", skip_all)]
 /// Get the statement
 async fn get_challenge(
@@ -502,12 +607,12 @@ async fn get_challenge(
     hasher.update((platform as u32).to_be_bytes());
     hasher.update(user_data);
     serde_json::json!({
-        "challenge": hex::encode(hasher.finalize())
+        "challenge": Challenge{ challenge: hasher.finalize().into() }
     })
     .into()
 }
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone, common::Serialize)]
 pub struct ProofWithContext {
     pub credential: CredentialRegistrationID,
     pub proof:      Versioned<Proof<ArCurve, AttributeKind>>,
@@ -518,7 +623,7 @@ pub struct ProofWithContext {
 struct VerifyParams {
     account:   AccountAddress,
     proof:     ProofWithContext,
-    challenge: String,
+    challenge: Challenge,
 }
 
 /// Get the statement
@@ -536,7 +641,6 @@ async fn verify_proof(
         challenge,
     }): axum::Json<VerifyParams>,
 ) -> Result<axum::Json<serde_json::Value>, Error> {
-    let challenge = hex::decode(challenge).map_err(|e| Error::InvalidRequest(e.to_string()))?;
     if proof.proof.version != VERSION_0 {
         return Err(Error::InvalidRequest(
             "Only version 0 proofs are supported.".into(),
@@ -571,13 +675,238 @@ async fn verify_proof(
         return Err(Error::InvalidRequest("The requested account does not have a matching credential.".into()));
     };
     let result = statement.verify(
-        &challenge,
+        &challenge.challenge,
         &crypto_params,
         proof.credential.as_ref(),
         &commitments,
         &proof.proof.value,
     );
     Ok(axum::Json(serde_json::json!({ "result": result })))
+}
+
+#[derive(serde::Deserialize, common::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PrivateTokenData {
+    first_name: AttributeKind,
+    #[serde(rename = "surName")]
+    surname:    AttributeKind,
+    user_data:  AttributeKind,
+    challenge:  Challenge,
+    proof:      ProofWithContext,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MintParams {
+    account:  AccountAddress,
+    platform: SupportedPlatform,
+    #[serde(flatten)]
+    private:  PrivateTokenData,
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn mint_nft(
+    State(ServiceState {
+        mut concordium_client,
+        crypto_params,
+        statement,
+        signer,
+        contract_address,
+        nonce_counter,
+        tx_sender,
+        ..
+    }): State<ServiceState>,
+    axum::Json(MintParams {
+        account,
+        platform,
+        private,
+    }): axum::Json<MintParams>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    if private.proof.proof.version != VERSION_0 {
+        return Err(Error::InvalidRequest(
+            "Only version 0 proofs are supported.".into(),
+        ));
+    }
+    let account_info = match concordium_client
+        .get_account_info(&account.into(), BlockIdentifier::LastFinal)
+        .await
+    {
+        Ok(ai) => ai.response,
+        Err(e) if e.is_not_found() => {
+            return Err(Error::InvalidRequest(
+                "Account does not exist on the chain.".into(),
+            ));
+        }
+        Err(e) => {
+            tracing::error!("Error querying account: {e}");
+            return Err(Error::Internal);
+        }
+    };
+    let Some(commitments) = account_info.account_credentials.into_values().find_map(|cred| {
+        if let AccountCredentialWithoutProofs::Normal { cdv, commitments } = cred.value {
+            if &cdv.cred_id == private.proof.credential.as_ref() {
+                Some(commitments)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }) else {
+        return Err(Error::InvalidRequest("The requested account does not have a matching credential.".into()));
+    };
+    let result = statement.verify(
+        &private.challenge.challenge,
+        &crypto_params,
+        private.proof.credential.as_ref(),
+        &commitments,
+        &private.proof.proof.value,
+    );
+
+    if !result {
+        return Err(Error::InvalidRequest("Proof is not valid.".into()));
+    }
+
+    let proof_data = common::to_bytes(&private);
+
+    let mut rng = rand::thread_rng();
+
+    // We have verified the request. Now we mint.
+    let key = Aes256Gcm::generate_key(&mut rng);
+    let cipher = Aes256Gcm::new(&key);
+    // We use a fixed nonce.
+    let nonce = rng.gen::<[u8; 16]>();
+    let nonce = Nonce::from_slice(&nonce);
+    let mut aux_data = {
+        let mut aux_data = vec![0u8; 4]; // version number.
+        aux_data.extend_from_slice(nonce);
+        aux_data
+    };
+    let mut ciphertext = cipher
+        .encrypt(nonce, &proof_data[..])
+        // TODO: Log error
+        .map_err(|_| Error::Internal)?;
+    aux_data.append(&mut ciphertext);
+    let mint_params = ContractMintParams {
+        owner: account,
+        platform,
+        data: ciphertext,
+    };
+
+    let update_payload = UpdateContractPayload {
+        amount:       Amount::zero(),
+        address:      contract_address,
+        receive_name: OwnedReceiveName::new_unchecked("mysomeid.mint".into()),
+        // TODO: Log error.
+        message:      OwnedParameter::from_serial(&mint_params).map_err(|_| Error::Internal)?,
+    };
+
+    // TODO: It is crucial that there is no await between nonce counter update and
+    // enqueueing the transaction. This ensures that a client cancelling the
+    // request in between will mess up our nonce handling by causing us to bump the
+    // nonce but not enqueue the transaction.
+
+    // now we need to actually mint.
+    // First make the transaction.
+    let nonce = nonce_counter
+        .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        .into();
+    let expiry = common::types::TransactionTime::from_seconds(
+        chrono::offset::Utc::now().timestamp() as u64 + 3600,
+    ); // 1h expiry.
+    const MINT_ENERGY: Energy = Energy { energy: 10_000 };
+    let tx = transactions::send::update_contract(
+        &*signer,
+        signer.address,
+        nonce,
+        expiry,
+        update_payload,
+        MINT_ENERGY,
+    );
+    let bi = BlockItem::from(tx);
+    let hash = bi.hash();
+    if let Err(e) = tx_sender.try_send((nonce, bi)) {
+        match e {
+            TrySendError::Full(_) => {
+                tracing::warn!("Unable to enqueue transaction.");
+                Err(Error::Busy)
+            }
+            TrySendError::Closed(_) => {
+                // This means that the transaction sender task is dead. We return internal
+                // server error.
+                tracing::error!(
+                    "Unable to enqueue transaction since the transaction sender is dead."
+                );
+                Err(Error::Internal)
+            }
+        }
+    } else {
+        Ok(axum::Json(
+            serde_json::json!({ "transactionHash": hash, "decryptionKey": hex::encode(key) }),
+        ))
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn tx_sender(
+    mut next_nonce: concordium_rust_sdk::types::Nonce,
+    mut channel: tokio::sync::mpsc::Receiver<(
+        concordium_rust_sdk::types::Nonce,
+        BlockItem<EncodedPayload>,
+    )>,
+    mut client: v2::Client,
+) {
+    let num_retries: u32 = 3;
+    let mut buffer = BTreeMap::new();
+    while let Some((nonce, bi)) = channel.recv().await {
+        if next_nonce == nonce {
+            next_nonce.next_mut();
+            if let Err(e) = client.send_block_item(&bi).await {
+                tracing::warn!("Unable to send transaction: {e:#}");
+                if !e.is_invalid_argument() && !e.is_duplicate() {
+                    // insert for retry;
+                    buffer.insert(nonce, (bi, num_retries));
+                } else {
+                    tracing::error!("Unable to send transaction. Aborting: {e:#}");
+                    return;
+                }
+            } else {
+                tracing::debug!("Sent transaction with hash {}", bi.hash());
+            }
+        } else {
+            buffer.insert(nonce, (bi, num_retries));
+        }
+        while let Some(entry) = buffer.first_entry() {
+            if entry.key() == &next_nonce {
+                let (nonce, (tx, retries_left)) = entry.remove_entry();
+                if let Err(e) = client.send_block_item(&tx).await {
+                    tracing::warn!("Unable to send transaction: {e:#}");
+                    if retries_left == 0 {
+                        tracing::error!("No more retries left. Aborting");
+                        return;
+                    } else {
+                        buffer.insert(nonce, (tx, retries_left.saturating_sub(1)));
+                    }
+                } else {
+                    tracing::debug!("Sent transaction with hash {}", tx.hash());
+                }
+            }
+        }
+    }
+}
+
+/// The parameter for the contract function `mint` which mints a number of
+/// tokens to a given address.
+#[derive(smart_contracts::common::Serial, smart_contracts::common::Deserial)]
+struct ContractMintParams {
+    /// Owner of the newly minted token.
+    owner:    AccountAddress,
+    /// Platform associated with the newly minted token.
+    platform: SupportedPlatform,
+    /// The data, which includes the proof, challenge, name, social media URL
+    /// (e.g linkedin URL).
+    #[concordium(size_length = 2)]
+    data:     Vec<u8>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -595,6 +924,8 @@ pub enum Error {
     NotFound,
     #[error("Internal invariant violation")]
     Internal,
+    #[error("Server is overloaded.")]
+    Busy,
 }
 
 impl axum::response::IntoResponse for Error {
@@ -617,6 +948,10 @@ impl axum::response::IntoResponse for Error {
             Error::NotFound => (
                 StatusCode::NOT_FOUND,
                 axum::Json("Requested value not found.".into()),
+            ),
+            Error::Busy => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                axum::Json("The server is temporarily overloaded. Try later.".into()),
             ),
         };
         r.into_response()
