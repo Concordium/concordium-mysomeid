@@ -11,6 +11,10 @@ examples/concordium-*
 packages/service/packages/verifier/target/*
 packages/service/packages/verifier-cmd/target/*
 
+packages/test-suite/output.jpg
+
+packages/test-suite/uploads/*
+
 */build/*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)

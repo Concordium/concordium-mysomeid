@@ -7,7 +7,12 @@
     "test:integration": "jest --config jest.integration.config.js --detectOpenHandles",
     "test:e2e": "jest --config jest.e2e.config.js  --detectOpenHandles",
     "mockli": "npx ts-node --project mock-server-tsconfig.json tests/mock-server.ts",
-    "browser": "npx ts-node utils/open-browser.ts"
+    "browser": "npx ts-node utils/open-browser.ts",
+    "pack-user-data": "tar -czvf user-data.tar.gz ./user-data",
+    "test:docker:integration:build": "docker compose build",
+    "test:docker:integration:run": "docker compose run test_integration",
+    "test:docker:e2e:build": "docker compose build",
+    "test:docker:e2e:run": "docker compose run test_e2e"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",

@@ -1,3 +1,3 @@
-2023/04/02-10:04:18.798 b703 Reusing MANIFEST /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/Sync Data/LevelDB/MANIFEST-000001
-2023/04/02-10:04:18.799 b703 Recovering log #3
-2023/04/02-10:04:18.799 b703 Reusing old log /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/Sync Data/LevelDB/000003.log 
+2023/04/15-02:20:40.552 137 Reusing MANIFEST /usr/src/app/user-data/Default/Sync Data/LevelDB/MANIFEST-000001
+2023/04/15-02:20:40.559 137 Recovering log #3
+2023/04/15-02:20:40.563 137 Reusing old log /usr/src/app/user-data/Default/Sync Data/LevelDB/000003.log 

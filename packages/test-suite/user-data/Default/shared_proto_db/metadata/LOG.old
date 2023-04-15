@@ -1,3 +1,3 @@
-2023/04/02-10:04:19.815 a303 Reusing MANIFEST /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/shared_proto_db/metadata/MANIFEST-000001
-2023/04/02-10:04:19.816 a303 Recovering log #3
-2023/04/02-10:04:19.816 a303 Reusing old log /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/shared_proto_db/metadata/000003.log 
+2023/04/15-02:20:40.683 12e Reusing MANIFEST /usr/src/app/user-data/Default/shared_proto_db/metadata/MANIFEST-000001
+2023/04/15-02:20:40.700 12e Recovering log #3
+2023/04/15-02:20:40.709 12e Reusing old log /usr/src/app/user-data/Default/shared_proto_db/metadata/000003.log 

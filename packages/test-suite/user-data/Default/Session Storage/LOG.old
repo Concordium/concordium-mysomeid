@@ -1,3 +1,3 @@
-2023/04/02-10:04:18.940 3103 Reusing MANIFEST /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/Session Storage/MANIFEST-000001
-2023/04/02-10:04:18.945 3103 Recovering log #7
-2023/04/02-10:04:18.948 3103 Reusing old log /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/Session Storage/000007.log 
+2023/04/15-02:20:40.660 13c Reusing MANIFEST /usr/src/app/user-data/Default/Session Storage/MANIFEST-000001
+2023/04/15-02:20:40.676 13c Recovering log #7
+2023/04/15-02:20:40.684 13c Reusing old log /usr/src/app/user-data/Default/Session Storage/000007.log 
