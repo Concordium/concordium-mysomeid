@@ -14,6 +14,7 @@ packages/service/packages/verifier-cmd/target/*
 packages/test-suite/output.jpg
 
 packages/test-suite/uploads/*
+packages/test-suite/volume
 
 */build/*
 
