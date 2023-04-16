@@ -574,12 +574,12 @@ dependencies = [
  "chrono",
  "clap",
  "concordium-rust-sdk",
- "concordium_base",
  "deadpool-postgres",
  "futures",
  "hex",
  "http",
  "image",
+ "key_derivation",
  "log",
  "percent-encoding",
  "postgres-types",
@@ -624,6 +624,12 @@ dependencies = [
  "outref",
  "vsimd",
 ]
+
+[[package]]
+name = "base64ct"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a32fd6af2b5827bce66c29053ba0e7c42b9dcab01835835058558c10851a46b"
 
 [[package]]
 name = "bit_field"
@@ -879,8 +885,6 @@ dependencies = [
 [[package]]
 name = "concordium-contracts-common"
 version = "5.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bd5cddd63af3a1682139d85f42aeb518dc9a0b6b4230afa9a1b716a57cae58f"
 dependencies = [
  "bs58",
  "chrono",
@@ -900,8 +904,6 @@ dependencies = [
 [[package]]
 name = "concordium-contracts-common-derive"
 version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84ca43d948ffa533b5f898e4abcee1723b7b7e50536a41aa38131929b037c082"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -911,8 +913,6 @@ dependencies = [
 [[package]]
 name = "concordium-rust-sdk"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de603c9ad9cbb08e109c2b2f467330dd51a4afe0ff0eac132972c2451c656b5f"
 dependencies = [
  "anyhow",
  "chrono",
@@ -941,8 +941,6 @@ dependencies = [
 [[package]]
 name = "concordium-smart-contract-engine"
 version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ab16b62a8d8c29ceeee896896d3a6d46294daf99c54a34035e3f65404d7434f"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -966,8 +964,6 @@ dependencies = [
 [[package]]
 name = "concordium-wasm"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42001bbf50105ce129b5112618be07c777b70dab04a9d33508fedcc9bb52e9c0"
 dependencies = [
  "anyhow",
  "concordium-contracts-common",
@@ -979,8 +975,6 @@ dependencies = [
 [[package]]
 name = "concordium_base"
 version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eee5be5040eca0c1549fa7116b963ce23a479a8ad42a4d5f56c159135214306"
 dependencies = [
  "anyhow",
  "bs58",
@@ -1018,8 +1012,6 @@ dependencies = [
 [[package]]
 name = "concordium_base_derive"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9a154e9a64d58d3e9f890c603df847b8685cfd0bac3fadd18498af539650bed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1295,6 +1287,18 @@ dependencies = [
  "serde",
  "sha2 0.9.9",
  "zeroize",
+]
+
+[[package]]
+name = "ed25519_hd_key_derivation"
+version = "1.0.0"
+dependencies = [
+ "ed25519-dalek",
+ "hex",
+ "hmac",
+ "regex",
+ "sha2 0.10.6",
+ "thiserror",
 ]
 
 [[package]]
@@ -1724,6 +1728,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hkdf"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "791a029f6b9fc27657f6f188ec6e5e43f6911f6f878e0dc5501396e09809d437"
+dependencies = [
+ "hmac",
+]
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1986,6 +1999,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3afef3b6eff9ce9d8ff9b3601125eec7f0c8cbac7abd14f355d053fa56c98768"
 dependencies = [
  "cpufeatures",
+]
+
+[[package]]
+name = "key_derivation"
+version = "1.1.0"
+dependencies = [
+ "concordium_base",
+ "ed25519-dalek",
+ "ed25519_hd_key_derivation",
+ "hmac",
+ "keygen_bls",
+ "pbkdf2",
+ "serde",
+ "sha2 0.10.6",
+]
+
+[[package]]
+name = "keygen_bls"
+version = "2.0.0"
+dependencies = [
+ "concordium_base",
+ "ff",
+ "hex",
+ "hkdf",
+ "pairing",
+ "sha2 0.10.6",
 ]
 
 [[package]]
@@ -2452,6 +2491,29 @@ dependencies = [
  "redox_syscall 0.2.16",
  "smallvec",
  "windows-sys 0.45.0",
+]
+
+[[package]]
+name = "password-hash"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d791538a6dcc1e7cb7fe6f6b58aca40e7f79403c45b2bc274008b5e647af1d8"
+dependencies = [
+ "base64ct",
+ "rand_core 0.6.4",
+ "subtle",
+]
+
+[[package]]
+name = "pbkdf2"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "271779f35b581956db91a3e55737327a03aa051e90b1c47aeb189508533adfd7"
+dependencies = [
+ "digest 0.10.6",
+ "hmac",
+ "password-hash",
+ "sha2 0.10.6",
 ]
 
 [[package]]

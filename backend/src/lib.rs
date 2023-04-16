@@ -1,11 +1,17 @@
 use concordium::{
+    base as concordium_base,
+    base::{
+        contracts_common::{AccountAddress, Amount},
+        smart_contracts::{OwnedParameter, OwnedReceiveName},
+    },
+    common::{self, Versioned},
+    id::{
+        constants::{ArCurve, AttributeKind},
+        id_proof_types::Proof,
+    },
     smart_contracts,
-    types::{smart_contracts::ContractContext, Energy, RejectReason},
+    types::{smart_contracts::ContractContext, CredentialRegistrationID, Energy, RejectReason},
     v2::BlockIdentifier,
-};
-use concordium_base::{
-    contracts_common::{AccountAddress, Amount},
-    smart_contracts::{OwnedParameter, OwnedReceiveName},
 };
 use concordium_rust_sdk as concordium;
 use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
@@ -16,6 +22,59 @@ pub struct ContractClient {
 }
 
 pub type ProofId = u64;
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MintParams {
+    pub account:  AccountAddress,
+    pub platform: SupportedPlatform,
+    #[serde(flatten)]
+    pub private:  PrivateTokenData,
+}
+
+#[derive(serde::Deserialize, common::Serialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrivateTokenData {
+    pub first_name: AttributeKind,
+    #[serde(rename = "surName")]
+    pub surname:    AttributeKind,
+    #[string_size_length = 4]
+    pub user_data:  String,
+    pub challenge:  Challenge,
+    pub proof:      ProofWithContext,
+}
+
+#[derive(serde::Deserialize, Debug, Clone, common::Serialize, serde::Serialize)]
+pub struct ProofWithContext {
+    pub credential: CredentialRegistrationID,
+    pub proof:      Versioned<Proof<ArCurve, AttributeKind>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, common::Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct Challenge {
+    pub challenge: [u8; 32],
+}
+
+impl From<Challenge> for String {
+    fn from(value: Challenge) -> Self { hex::encode(value.challenge) }
+}
+
+impl TryFrom<String> for Challenge {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        anyhow::ensure!(
+            value.len() == 64,
+            "Incorrect challenge length. Expected 64 hex characters."
+        );
+        let bytes = hex::decode(value)?;
+        let challenge = bytes
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Incorrect challenge length."))?;
+        Ok(Self { challenge })
+    }
+}
 
 /// The return type for the contract function `viewData`.
 #[derive(smart_contracts::common::Deserial)]
@@ -109,7 +168,7 @@ impl ContractClient {
             },
             concordium::types::smart_contracts::InvokeContractResult::Failure {
                 reason, ..
-            } => Err(ContractQueryError::InvokeFailure(reason))
+            } => Err(ContractQueryError::InvokeFailure(reason)),
         }
     }
 }

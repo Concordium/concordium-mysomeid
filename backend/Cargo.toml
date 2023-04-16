@@ -26,7 +26,7 @@ rustls = "0.21"
 rustls-native-certs = "0.6"
 postgres-types = { version = "0.2", features = ["derive"]}
 tonic = {version = "0.8", features = ["tls", "tls-roots"]} # Use system trust roots.
-reqwest = "0.11"
+reqwest = { version = "0.11", features = ["json"] } # JSON is for the test client
 aws-config = "0.54"
 aws-sdk-secretsmanager = "0.24"
 prometheus = {version = "0.13", features = ["process"]}
@@ -37,10 +37,11 @@ tracing = { version = "0.1" }
 deadpool-postgres = { version = "0.10" }
 tower-http = {version = "0.4", features = ["trace", "timeout", "limit", "cors", "fs"]}
 
-concordium-rust-sdk = "2"
-concordium_base = "1.1.1"
 zbar-rust = "0.0.21"
 image = "0.24.6"
 aes-gcm = "0.10"
 rand = "0.8.5"
 percent-encoding = "2.2.0"
+
+concordium-rust-sdk = {version = "2", path = "../deps/concordium-rust-sdk"}
+key_derivation = { path = "../deps/concordium-rust-sdk/concordium-base/rust-src/key_derivation"}

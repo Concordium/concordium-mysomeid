@@ -1,6 +1,7 @@
 // TODO:
 // - Store sent transactions for recovery
 // - Rate limiting of sponsored transactions.
+// - Graceful shutdown.
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
@@ -14,19 +15,18 @@ use axum::{
     TypedHeader,
 };
 use axum_prometheus::PrometheusMetricLayerBuilder;
-use backend::{match_names, ContractClient, ContractQueryError, SupportedPlatform};
+use backend::*;
 use clap::Parser;
 use concordium::{
-    common::{self, Versioned, VERSION_0},
+    base as concordium_base,
+    common::{self, VERSION_0},
     id::{
         constants::{ArCurve, AttributeKind},
-        id_proof_types::{Proof, Statement},
+        id_proof_types::Statement,
         types::AccountCredentialWithoutProofs,
     },
     smart_contracts::{self, common::AccountAddress},
-    types::{
-        ContractAddress, CredentialRegistrationID, CryptographicParameters, Energy, WalletAccount,
-    },
+    types::{ContractAddress, CryptographicParameters, Energy, WalletAccount},
     v2::{self, BlockIdentifier},
 };
 use concordium_base::{
@@ -72,19 +72,13 @@ struct Api {
     )]
     concordium_request_timeout: u64,
     /// Location of the keys used to send transactions.
-    #[clap(
-        long,
-        help = "Path to the key file.",
-        env = "MYSOMEID_WALLET",
-        default_value = "10"
-    )]
+    #[clap(long, help = "Path to the key file.", env = "MYSOMEID_WALLET")]
     concordium_wallet: std::path::PathBuf,
     /// Address of the mysomeid contract.
     #[clap(
         long,
         help = "Address of the instance of mysomeid..",
-        env = "MYSOMEID_CONTRACT",
-        default_value = "10"
+        env = "MYSOMEID_CONTRACT"
     )]
     concordium_contract: ContractAddress,
     /// Request timeout for Concordium node requests.
@@ -285,48 +279,48 @@ async fn main() -> anyhow::Result<()> {
     // build our application with a route
     let api = router
         .route(
-            "v1//proof/statement",
+            "/v1/proof/statement",
             axum::routing::get(get_statement),
         )
         .route(
-            "v1/proof/challenge",
+            "/v1/proof/challenge",
             axum::routing::get(get_challenge),
         )
         .route(
-            "v1/proof/verify",
+            "/v1/proof/verify",
             axum::routing::post(verify_proof),
         )
         .route(
-            "v1/proof/nft",
+            "/v1/proof/nft",
             axum::routing::post(mint_nft),
         )
         .route(
-            "v1/proof/:proofId/:encryptionKey/nft",
+            "/v1/proof/nft/:proofId/:encryptionKey",
             axum::routing::get(get_proof),
 
         )
         .route(
-            "v1/proof/validate-proof-url",
+            "/v1/proof/validate-proof-url",
             axum::routing::get(validate_proof),
         )
         .route(
-            "v1/proof/validate",
+            "/v1/proof/validate",
             axum::routing::get(validate_proof),
         )
         .route(
-            "v1/proof/meta/:proof",
+            "/v1/proof/meta/:proof",
             axum::routing::get(get_metadata),
         )
         .route(
-            "v1/proof/:proof/img",
+            "/v1/proof/img/:proof",
             axum::routing::get(get_img),
         )
         .route(
-            "v1/qr/validate",
+            "/v1/qr/validate",
             axum::routing::get(parse_qr),
         )
         .route(
-            "v1/qr/image/scan", // TODO: This is duplicate, there is no point in this.
+            "/v1/qr/image/scan", // TODO: This is duplicate, there is no point in this.
             axum::routing::get(parse_qr),
         )
         .with_state(state)
@@ -553,32 +547,6 @@ struct ChallengeParams {
     user_data: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, common::Serialize)]
-#[serde(into = "String", try_from = "String")]
-struct Challenge {
-    challenge: [u8; 32],
-}
-
-impl From<Challenge> for String {
-    fn from(value: Challenge) -> Self { hex::encode(value.challenge) }
-}
-
-impl TryFrom<String> for Challenge {
-    type Error = anyhow::Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        anyhow::ensure!(
-            value.len() == 64,
-            "Incorrect challenge length. Expected 64 hex characters."
-        );
-        let bytes = hex::decode(value)?;
-        let challenge = bytes
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("Incorrect challenge length."))?;
-        Ok(Self { challenge })
-    }
-}
-
 #[tracing::instrument(level = "debug", skip_all)]
 /// Get the statement
 async fn get_challenge(
@@ -594,12 +562,6 @@ async fn get_challenge(
         "challenge": Challenge{ challenge: hasher.finalize().into() }
     })
     .into()
-}
-
-#[derive(serde::Deserialize, Debug, Clone, common::Serialize, serde::Serialize)]
-pub struct ProofWithContext {
-    pub credential: CredentialRegistrationID,
-    pub proof:      Versioned<Proof<ArCurve, AttributeKind>>,
 }
 
 #[derive(serde::Deserialize)]
@@ -695,7 +657,7 @@ struct ValidateProofParams {
 // Where tokenId is a u64 (represented as a number), and decryption key is
 // base64 encoded (and then URI encoded if necessary)
 fn get_token_id_and_key(url: &Url) -> Option<(u64, EncryptionKey)> {
-    let mut path_segments = url.path_segments()?;
+    let mut path_segments = url.path_segments()?.rev();
     let key_b64 = percent_encoding::percent_decode_str(path_segments.next()?)
         .decode_utf8()
         .ok()?;
@@ -776,6 +738,12 @@ struct EncryptionKey {
     key: [u8; 32],
 }
 
+impl std::fmt::Debug for EncryptionKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(String::from(*self).as_str())
+    }
+}
+
 impl From<EncryptionKey> for String {
     fn from(value: EncryptionKey) -> Self {
         use base64::Engine;
@@ -812,8 +780,7 @@ impl FromStr for EncryptionKey {
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn get_proof(
-    Path(token_id): Path<ProofId>,
-    Path(key): Path<EncryptionKey>,
+    Path((token_id, key)): Path<(ProofId, EncryptionKey)>,
     State(ServiceState {
         concordium_client,
         contract_address,
@@ -825,7 +792,7 @@ async fn get_proof(
         .map(axum::Json)
 }
 
-#[tracing::instrument(level = "debug", skip_all)]
+#[tracing::instrument(level = "debug", skip(concordium_client, contract_address))]
 async fn get_proof_worker(
     token_id: ProofId,
     concordium_client: v2::Client,
@@ -905,34 +872,13 @@ async fn get_proof_worker(
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
-struct GetProofResponse {
-    id:       ProofId,
-    owner:    AccountAddress,
-    platform: SupportedPlatform,
-    revoked:  bool,
+pub struct GetProofResponse {
+    pub id:       ProofId,
+    pub owner:    AccountAddress,
+    pub platform: SupportedPlatform,
+    pub revoked:  bool,
     #[serde(flatten)]
-    private:  PrivateTokenData,
-}
-
-#[derive(serde::Deserialize, common::Serialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PrivateTokenData {
-    first_name: AttributeKind,
-    #[serde(rename = "surName")]
-    surname:    AttributeKind,
-    #[string_size_length = 4]
-    user_data:  String,
-    challenge:  Challenge,
-    proof:      ProofWithContext,
-}
-
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct MintParams {
-    account:  AccountAddress,
-    platform: SupportedPlatform,
-    #[serde(flatten)]
-    private:  PrivateTokenData,
+    pub private:  PrivateTokenData,
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -1006,7 +952,7 @@ async fn mint_nft(
     let key = Aes256Gcm::generate_key(&mut rng);
     let cipher = Aes256Gcm::new(&key);
     // We use a fixed nonce.
-    let nonce = rng.gen::<[u8; 16]>();
+    let nonce = rng.gen::<[u8; 12]>();
     let nonce = Nonce::from_slice(&nonce);
     let mut aux_data = {
         let mut aux_data = vec![0u8; 4]; // version number.
@@ -1021,7 +967,7 @@ async fn mint_nft(
     let mint_params = ContractMintParams {
         owner: account,
         platform,
-        data: ciphertext,
+        data: aux_data,
     };
 
     let update_payload = UpdateContractPayload {
@@ -1077,7 +1023,7 @@ async fn mint_nft(
         nonce_counter.next_mut();
         drop(nonce_counter); // drop the lock. Other transactions may now be enqueued.
         Ok(axum::Json(
-            serde_json::json!({ "transactionHash": hash, "decryptionKey": hex::encode(key) }),
+            serde_json::json!({ "transactionHash": hash, "decryptionKey": EncryptionKey{key: key.into()} }),
         ))
     }
 }
