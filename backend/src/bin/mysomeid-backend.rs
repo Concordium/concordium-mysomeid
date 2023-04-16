@@ -285,48 +285,48 @@ async fn main() -> anyhow::Result<()> {
     // build our application with a route
     let api = router
         .route(
-            "/proof/statement",
+            "v1//proof/statement",
             axum::routing::get(get_statement),
         )
         .route(
-            "/proof/challenge",
+            "v1/proof/challenge",
             axum::routing::get(get_challenge),
         )
         .route(
-            "/proof/verify",
+            "v1/proof/verify",
             axum::routing::post(verify_proof),
         )
         .route(
-            "/proof/nft",
+            "v1/proof/nft",
             axum::routing::post(mint_nft),
         )
         .route(
-            "/proof/:proofId/:encryptionKey/nft",
+            "v1/proof/:proofId/:encryptionKey/nft",
             axum::routing::get(get_proof),
 
         )
         .route(
-            "/proof/validate-proof-url",
+            "v1/proof/validate-proof-url",
             axum::routing::get(validate_proof),
         )
         .route(
-            "/proof/validate",
+            "v1/proof/validate",
             axum::routing::get(validate_proof),
         )
         .route(
-            "/proof/meta/:proof",
+            "v1/proof/meta/:proof",
             axum::routing::get(get_metadata),
         )
         .route(
-            "/proof/:proof/img",
+            "v1/proof/:proof/img",
             axum::routing::get(get_img),
         )
         .route(
-            "/qr/validate",
+            "v1/qr/validate",
             axum::routing::get(parse_qr),
         )
         .route(
-            "/qr/image/scan", // TODO: This is duplicate, there is no point in this.
+            "v1/qr/image/scan", // TODO: This is duplicate, there is no point in this.
             axum::routing::get(parse_qr),
         )
         .with_state(state)
