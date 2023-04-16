@@ -70,6 +70,8 @@ impl<S: HasStateApi> AddressState<S> {
 struct TokenState<S: HasStateApi> {
     /// The tokens owned by this address.
     revoked: bool,
+    /// Owner, if not revoked.
+    owner: AccountAddress,
     /// Platform associated with the token.
     platform: Platform,
     /// The data, which includes the proof, challenge, name, social media URL (e.g linkedin URL).
@@ -163,6 +165,7 @@ impl<S: HasStateApi> State<S> {
             data: state_builder.new_box(data),
             revoked: false,
             platform,
+            owner,
         };
         self.all_tokens.insert(token, token_state);
         let mut owner_state = self
@@ -603,8 +606,10 @@ fn contract_init<S: HasStateApi>(
 /// The return type for the contract function `viewData`.
 #[derive(Serial, SchemaType)]
 struct ViewData {
-    /// TokenId of the token.
-    pub token: ContractTokenId,
+    /// Owner of the token.
+    pub owner: AccountAddress,
+    /// Whether the token is revoked or not.
+    pub revoked: bool,
     /// Platform associated with the token.
     pub platform: Platform,
     /// The data, which includes the proof, challenge, name, social media URL (e.g linkedin URL).
@@ -628,7 +633,8 @@ fn contract_view_data<S: HasStateApi>(
     let token = host.state().all_tokens.get(&param);
     if let Some(token) = token {
         let data = ViewData {
-            token: param,
+            owner: token.owner,
+            revoked: token.revoked,
             platform: token.platform,
             data: token.data.clone(),
         };
