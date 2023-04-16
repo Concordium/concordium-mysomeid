@@ -1,3 +1,6 @@
+// TODO:
+// - Store sent transactions for recovery
+// - Rate limiting of sponsored transactions.
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
@@ -11,16 +14,19 @@ use axum::{
     TypedHeader,
 };
 use axum_prometheus::PrometheusMetricLayerBuilder;
+use backend::{match_names, ContractClient, ContractQueryError, SupportedPlatform};
 use clap::Parser;
 use concordium::{
     common::{self, Versioned, VERSION_0},
     id::{
         constants::{ArCurve, AttributeKind},
         id_proof_types::{Proof, Statement},
-        types::{AccountCredentialWithoutProofs, GlobalContext},
+        types::AccountCredentialWithoutProofs,
     },
     smart_contracts::{self, common::AccountAddress},
-    types::{ContractAddress, CredentialRegistrationID, Energy, WalletAccount},
+    types::{
+        ContractAddress, CredentialRegistrationID, CryptographicParameters, Energy, WalletAccount,
+    },
     v2::{self, BlockIdentifier},
 };
 use concordium_base::{
@@ -30,13 +36,19 @@ use concordium_base::{
 };
 use concordium_rust_sdk as concordium;
 use image::GenericImageView;
-use postgres_types::FromSql;
+// use postgres_types::FromSql;
 use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
-use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    io::Read,
+    path::PathBuf,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 use tokio::sync::mpsc::error::TrySendError;
-use tokio_postgres::NoTls;
+// use tokio_postgres::NoTls;
 use tonic::transport::ClientTlsConfig;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse};
 
@@ -154,16 +166,18 @@ struct Api {
 struct ServiceState {
     pub client:            reqwest::Client,
     pub concordium_client: concordium::v2::Client,
-    pub crypto_params:     Arc<GlobalContext<ArCurve>>,
+    pub crypto_params:     Arc<CryptographicParameters>,
     pub base_url:          Arc<Url>,
     pub statement:         Arc<Statement<ArCurve, AttributeKind>>,
     pub nft_image:         Bytes,
     pub nft_image_revoked: Bytes,
     pub signer:            Arc<WalletAccount>,
     pub contract_address:  ContractAddress,
-    pub nonce_counter:     Arc<std::sync::atomic::AtomicU64>,
-    pub tx_sender:
-        tokio::sync::mpsc::Sender<(concordium_rust_sdk::types::Nonce, BlockItem<EncodedPayload>)>,
+    // We deliberately use a mutex here instead of an atomicu64.
+    // We use the mutex for synchronization of other actions to make sure
+    // that we don't skip nonces in case of other failures, such as failure to send a transaction.
+    pub nonce_counter:     Arc<Mutex<concordium::types::Nonce>>,
+    pub tx_sender: tokio::sync::mpsc::Sender<(concordium::types::Nonce, BlockItem<EncodedPayload>)>,
 }
 
 #[tokio::main]
@@ -186,7 +200,7 @@ async fn main() -> anyhow::Result<()> {
         .with_prefix("mysomeid")
         .build_pair();
 
-    let db = Database::new(app.db_config, app.max_pool_size).await?;
+    // let db = Database::new(app.db_config, app.max_pool_size).await?;
 
     let mut concordium_client = {
         // Use TLS if the URI scheme is HTTPS.
@@ -238,8 +252,6 @@ async fn main() -> anyhow::Result<()> {
         "There are unfinalized transactions. Refusing to start."
     );
 
-    let nonce_counter = std::sync::atomic::AtomicU64::new(starting_nonce.nonce.nonce);
-
     // TODO: Add limits
     let client = reqwest::ClientBuilder::new()
         .connect_timeout(std::time::Duration::from_secs(2))
@@ -266,7 +278,7 @@ async fn main() -> anyhow::Result<()> {
         ),
         signer: Arc::new(signer),
         contract_address: app.concordium_contract,
-        nonce_counter: Arc::new(nonce_counter),
+        nonce_counter: Arc::new(Mutex::new(starting_nonce.nonce)),
         tx_sender: sender,
     };
 
@@ -287,6 +299,19 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/proof/nft",
             axum::routing::post(mint_nft),
+        )
+        .route(
+            "/proof/:proofId/:encryptionKey/nft",
+            axum::routing::get(get_proof),
+
+        )
+        .route(
+            "/proof/validate-proof-url",
+            axum::routing::get(validate_proof),
+        )
+        .route(
+            "/proof/validate",
+            axum::routing::get(validate_proof),
         )
         .route(
             "/proof/meta/:proof",
@@ -369,7 +394,6 @@ struct MetadataQueryParams {
 #[tracing::instrument(level = "debug", skip_all)]
 /// Get the statement
 async fn get_metadata(
-    // TODO: ProofId should not be a string. It should be a base64
     Path(proof): Path<ProofId>,
     Query(params): Query<MetadataQueryParams>,
     State(ServiceState { base_url, .. }): State<ServiceState>,
@@ -395,9 +419,7 @@ fn make_img_url(
     params: &MetadataQueryParams,
     thumbnail: bool,
 ) -> Url {
-    // TODO: We might want to add versioning to the endpoints, so add v1/ to the
-    // path.
-    base.set_path(&format!("proof/{proof_id}/img"));
+    base.set_path(&format!("v1/proof/{proof_id}/img"));
     base.set_query(Some(&format!(
         "t={}&p={}&r={}",
         if thumbnail { "thumb" } else { "display" },
@@ -417,12 +439,8 @@ enum ImageVariant {
 
 #[derive(Debug, serde::Deserialize)]
 struct ImgQueryParams {
-    #[serde(rename = "t")]
-    variant:  ImageVariant,
-    #[serde(rename = "p")]
-    platform: SupportedPlatform,
     #[serde(rename = "r")]
-    revoked:  u8,
+    revoked: u8,
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -430,8 +448,7 @@ struct ImgQueryParams {
 /// TODO: This currently returns the same image for everything. It ignores all
 /// parameters apart from "revoked".
 async fn get_img(
-    // TODO: ProofId should not be a string. It should be a base64
-    Path(proof): Path<ProofId>,
+    Path(_proof): Path<ProofId>,
     Query(params): Query<ImgQueryParams>,
     State(ServiceState {
         nft_image,
@@ -486,6 +503,7 @@ async fn parse_qr(
     }
     let mut img_data = Vec::new();
     // TODO: Make sure that chunk sizes are sufficiently small.
+    // TODO: Timeout this entire process.
     while let Some(chunk) = data
         .chunk()
         .await
@@ -525,41 +543,7 @@ async fn parse_qr(
             }
         }
     }
-    return Ok(axum::Json(serde_json::json!({ "result": None::<String> })));
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[repr(u32)]
-enum SupportedPlatform {
-    #[serde(rename = "li")]
-    LinkedIn,
-}
-
-impl smart_contracts::common::Serial for SupportedPlatform {
-    fn serial<W: smart_contracts::common::Write>(&self, out: &mut W) -> Result<(), W::Err> {
-        out.write_all(b"li")
-    }
-}
-
-impl smart_contracts::common::Deserial for SupportedPlatform {
-    fn deserial<R: smart_contracts::common::Read>(
-        source: &mut R,
-    ) -> smart_contracts::common::ParseResult<Self> {
-        let data: [u8; 2] = <[u8; 2]>::deserial(source)?;
-        if &data == b"li" {
-            Ok(Self::LinkedIn)
-        } else {
-            Err(smart_contracts::common::ParseError {})
-        }
-    }
-}
-
-impl std::fmt::Display for SupportedPlatform {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SupportedPlatform::LinkedIn => f.write_str("li"),
-        }
-    }
+    Ok(axum::Json(serde_json::json!({ "result": None::<String> })))
 }
 
 #[derive(serde::Deserialize)]
@@ -612,7 +596,7 @@ async fn get_challenge(
     .into()
 }
 
-#[derive(serde::Deserialize, Debug, Clone, common::Serialize)]
+#[derive(serde::Deserialize, Debug, Clone, common::Serialize, serde::Serialize)]
 pub struct ProofWithContext {
     pub credential: CredentialRegistrationID,
     pub proof:      Versioned<Proof<ArCurve, AttributeKind>>,
@@ -630,17 +614,27 @@ struct VerifyParams {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn verify_proof(
     State(ServiceState {
-        mut concordium_client,
+        concordium_client,
         crypto_params,
         statement,
         ..
     }): State<ServiceState>,
-    axum::Json(VerifyParams {
+    axum::Json(params): axum::Json<VerifyParams>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    let result = verify_proof_worker(concordium_client, crypto_params, statement, params).await?;
+    Ok(axum::Json(serde_json::json!({ "result": result })))
+}
+
+async fn verify_proof_worker(
+    mut concordium_client: v2::Client,
+    crypto_params: Arc<CryptographicParameters>,
+    statement: Arc<Statement<ArCurve, AttributeKind>>,
+    VerifyParams {
         account,
         proof,
         challenge,
-    }): axum::Json<VerifyParams>,
-) -> Result<axum::Json<serde_json::Value>, Error> {
+    }: VerifyParams,
+) -> Result<bool, Error> {
     if proof.proof.version != VERSION_0 {
         return Err(Error::InvalidRequest(
             "Only version 0 proofs are supported.".into(),
@@ -681,16 +675,253 @@ async fn verify_proof(
         &commitments,
         &proof.proof.value,
     );
-    Ok(axum::Json(serde_json::json!({ "result": result })))
+    Ok(result)
 }
 
-#[derive(serde::Deserialize, common::Serialize)]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ValidateProofParams {
+    url:        Url,
+    // Name as appearing on the profile.
+    first_name: String,
+    // Name as appearing on the profile.
+    last_name:  String,
+    platform:   SupportedPlatform,
+    user_data:  String,
+}
+
+// The URL is meant to be in the format
+// base/:tokenId/:decryptionKey
+// Where tokenId is a u64 (represented as a number), and decryption key is
+// base64 encoded (and then URI encoded if necessary)
+fn get_token_id_and_key(url: &Url) -> Option<(u64, EncryptionKey)> {
+    let mut path_segments = url.path_segments()?;
+    let key_b64 = percent_encoding::percent_decode_str(path_segments.next()?)
+        .decode_utf8()
+        .ok()?;
+    let key = key_b64.parse::<EncryptionKey>().ok()?;
+    let id = path_segments.next()?;
+    let id = id.parse::<u64>().ok()?;
+    Some((id, key))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn validate_proof(
+    Query(ValidateProofParams {
+        url,
+        first_name,
+        last_name,
+        platform,
+        user_data,
+    }): Query<ValidateProofParams>,
+    State(ServiceState {
+        concordium_client,
+        contract_address,
+        crypto_params,
+        statement,
+        ..
+    }): State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    let Some((token_id, key)) = get_token_id_and_key(&url) else {
+        return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
+    };
+    let proof =
+        get_proof_worker(token_id, concordium_client.clone(), contract_address, key).await?;
+
+    if proof.revoked {
+        return Ok(axum::Json(
+            serde_json::json!({"status": "invalid", "id": token_id}),
+        ));
+    }
+
+    if platform != proof.platform {
+        return Ok(axum::Json(
+            serde_json::json!({"status": "invalid", "id": token_id}),
+        ));
+    }
+
+    if user_data != proof.private.user_data {
+        return Ok(axum::Json(
+            serde_json::json!({"status": "invalid", "id": token_id}),
+        ));
+    }
+
+    // Ensure that the parameters stored in the proof are the same as that sent in
+    // the query parameters.
+    if !match_names(
+        &first_name,
+        &last_name,
+        proof.private.first_name.0.as_str(),
+        proof.private.surname.0.as_str(),
+    ) {
+        return Ok(axum::Json(
+            serde_json::json!({"status": "invalid", "id": token_id}),
+        ));
+    }
+
+    let res = verify_proof_worker(concordium_client, crypto_params, statement, VerifyParams {
+        account:   proof.owner,
+        proof:     proof.private.proof,
+        challenge: proof.private.challenge,
+    })
+    .await?;
+    Ok(axum::Json(
+        serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
+    ))
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Copy, Clone)]
+#[serde(try_from = "String", into = "String")]
+struct EncryptionKey {
+    key: [u8; 32],
+}
+
+impl From<EncryptionKey> for String {
+    fn from(value: EncryptionKey) -> Self {
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD.encode(value.key)
+    }
+}
+
+impl TryFrom<String> for EncryptionKey {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> { value.as_str().try_into() }
+}
+
+impl TryFrom<&str> for EncryptionKey {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use base64::Engine;
+        let key = base64::engine::general_purpose::STANDARD.decode(value)?;
+        match key.try_into() {
+            Ok(key) => Ok(Self { key }),
+            Err(_) => {
+                anyhow::bail!("Incorrect key length. Key must be exactly 32 bytes.")
+            }
+        }
+    }
+}
+
+impl FromStr for EncryptionKey {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> { EncryptionKey::try_from(s) }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_proof(
+    Path(token_id): Path<ProofId>,
+    Path(key): Path<EncryptionKey>,
+    State(ServiceState {
+        concordium_client,
+        contract_address,
+        ..
+    }): State<ServiceState>,
+) -> Result<axum::Json<GetProofResponse>, Error> {
+    get_proof_worker(token_id, concordium_client, contract_address, key)
+        .await
+        .map(axum::Json)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_proof_worker(
+    token_id: ProofId,
+    concordium_client: v2::Client,
+    contract_address: ContractAddress,
+    key: EncryptionKey,
+) -> Result<GetProofResponse, Error> {
+    let mut contract_client = ContractClient {
+        address: contract_address,
+        client:  concordium_client,
+    };
+
+    let response = match contract_client.view_token_data(&token_id).await {
+        Ok(response) => response,
+        Err(e) => match e {
+            ContractQueryError::Network(rpc) => {
+                tracing::error!("Error querying the contract: {rpc}");
+                return Err(Error::Internal);
+            }
+            ContractQueryError::InvokeFailure(_) => {
+                return Err(Error::InvalidRequest(
+                    "The contract entrypoint failed.".into(),
+                ));
+            }
+            ContractQueryError::ParseResponseFailure => {
+                tracing::error!(
+                    "Could not parse response from the contract. This is likely a configuration \
+                     error."
+                );
+                return Err(Error::Internal);
+            }
+        },
+    };
+
+    let Some(view_data) = response else {
+        return Err(Error::InvalidRequest("No token with the given token ID.".into()))
+    };
+
+    let encryption_data = &view_data.data;
+
+    let cipher = Aes256Gcm::new((&key.key).into());
+
+    let (nonce, ciphertext) = {
+        let mut cursor = std::io::Cursor::new(&encryption_data);
+        let mut version = [0u8; 4];
+        if cursor.read_exact(&mut version).is_err() {
+            return Err(Error::InvalidRequest(
+                "The stored proof cannot be read.".into(),
+            ));
+        }
+        if version != [0u8; 4] {
+            return Err(Error::InvalidRequest(
+                "Only version 0 proofs are supported.".into(),
+            ));
+        }
+        let mut nonce = [0u8; 12];
+        if cursor.read_exact(&mut nonce).is_err() {
+            return Err(Error::InvalidRequest(
+                "The stored proof cannot be read.".into(),
+            ));
+        }
+        (nonce, &encryption_data[16..])
+    };
+
+    let proof_data_bytes = cipher
+        .decrypt((&nonce).into(), ciphertext)
+        .map_err(|_| Error::InvalidRequest("Unable to decrypt data.".into()))?;
+
+    let Ok(private) = common::from_bytes::<PrivateTokenData, _>(&mut std::io::Cursor::new(proof_data_bytes)) else { return Err(Error::InvalidRequest("Could not read stored private token data.".into()))};
+
+    Ok(GetProofResponse {
+        id: token_id,
+        platform: view_data.platform,
+        revoked: view_data.revoked,
+        owner: view_data.owner,
+        private,
+    })
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+struct GetProofResponse {
+    id:       ProofId,
+    owner:    AccountAddress,
+    platform: SupportedPlatform,
+    revoked:  bool,
+    #[serde(flatten)]
+    private:  PrivateTokenData,
+}
+
+#[derive(serde::Deserialize, common::Serialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct PrivateTokenData {
     first_name: AttributeKind,
     #[serde(rename = "surName")]
     surname:    AttributeKind,
-    user_data:  AttributeKind,
+    #[string_size_length = 4]
+    user_data:  String,
     challenge:  Challenge,
     proof:      ProofWithContext,
 }
@@ -808,9 +1039,11 @@ async fn mint_nft(
 
     // now we need to actually mint.
     // First make the transaction.
-    let nonce = nonce_counter
-        .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-        .into();
+    let Ok(mut nonce_counter) = nonce_counter.lock() else {
+        tracing::error!("Unable to acquire lock.");
+        return Err(Error::Internal);
+    };
+
     let expiry = common::types::TransactionTime::from_seconds(
         chrono::offset::Utc::now().timestamp() as u64 + 3600,
     ); // 1h expiry.
@@ -818,14 +1051,14 @@ async fn mint_nft(
     let tx = transactions::send::update_contract(
         &*signer,
         signer.address,
-        nonce,
+        *nonce_counter,
         expiry,
         update_payload,
         MINT_ENERGY,
     );
     let bi = BlockItem::from(tx);
     let hash = bi.hash();
-    if let Err(e) = tx_sender.try_send((nonce, bi)) {
+    if let Err(e) = tx_sender.try_send((*nonce_counter, bi)) {
         match e {
             TrySendError::Full(_) => {
                 tracing::warn!("Unable to enqueue transaction.");
@@ -841,6 +1074,8 @@ async fn mint_nft(
             }
         }
     } else {
+        nonce_counter.next_mut();
+        drop(nonce_counter); // drop the lock. Other transactions may now be enqueued.
         Ok(axum::Json(
             serde_json::json!({ "transactionHash": hash, "decryptionKey": hex::encode(key) }),
         ))
@@ -955,114 +1190,5 @@ impl axum::response::IntoResponse for Error {
             ),
         };
         r.into_response()
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("Unexpected data size.")]
-struct IncorrectLength;
-
-/// A helper to parse fixed length byte arrays from the database.
-struct Fixed<const N: usize>(pub [u8; N]);
-
-impl<'a, const N: usize> FromSql<'a> for Fixed<N> {
-    fn from_sql(
-        ty: &postgres_types::Type,
-        raw: &'a [u8],
-    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
-        let v = <&[u8] as FromSql>::from_sql(ty, raw)?;
-        Ok(Fixed(v.try_into().map_err(|_| Box::new(IncorrectLength))?))
-    }
-
-    fn accepts(ty: &postgres_types::Type) -> bool { <&[u8] as FromSql>::accepts(ty) }
-}
-
-#[derive(Clone)]
-pub struct Database {
-    pool:                deadpool_postgres::Pool,
-    prepared_statements: Arc<QueryStatements>,
-}
-
-impl Database {
-    pub async fn new(config: tokio_postgres::Config, pool_size: usize) -> anyhow::Result<Self> {
-        let manager_config = deadpool_postgres::ManagerConfig {
-            recycling_method: deadpool_postgres::RecyclingMethod::Verified,
-        };
-        let manager = deadpool_postgres::Manager::from_config(config, NoTls, manager_config);
-        let pool = deadpool_postgres::Pool::builder(manager)
-            .create_timeout(Some(std::time::Duration::from_secs(5)))
-            .recycle_timeout(Some(std::time::Duration::from_secs(5)))
-            .wait_timeout(Some(std::time::Duration::from_secs(5)))
-            .max_size(pool_size)
-            .runtime(deadpool_postgres::Runtime::Tokio1)
-            .build()?;
-        Ok(Self {
-            pool,
-            prepared_statements: Arc::new(QueryStatements::new()),
-        })
-    }
-}
-
-struct QueryStatements {
-    concordium_tx_status:        (String, tokio_postgres::types::Type),
-    withdrawal_status:           (String, tokio_postgres::types::Type),
-    get_event:                   (String, [tokio_postgres::types::Type; 2]),
-    get_merkle_leafs:            String,
-    get_withdrawals_for_address: (String, tokio_postgres::types::Type),
-    get_deposits_for_address:    (String, tokio_postgres::types::Type),
-    list_tokens:                 String,
-    get_next_merkle_root:        String,
-}
-
-impl QueryStatements {
-    pub fn new() -> Self {
-        let concordium_tx_status = (
-            "SELECT tx_hash FROM ethereum_deposit_events WHERE origin_tx_hash = $1".into(),
-            tokio_postgres::types::Type::BYTEA,
-        );
-        let withdrawal_status = (
-            "SELECT processed, root, event_index FROM concordium_events WHERE tx_hash = $1".into(),
-            tokio_postgres::types::Type::BYTEA,
-        );
-        let get_event = (
-            "SELECT event_data, processed FROM concordium_events WHERE tx_hash = $1 AND \
-             event_index = $2"
-                .into(),
-            [
-                tokio_postgres::types::Type::BYTEA,
-                tokio_postgres::types::Type::INT8,
-            ],
-        );
-        let get_merkle_leafs = "SELECT tx_hash, event_merkle_hash FROM concordium_events WHERE \
-                                root IN (SELECT root FROM merkle_roots ORDER BY id DESC LIMIT 1) \
-                                ORDER BY event_index ASC"
-            .into();
-        let get_withdrawals_for_address = (
-            "SELECT insert_time, processed, tx_hash, child_index, child_subindex, amount, \
-             event_index FROM concordium_events WHERE event_type = 'withdraw' AND receiver = $1"
-                .into(),
-            tokio_postgres::types::Type::BYTEA,
-        );
-        let get_deposits_for_address = (
-            "SELECT insert_time, tx_hash, root_token, tx_hash, amount, origin_tx_hash, \
-             origin_event_index FROM ethereum_deposit_events WHERE depositor = $1"
-                .into(),
-            tokio_postgres::types::Type::BYTEA,
-        );
-        let list_tokens = "SELECT root, child_index, child_subindex, eth_name, decimals FROM \
-                           token_maps ORDER BY id ASC"
-            .into();
-        let get_next_merkle_root =
-            "SELECT expected_time FROM expected_merkle_update WHERE tag = ''".into();
-        Self {
-            concordium_tx_status,
-            withdrawal_status,
-            get_event,
-            get_merkle_leafs,
-            get_withdrawals_for_address,
-            get_deposits_for_address,
-            list_tokens,
-            get_next_merkle_root,
-        }
     }
 }
