@@ -1,6 +1,7 @@
 // TODO:
 // - Documentation.
 // - Resend stored transactions.
+// - Do we need to support the order for transaction list?
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
