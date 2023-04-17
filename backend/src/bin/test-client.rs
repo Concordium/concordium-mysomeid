@@ -6,18 +6,16 @@ use concordium::{
     id::{
         constants::{ArCurve, AttributeKind, IpPairing},
         id_proof_types::{Statement, StatementWithContext},
-        pedersen_commitment::{Randomness, Value},
         types::{
-            account_address_from_registration_id, AttributeTag, HasAttributeRandomness,
-            IdRecoveryRequest, IdentityObjectV1, IpInfo,
+            account_address_from_registration_id, AttributeTag, IdRecoveryRequest,
+            IdentityObjectV1, IpInfo,
         },
     },
     types::CredentialRegistrationID,
     v2::BlockIdentifier,
 };
-use key_derivation::CredentialContext;
 use concordium_rust_sdk as concordium;
-use key_derivation::ConcordiumHdWallet;
+use key_derivation::{ConcordiumHdWallet, CredentialContext};
 use tonic::transport::ClientTlsConfig;
 
 #[derive(Parser, Debug)]
@@ -95,8 +93,6 @@ async fn main() -> anyhow::Result<()> {
 
     let data: StoredIdObject = serde_json::from_reader(std::fs::File::open(app.id_object)?)?;
 
-    let prf_key = wallet.get_prf_key(data.ip_info.ip_identity.0, data.identity_index)?;
-
     let cc = CredentialContext {
         wallet,
         identity_provider_index: data.ip_info.ip_identity,
@@ -104,7 +100,6 @@ async fn main() -> anyhow::Result<()> {
         credential_index: app.cred_idx.into(),
     };
 
-    // TODO: This should be a helper in base
     let cred_id_exponent = cc.get_cred_id_exponent()?.context("Unlucky")?;
 
     let global_context = concordium_client
@@ -118,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
 
     let statement = StatementWithContext {
         credential: credential.into(),
-        statement: Statement::<ArCurve, AttributeKind>::new()
+        statement:  Statement::<ArCurve, AttributeKind>::new()
             .reveal_attribute(AttributeTag(0))
             .reveal_attribute(AttributeTag(1)),
     };
@@ -142,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
         .context("Surname not present.")?
         .clone();
 
-    let account = account_address_from_registration_id(&credential);
+    let account = account_address_from_registration_id(credential.as_ref());
 
     let mint_params = MintParams {
         account,
@@ -153,8 +148,8 @@ async fn main() -> anyhow::Result<()> {
             user_data: app.user_data,
             challenge: Challenge { challenge },
             proof: ProofWithContext {
-                credential: CredentialRegistrationID::new(credential),
-                proof:      Versioned::new(VERSION_0, proof),
+                credential,
+                proof: Versioned::new(VERSION_0, proof),
             },
         },
     };
