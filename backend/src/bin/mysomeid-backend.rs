@@ -59,7 +59,7 @@ struct Api {
         long = "concordium-api",
         name = "concordium-api",
         help = "GRPC V2 interface of the Concordium node.",
-        env = "ETHCCD_RELAYER_CONCORDIUM_API",
+        env = "MYSOMEID_CONCORDIUM_API",
         default_value = "http://localhost:20000"
     )]
     api: concordium::v2::Endpoint,
@@ -67,7 +67,7 @@ struct Api {
     #[clap(
         long,
         help = "Timeout for requests to the Concordium node.",
-        env = "ETHCCD_RELAYER_CONCORDIUM_REQUEST_TIMEOUT",
+        env = "MYSOMEID_CONCORDIUM_REQUEST_TIMEOUT",
         default_value = "10"
     )]
     concordium_request_timeout: u64,
@@ -104,56 +104,62 @@ struct Api {
         long = "log-level",
         default_value = "info",
         help = "Maximum log level.",
-        env = "ETHCCD_API_LOG_LEVEL"
+        env = "MYSOMEID_LOG_LEVEL"
     )]
     log_level: tracing_subscriber::filter::LevelFilter,
     #[clap(
         long = "db",
         default_value = "host=localhost dbname=relayer user=postgres password=password port=5432",
         help = "Database connection string.",
-        env = "ETHCCD_API_DB_STRING"
+        env = "MYSOMEID_DB_STRING"
     )]
     db_config: tokio_postgres::Config,
     #[clap(
         long = "listen-address",
         default_value = "0.0.0.0:8080",
         help = "Listen address for the server.",
-        env = "ETHCCD_API_LISTEN_ADDRESS"
+        env = "MYSOMEID_LISTEN_ADDRESS"
     )]
     listen_address: std::net::SocketAddr,
     #[clap(
         long = "prometheus-address",
         default_value = "0.0.0.0:9090",
         help = "Listen address for the server.",
-        env = "ETHCCD_API_PROMETHEUS_ADDRESS"
+        env = "MYSOMEID_PROMETHEUS_ADDRESS"
     )]
     prometheus_address: Option<std::net::SocketAddr>,
     #[clap(
         long = "max-pool-size",
         default_value = "16",
         help = "Maximum size of a database connection pool.",
-        env = "ETHCCD_API_MAX_DB_CONNECTION_POOL_SIZE"
+        env = "MYSOMEID_MAX_DB_CONNECTION_POOL_SIZE"
     )]
     max_pool_size: usize,
     #[clap(
         long = "request-timeout",
         default_value = "1000",
         help = "Request timeout in millisecons.",
-        env = "ETHCCD_API_REQUEST_TIMEOUT"
+        env = "MYSOMEID_REQUEST_TIMEOUT"
     )]
     request_timeout: u64,
     #[clap(
         long = "assets-dir",
         help = "Serve files from the supplied directory under /assets.",
-        env = "ETHCCD_API_SERVE_ASSETS"
+        env = "MYSOMEID_SERVE_ASSETS"
     )]
     assets_dir: Option<PathBuf>,
     #[clap(
         long = "log-headers",
         help = "Whether to log headers for requests and responses.",
-        env = "ETHCCD_API_LOG_HEADERS"
+        env = "MYSOMEID_LOG_HEADERS"
     )]
     log_headers: bool,
+    #[clap(
+        long = "https-only-download",
+        help = "Only allow HTTPS requests when downloading images.",
+        env = "MYSOMEID_HTTPS_ONLY"
+    )]
+    https_only: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -249,6 +255,9 @@ async fn main() -> anyhow::Result<()> {
     // TODO: Add limits
     let client = reqwest::ClientBuilder::new()
         .connect_timeout(std::time::Duration::from_secs(2))
+        .redirect(reqwest::redirect::Policy::limited(3))
+        .timeout(std::time::Duration::from_secs(5)) // from initial connection until processing the body has finished.
+        .https_only(app.https_only)
         .build()
         .context("Unable to build network client.")?;
 
