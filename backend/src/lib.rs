@@ -1,3 +1,5 @@
+pub mod db;
+
 use concordium::{
     base as concordium_base,
     base::{
