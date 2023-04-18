@@ -2,6 +2,10 @@ import {
 	getMessageHandler
 } from './content-messaging';
 
+import {
+	mysome,
+} from './root';
+
 export async function traverseDomWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
 	let e: any = null;
 	const ts = new Date().getTime();
@@ -259,7 +263,7 @@ export const storage = new (class {
 		}
 		const {
 			state
-		} = await messageHandler.sendMessageWResponse("background", "get-state", {}, {type: 'get-state'} );
+		} = await messageHandler.sendMessageWResponse("background", "get-state", {type: 'get-state', store: 'state'} );
 		console.log("Initial storage ", state);
 		this.state = state ?? {};
 	}
@@ -269,7 +273,7 @@ export const storage = new (class {
 		if ( this.state === null ) {
 			await this.init();
 		}
-		await messageHandler.sendMessageWResponse("background", "set-state", {}, {type: 'set-state', args: {key, value}} );
+		await messageHandler.sendMessageWResponse("background", "set-state", {type: 'set-state', store: 'state', key, value} );
 		this.state = {
 			...(this.state ?? {}),
 			[key]: value,
@@ -290,3 +294,112 @@ export const storage = new (class {
 		return this.state[key];
 	}
 })();
+
+export const registrations = new (class {
+	async fetch() {
+		const regs = (await storage.get("regs", true)) ?? {};
+		(mysome as any).regs = regs;
+		console.log("Regs", regs);
+		return regs;
+	}
+
+	select(platform: string, userId: string) {
+		const reg = mysome.regs?.[platform]?.[userId] ?? null;
+		return reg;
+	}
+	
+	async setRegStep(platform: string, userId: string, step: number) {
+		const regs = (await storage.get("regs", true)) ?? {};
+		regs[platform] = {
+			[userId]: {
+				...(regs[platform]?.[userId] ?? {}),
+				step,
+			}
+		};
+		mysome.regs = regs; // updated regs
+		console.log("storing new regs", regs);
+		await storage.set('regs', regs);
+	}
+});
+
+export type PlatformRequest = {
+	id: string;
+	created: number;
+	platform: string;
+	requestType: string;
+	status: 'created' | 'done',
+};
+
+export const platformRequests = new (class {
+	platformRequests: PlatformRequest[] | null = null;
+
+	async fetch(): Promise<PlatformRequest[]> {
+		if ( this.platformRequests !== null ) {
+			return this.platformRequests;
+		}
+		console.log("Storage: Init");
+		const {
+			store
+		} = await messageHandler.sendMessageWResponse("background", "get-state", {type: 'get-state', store: 'platform-requests'} );
+		console.log("Platform requests (loaded when initialised) ", store);
+		this.platformRequests = store?.array ?? [];
+		if ( this.platformRequests === null ) {
+			return [];
+		}
+		return this.platformRequests;
+	}
+
+	async removeRequest(id: string) {
+		if ( !this.platformRequests ) {
+			throw new Error('List where not initialised');
+		}
+		this.platformRequests = this.platformRequests.filter( x => x.id !== id );
+		const key = 'array';
+		const value = this.platformRequests;
+		await messageHandler.sendMessageWResponse("background", "set-state", {type: 'set-state', store: 'platform-requests', key, value} );
+	}
+
+	async removeRequests(platform: string) {
+		if ( !this.platformRequests ) {
+			throw new Error('List where not initialised');
+		}
+		this.platformRequests = this.platformRequests.filter( x => x.platform !== platform );
+		const key = 'array';
+		const value = this.platformRequests;
+		await messageHandler.sendMessageWResponse("background", "set-state", {type: 'set-state', store: 'platform-requests', key, value} );
+		const {
+			store
+		} = await messageHandler.sendMessageWResponse("background", "get-state", {type: 'get-state', store: 'platform-requests'} );
+		console.log("Platform requests (loaded when initialised) ", store);
+		this.platformRequests = store?.array ?? [];
+	}
+
+	async set(value: PlatformRequest[] ) {
+		const key = 'array';
+		console.log("Platform requests: set ", {key, value});
+		if ( this.platformRequests === null ) {
+			await this.fetch();
+		}
+		await messageHandler.sendMessageWResponse("background", "set-state", {type: 'set-state', store: 'platform-requests', key, value} );
+	}
+
+	async setState(value: PlatformRequest[] ) {
+		const key = 'array';
+		console.log("Platform requests: set ", {key, value});
+		if ( this.platformRequests === null ) {
+			await this.fetch();
+		}
+		await messageHandler.sendMessageWResponse("background", "set-state", {type: 'set-state', store: 'platform-requests', key, value} );
+	}
+
+	async select(platform: string, status: string, requestType: string): Promise<PlatformRequest[] | null> {
+		const array = await this.fetch();
+		const requests = array.filter( x => x.platform === platform &&
+										x.created > new Date().getTime() - 60000 * 30 &&
+										x.status === status &&
+										x.requestType === requestType
+									);
+		return requests ?? null;
+	}
+})();
+

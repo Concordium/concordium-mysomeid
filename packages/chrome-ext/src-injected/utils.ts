@@ -162,7 +162,7 @@ export const onOwnLinkedInProfileOrFeedUrl = () => {
 			return;
 		}
 		return new Promise<void>(resolve => {
-			chrome.runtime.sendMessage({method: "getState"}, ({state}: any) => {
+			chrome.runtime.sendMessage({method: "get-state"}, ({state}: any) => {
 				this.state = state;
 				resolve();
 			});
@@ -171,7 +171,7 @@ export const onOwnLinkedInProfileOrFeedUrl = () => {
 
 	async set(key: string, value: any) {
 		return new Promise<void>(resolve => {
-			chrome.runtime.sendMessage({method: "setState", args: {key, value}}, () => {
+			chrome.runtime.sendMessage({method: "set-state", args: {key, value}}, () => {
 				this.state = {
 					...(this.state ?? {}),
 					[key]: value,

@@ -66,6 +66,7 @@ export function MyProofs({}) {
   const navigate = useNavigate();
   const {
     isConnected,
+    installed,
     provider,
     connect: connect,
     contract,
@@ -298,11 +299,13 @@ export function MyProofs({}) {
 
         <Typography variant="subtitle1" gutterBottom component="div" sx={{textAlign: 'center'}}>
           Click 'Create Proof' to verify your Social Media profile.<br/>
-          Or, Connect your Concordium wallet to show Proofs.
+          {installed !== null && installed ?
+            'Or, Connect your Concordium wallet to show Proofs.' : undefined}
         </Typography>
 
         <Box sx={{display: 'flex', marginTop: '24px'}}>
-          <SecondaryButton sx={{marginTop: '8px',}} onClick={connect}>Connect</SecondaryButton>
+          {installed !== null && installed ?
+            <SecondaryButton sx={{marginTop: '8px',}} onClick={connect}>Connect</SecondaryButton> : undefined}
           <CreateProofButton {...{marginLeft: '16px', disabled: loading, onClick: createNewProof}} />
         </Box>
       </Box>

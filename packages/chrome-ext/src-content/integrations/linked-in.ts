@@ -2,6 +2,7 @@ import {
 	logger,
 	verbose,
 	storage,
+	platformRequests,
 	isOnLinkedInProfileUrl,
 	isOnLinkedInFeedUrl,
 	getUserIdInUrl,
@@ -12,6 +13,7 @@ import {
 	utf8_to_b64,
 	getUserNameOnProfile,
 	getUserNameOnFeed,
+	registrations,
 } from '../utils';
 import {
 	ShieldWidget,
@@ -31,6 +33,7 @@ import {
 import { createTourWidget } from '../tour';
 import {tracking, createTracker} from '../tracking';
 import { getMessageHandler } from '../content-messaging';
+import { request } from 'http';
 let nvisit = 0;
 let root: RootWidget = null as any as RootWidget;
 let state = {
@@ -254,17 +257,6 @@ const ensureWidget = () => {
 	return widget;
 };
 
-async function setRegStep(platform: 'li', userId: string, step: number) {
-	const regs = (await storage.get("regs", true)) ?? {};
-	regs[platform] = {
-		[userId]: {
-			...(regs[platform]?.[userId] ?? {}),
-			step,
-		}
-	};
-	mysome.regs = regs; // updated regs
-	await storage.set("regs", regs);
-}
 
 (async () => {
 	const staging = (await storage.get("staging", true)) ?? {};
@@ -301,7 +293,7 @@ const trackProfileName = createTracker<string | null>({
 	name: 'profileName'
 });
 const trackOwnProfileUserId = createTracker<string | null>({
-	name: 'ownProfile',
+	name: 'ownProfileUserIdObserved',
 	mode: 'observed',
 });
 const trackOtherProfileUserId = createTracker<string | null>({
@@ -602,7 +594,8 @@ const changeBackgroundTour = {
 	onTourCancel: (tour: any) => {
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
 		if ( u ) {
-			setRegStep(mysome.platform, u, 6).then().catch(console.error);
+			registrations.setRegStep(mysome.platform, u, 6).then().catch(console.error);
+			
 		} else {
 			console.error('No user id while cancelling tour - could not change the status of the registration.');
 		}
@@ -618,6 +611,7 @@ const changeBackgroundTour = {
 				context.onResult = (v: any) => {
 					if ( v === 'cancel' ) {
 						tour.cancel();
+
 					} else if ( v === 'continue' ) {
 						tour.loadingPopup = showLoadingPopup({
 							message: 'Changing your background',
@@ -630,13 +624,13 @@ const changeBackgroundTour = {
 		},
 		{
 			activate: async (tour: any) => {
-				console.log('# 1');
+				// console.log('# 1');
 				// debugger;
 				let userId: string | null = null;
 				userId = getUserIdInUrl();
 				const loc = window.location.href.toLowerCase();
 				const onProfile = loc.indexOf('/in/' + userId + '/' ) >= 0 &&
-									document.querySelector('.profile-topcard-background-image-edit__icon');
+									qs('.profile-topcard-background-image-edit__icon');
 				if (!onProfile) {
 					console.log('# 2a');
 					const onFeed = loc.indexOf('/feed/') >= 0;
@@ -657,7 +651,7 @@ const changeBackgroundTour = {
 					a?.click();
 					console.log('# 2c');
 					if ( !a ) {
-						console.error('Feed profile link not found.');
+						console.error('Profile link not found.');
 					}
 					let max = 0;
 					console.log('# 2d');
@@ -679,8 +673,8 @@ const changeBackgroundTour = {
 					return;
 				}
 
+				const reg = registrations.select(mysome.platform, userId);
 				console.log('# 2g');
-				const reg = (mysome as any).regs?.[mysome.platform]?.[userId] ?? null;
 				if ( !reg ) {
 					tour.endWithError('Failed changing background (2)', 'Please try again later or change the background manually.');
 					return;
@@ -837,9 +831,12 @@ const changeBackgroundTour = {
 				});
 				context.onResult = (v: any) => {
 					// Store the next step.
-					setRegStep(mysome.platform, u, 6).then().catch(console.error);
-					
-					tour.done();
+					registrations.setRegStep(mysome.platform, u, 6).then(() => {
+						tour.done();
+					}).catch((err) => {
+						console.error(err);
+						tour.endWithError('Failed updating registration', 'Please retry uploading background.');
+					});
 				};
 			},
 		},
@@ -925,43 +922,51 @@ const install = async () => {
 
 	root = createRootWidget();
 
+	// How many times we have visited the website.
 	nvisit = (await storage.get("li.nvisit")) ?? 0;
 	await storage.set("li.nvisit", nvisit + 1);
-
 	welcomeShown = await storage.get("content-welcome-shown");
 	logger.info( "welcomeShown ", welcomeShown );
-
-	const regs = (await storage.get("regs", true)) ?? {};
-	console.log("registrations", regs);
-	(mysome as any).regs = regs;
-
 	(mysome as any).info = {
 		welcomeShown,
 		'li.nvisit': nvisit + 1,
 	};
 
+	// 
+	const requestToFetchProfile = (await platformRequests.select('li', 'created', 'fetch-profile')) ?? null;
+	(mysome as any).requests = requestToFetchProfile ?? [];
+	console.log("requests", (mysome as any).requests);
+
+	// 
+	const regs = await registrations.fetch();
+	console.log("registrations", regs);
+
+	// 
 	(mysome as any).tours = {
 		'li.finalize': changeBackgroundTour,
 	};
 
-	(mysome as any).resetReg = () => {
-		const ownProfileUserId = trackOwnProfileUserId.get();
-		if ( !ownProfileUserId ) {
-			throw new Error('Cannot reset a registration since my own profile name is not observed yet.');
-		}
-		(async () => {
-			const regs = (await storage.get("regs", true)) ?? {};
-			if ( regs[mysome.platform]?.[ownProfileUserId] ) {
-				delete regs[mysome.platform]?.[ownProfileUserId];
-			}
-			await storage.set("regs", regs);
-		})();
-	};
-
-	tracking.on('ownProfileObserved', (userId: string) => {
-		// console.log("Own profile name obseved ", userId);
+	tracking.on('ownProfileUserIdObserved', (userId: string) => {
+		console.log("Own profile name obseved ", userId);
 		mysome.onPlatformObserved(mysome.platform, userId); // when a user has been logging into the platform.
-		const reg = mysome.regs?.['li']?.[userId] ?? null;
+
+		const reqs = (mysome as any).requests;
+		if ( reqs && reqs.length > 0 ) {
+			console.log("requests", reqs);
+			const req = reqs[0];
+			platformRequests.removeRequests('li').then(() => {
+				showMessagePopup({
+					title: 'Get Profile Info',
+					message: 'Do you want to secure this profile?',
+					secondary: 'CANCEL',
+					primary: 'Continue',
+					primary_link: getCreateLink(),
+				});
+			});
+			return;
+		}
+
+		const reg = registrations.select('li', userId );
 		console.log("Own Profile registration: ", reg);
 		if ( reg && reg.step === 5 ) {
 			mysome.createTour('li.finalize');
@@ -969,7 +974,7 @@ const install = async () => {
 	});
 
 	tracking.on('otherProfileObserved', (userId: string) => {
-		const reg = mysome.regs?.['li']?.[userId] ?? null;
+		const reg = registrations.select('li', userId );
 		if ( reg && reg.step === 5 ) {
 			console.error("Other profile observed but there is a registration! (this is not supposed to happen)", reg);
 			showMessagePopup({
@@ -979,22 +984,6 @@ const install = async () => {
 			});
 		}
 	});
-
-	(mysome as any).createReg = () => {
-		const ownUserId = trackOwnProfileUserId.get();
-		if ( !ownUserId ) {
-			throw new Error('Cannot create a registration since my own profile name is not observed yet.');
-		}
-		(async () => {
-			const regs = (await storage.get("regs")) ?? {};
-			regs[mysome.platform] = {
-				[ownUserId]: {	
-					step: 5,
-				}
-			};
-			await storage.set("regs", regs);
-		})();
-	};
 
 	const badgeClickHandler = (mysome as any).badgeClickHandler = (params: any) => {
 		if ( shield && shield?.isLoading() ) {
@@ -1067,19 +1056,19 @@ const install = async () => {
 				const tmp = profileStatus.get();
 				const status = profileStatus.get()?.status ?? null;
 				if ( status === 'not-registered' ) {
-					const tour = mysome?.regs?.[mysome.platform]?.[ownUserId] ?? null;
+					const reg = registrations.select(mysome.platform, ownUserId);
 					const {
 						step 
-					} = tour ?? {};
+					} = reg ?? {};
 
-					if ( tour && step === 5 ) {
+					if ( step === 5 ) {
 						// Continue the installation process.
 						console.log("Continue the installation process for LinkedIn: " + ownUserId);
 
 						mysome.createTour('li.finalize');
 						return;
 
-					} else if ( tour && step > 5 ) {
+					} else if ( step > 5 ) {
 						
 						const createLink = getCreateLink();
 						showMessagePopup({
@@ -1091,7 +1080,7 @@ const install = async () => {
 						});
 						return;
 
-					} else if ( !mysome.regs?.[mysome.platform]?.[ownUserId] ) {
+					} else if ( !reg ) {
 						showNotVerifiedPopup();
 						return;
 
@@ -1157,7 +1146,6 @@ const install = async () => {
 		const onOwnPageOrFeed = !!tracking.onOwnProfileOrFeed;
 
 		if ( proof && proof !== 'no-connection' && proof !== 'no-proof' ) {
-			// debugger;
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get();
 			const name = trackProfileName.get();
@@ -1277,7 +1265,6 @@ const install = async () => {
 			console.log('Profile verification result ', {qrResult, connectionError});
 
 			verbose("qrResult" , qrResult);
-			// debugger;
 			if ( trackProfileUserId.get() === profileUserId ) {
 				if ( qrResult ) {
 					connectionError = false;
