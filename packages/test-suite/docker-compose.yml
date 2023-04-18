@@ -1,0 +1,36 @@
+# docker-compose.yml
+version: '3.9'
+
+services:
+  test_integration:
+    build: .
+    volumes:
+      - ./volume:/usr/src/app/volume
+      - ../chrome-ext/build:/usr/src/app/extensions/chrome-ext
+    environment:
+      - DISPLAY=:99
+      - EXT_FOLDER=./extensions/chrome-ext
+    entrypoint: ["yarn", "run", "test:integration"]
+    stdin_open: true
+    tty: true
+  test_e2e:
+    build: .
+    volumes:
+      - ./volume:/usr/src/app/volume
+      - ../chrome-ext/build:/usr/src/app/extensions/chrome-ext
+    environment:
+      - DISPLAY=:99
+      - EXT_FOLDER=./extensions/chrome-ext
+    entrypoint: ["yarn", "run", "test:e2e"]
+    stdin_open: true
+    tty: true
+  test_dev:
+    build: .
+    volumes:
+      - ./volume:/usr/src/app/volume
+      - ../chrome-ext/build:/usr/src/app/extensions/chrome-ext
+    environment:
+      - DISPLAY=docker.for.mac.host.internal:0
+      - EXT_FOLDER=./extensions/chrome-ext
+    stdin_open: true
+    tty: true

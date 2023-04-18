@@ -4,10 +4,12 @@ WORKDIR /app
 
 COPY . .
 
-RUN run yarn
+RUN apk add --no-cache git
+
+RUN yarn
 
 RUN yarn build
 
 ENV NODE_ENV production
 
-CMD [ "yarn start" ]
+CMD [ "yarn", "start" ]

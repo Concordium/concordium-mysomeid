@@ -6,4 +6,4 @@ COPY src ./src
 COPY yarn.lock ./
 RUN npm install
 EXPOSE 3003
-CMD ["yarn start"]
+CMD [ "yarn", "start" ]
