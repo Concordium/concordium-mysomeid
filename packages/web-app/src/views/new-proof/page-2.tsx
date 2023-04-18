@@ -24,6 +24,7 @@ import {
 } from './wizard-loading';
 import { TrackBox } from './track-box';
 import { IdProofOutput } from '@concordium/common-sdk';
+import { InstallExtensions } from './install-extensions';
 
 function capitalize (s: string) {
   if ( !s?.length ) {
@@ -207,75 +208,75 @@ export default connect(state => ({
 
   return (
   <form onSubmit={nextPage}>
+    <InstallExtensions>
+      <TrackBox id="container-box" sx={{display: 'flex', flexDirection: 'column', }}>
+        {({width, height}: {width: number, height: number}) => (
+          <>
+            <Box id="layout-column" sx={{display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '400px'}}>
 
-    <TrackBox id="container-box" sx={{display: 'flex', flexDirection: 'column', }}>
-      {({width, height}: {width: number, height: number}) => (
-        <>
-          <Box id="layout-column" sx={{display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '400px'}}>
-
-            <Box id="layout-centered" sx={{display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', height: '100%', position: 'absolute', opacity: connectWithIDLoading ? 0.1 : 1 }}>
-              <Box id="statement-info" sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-                <Typography variant="h3" display="block" sx={{fontWeight: 500}}>Your Profile to Secure</Typography>
-                <Typography variant="h6" display="block">{userData}</Typography>
-                <Box sx={{
-                  width: '140px',
-                  height: '140px',
-                  background: `url(${profileImageUrl})`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: 'cover',
-                  borderRadius: '1111px',
-                  border: '1px solid',
-                  marginTop: '16px'
-                }} />
-                <Box sx={{display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px'}}>
-                  {
-                    !onlyUrl ? 
-                    <>
-                      <Box sx={{display: 'flex'}}>
-                        <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
-                        <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName}</Typography>
-                      </Box>
-                      <Box sx={{display: 'flex'}}>
-                        <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
-                        <Typography variant="h6" display="block" marginLeft="auto">{profileSurname}</Typography>
-                      </Box>
-                    </> : 
-                    <>
-                      <Box sx={{display: 'flex'}}>
-                        <Typography variant="h6" display="block" marginRight="12px">Platform</Typography>
-                        <Typography variant="h6" display="block" marginLeft="auto">LinkedIn</Typography>
-                      </Box>
-                      <Box sx={{display: 'flex'}}>
-                        <Typography variant="h6" display="block" marginRight="12px">User Id</Typography>
-                        <Typography variant="h6" display="block" marginLeft="auto">{userData}</Typography>
-                      </Box>
-                    </>
-                  }
-                </Box>
-                <Box sx={{marginTop: '16px' }}>
-                  <Button variant="contained" sx={{
-                    minWidth: '100px',
-                    marginLeft: '8px',
-                    padding: '6px 16px',
-                    opacity: statementInfo ? 0.1 : 1,
-                  }} disabled={statementInfo} disableRipple onClick={authorize}>{!isConnected ? 'Connect Concordium Wallet' : 'Connect With Your Concordium ID'}</Button>
+              <Box id="layout-centered" sx={{display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', height: '100%', position: 'absolute', opacity: connectWithIDLoading ? 0.1 : 1 }}>
+                <Box id="statement-info" sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
+                  <Typography variant="h3" display="block" sx={{fontWeight: 500}}>Your Profile to Secure</Typography>
+                  <Typography variant="h6" display="block">{userData}</Typography>
+                  <Box sx={{
+                    width: '140px',
+                    height: '140px',
+                    background: `url(${profileImageUrl})`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'cover',
+                    borderRadius: '1111px',
+                    border: '1px solid',
+                    marginTop: '16px'
+                  }} />
+                  <Box sx={{display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px'}}>
+                    {
+                      !onlyUrl ? 
+                      <>
+                        <Box sx={{display: 'flex'}}>
+                          <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
+                          <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName}</Typography>
+                        </Box>
+                        <Box sx={{display: 'flex'}}>
+                          <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
+                          <Typography variant="h6" display="block" marginLeft="auto">{profileSurname}</Typography>
+                        </Box>
+                      </> : 
+                      <>
+                        <Box sx={{display: 'flex'}}>
+                          <Typography variant="h6" display="block" marginRight="12px">Platform</Typography>
+                          <Typography variant="h6" display="block" marginLeft="auto">LinkedIn</Typography>
+                        </Box>
+                        <Box sx={{display: 'flex'}}>
+                          <Typography variant="h6" display="block" marginRight="12px">User Id</Typography>
+                          <Typography variant="h6" display="block" marginLeft="auto">{userData}</Typography>
+                        </Box>
+                      </>
+                    }
+                  </Box>
+                  <Box sx={{marginTop: '16px' }}>
+                    <Button variant="contained" sx={{
+                      minWidth: '100px',
+                      marginLeft: '8px',
+                      padding: '6px 16px',
+                      opacity: statementInfo ? 0.1 : 1,
+                    }} disabled={statementInfo} disableRipple onClick={authorize}>{!isConnected ? 'Connect Concordium Wallet' : 'Connect With Your Concordium ID'}</Button>
+                  </Box>
                 </Box>
               </Box>
             </Box>
-          </Box>
 
-          {
-            connectWithIDLoading ?
-              <Box id="loader-container" sx={{display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                <WizardLoading title="Getting Identity" subtitle="" />        
-              </Box>
-              :
-              undefined
-          }
-        </>
-      )}
-    </TrackBox>
-
+            {
+              connectWithIDLoading ?
+                <Box id="loader-container" sx={{display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
+                  <WizardLoading title="Getting Identity" subtitle="" />        
+                </Box>
+                :
+                undefined
+            }
+          </>
+        )}
+      </TrackBox>
+    </InstallExtensions>
 
     <WizardNav sx={{marginTop: '32px',}} prev={"Back"} prevDisabled={prevDisabled} nextDisabled={nextDisabled} next={'Next'} onPrev={previousPage} />
   </form>);

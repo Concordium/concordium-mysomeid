@@ -40,6 +40,7 @@ import {
 function App() {
   const {
     isConnected,
+    installed,
     connect,
     disconnect,
   } = useCCDContext();
@@ -62,7 +63,7 @@ function App() {
       <div style={{background: 'linear-gradient(0deg, rgb(255 255 255) 0%, rgb(255 255 255) 49%, rgba(29,32,64,1) 50%, rgba(29,32,64,1) 100%)', position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, zIndex: -1}} />
       <Messages />
       <Box component="div" sx={{flex: 1}}>
-        <AppHeader {...{isConnected, onToggleConnect}}/>
+        <AppHeader {...{isConnected, isInstalled: installed, onToggleConnect}}/>
         <Routes>
           <Route path="/home" element={<>
             <HomeView />
