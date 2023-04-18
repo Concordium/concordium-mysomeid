@@ -201,15 +201,19 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
   const [mintTxs, setMintTxs] = useState<MintTx[] | null>(null);
   const [addedMintTxsInfoToMyProofs, setAddedMintTxsInfoToMyProofs] = useState(false);
   const [installed, setInstalled] = useState<boolean | null>(null);
+  const [tsCreated] = useState(new Date().getTime());
 
+  // Detect when the Concordium wallet is installed.
   useInterval(() => {
     if ( installed !== null ) {
       return;
     }
-    if ( (window as any).concordium === undefined ) {
+
+    // Give Concordium 1,5 second to initialise the API.
+    if ( (window as any).concordium === undefined && new Date().getTime() - tsCreated < 1500 ) {
       return;
     }
-    console.log('!!(window as any).concordium ', !!(window as any).concordium);
+
     setInstalled(!!(window as any).concordium);
   }, 100, true);
 

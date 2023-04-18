@@ -88,9 +88,9 @@ const MySoMeExtNeeded = () => {
 const CCDExtNeeded = () => {
   return (
     <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-      <Typography variant="h3" display="block"><strong>Use your Concordium identity</strong></Typography>
+      <Typography variant="h3" display="block"><strong>Install the Concordium Wallet</strong></Typography>
       <Typography variant="h6" display="block" gutterBottom sx={{marginTop: '8px', maxWidth: '65%', textAlign: 'center'}}>
-        Install the Concordium Wallet to provide your identity.
+        Install the Concordium Wallet extension to provide your identity.
       </Typography>
       <Box sx={{marginTop: '24px', display: 'flex',  width: '100%', justifyContent: 'center'}}>
         <Box sx={{    
