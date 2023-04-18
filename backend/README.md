@@ -1,5 +1,61 @@
 ## mysomeid backend and test tools
 
+## Exposed endpoints
+
+- `GET /v1/proof/statement`
+  Retrieves the statement to request a proof of from the wallet. No parameters
+  are supported.
+
+- `GET /v1/wallet/txs/:accountAddress` returns a list of tokens in descending
+  order of minting. The `limit` and `from` parameters are supported, both
+  optional. The `from` parameter refers to the `id` of the token minting event
+  that is returned with each response.
+
+- `GET /v1/proof/challenge` returns the challenge to be used for the proof.
+  The `platform` and `userData` parameters are supported. `platform` currently
+  has to be set to `li`, and userData is an arbitrary string.
+
+- `POST /v1/proof/verify` verifies the supplied proof (expected in the JSON
+  body).
+
+- `POST /v1/proof/nft` initiates the minting process. It expects a JSON body
+  with the proof, account and platform, verifies the proof, and submits the
+  minting transaction. If successful it returns a JSON object with fields
+  `transactionHash` and `decryptionKey`. The latter is needed to decrypt the
+  data stored in the contract on the chain and verify a proof.
+
+- `GET /v1/proof/nft/:proofId/:encryptionKey` Looks up the proof from the chain
+  and decrypts it using the provided key.
+
+- `GET /v1/proof/validate-proof-url` verifies the proof it extracts from the
+  URL. It takes `url`, `firstName`, `lastName`, `platform` and `userData` as
+  parameters. The names are the names as they appear in the profile, `platform`
+  has to be `li`, and `userData` is the linkedin profile name. The URL is meant
+  to be in the format `$BASE/:tokenId/:decryptionKey` where `tokenId` is a u64
+  (represented as a number), and decryption key is base64 encoded (and then URI
+  encoded if necessary). The response is a JSON object with `status` and `id`,
+  which is the proof id. `status` is either `valid` or `invalid`. In case of
+  failure to get the proof or decrypt it a non-200 status code is returned with
+  a short description of the problem.
+
+- `GET /v1/proof/validate` (same as the previous endpoint)
+
+
+- `GET /v1/proof/meta/:proofId` takes a proof id and `p=li` and `r` query
+  parameters. It returns token metadata in the format expected for CIS2 token metadata.
+
+- `GET /v1/proof/img/:proofId` takes `r` parameter which should be non-zero for
+  revoked tokens. It returns the token image.
+
+- `GET /v1/qr/validate` takes a `url` query parameter which should be a valid
+  URL. It downloads an image from the URL and attempts to find and scan the QR
+  code in it. If the image cannot be processed then an invalid request status code
+  is returned. Otherwise a JSON object is returned with a `result` field. This
+  is either `null` if no QR code could be read, or a string which contains the
+  decoded contents of the code.
+
+- `GET /v1/qr/image/scan` (same as `v1/qr/validate`).
+
 ## Configuration options
 
 The following configuration options are supported
