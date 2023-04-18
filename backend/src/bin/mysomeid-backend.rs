@@ -176,6 +176,13 @@ struct Api {
         default_value = "5"
     )]
     max_daily_mints: u32,
+    // Maximum number of seconds a concordium node can be behind before it is deemed "behind".
+    #[clap(
+        long = "allowed-domains",
+        help = "Allowed domains for image requests.",
+        env = "MYSOMEID_ALLOWED_DOMAINS"
+    )]
+    allowed_domains: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -196,6 +203,7 @@ struct ServiceState {
     pub tx_sender:         tokio::sync::mpsc::Sender<TxChannelData>,
     pub read_db:           db::ReadDatabase,
     pub max_daily_mints:   u32,
+    pub allowed_domains:   Arc<Vec<String>>,
 }
 
 #[tokio::main]
@@ -300,6 +308,7 @@ async fn main() -> anyhow::Result<()> {
         tx_sender: sender,
         read_db,
         max_daily_mints: app.max_daily_mints,
+        allowed_domains: Arc::new(app.allowed_domains),
     };
 
     let (db_sender, db_receiver) = tokio::sync::mpsc::channel(100);
@@ -568,8 +577,22 @@ const MAX_IMAGE_SIZE: u64 = 2_000_000;
 #[tracing::instrument(level = "debug", skip_all)]
 async fn parse_qr(
     Query(ParseQRParams { url }): Query<ParseQRParams>,
-    State(ServiceState { client, .. }): State<ServiceState>,
+    State(ServiceState {
+        client,
+        allowed_domains,
+        ..
+    }): State<ServiceState>,
 ) -> Result<axum::Json<serde_json::Value>, Error> {
+    if let Some(domain) = url.domain() {
+        if !allowed_domains.is_empty() && allowed_domains.iter().all(|ad| ad != domain) {
+            tracing::warn!("Disallowed domain requested: {domain}");
+            return Err(Error::InvalidRequest(
+                "Requesting an image from a non white-listed domain.".into(),
+            ));
+        }
+    } else {
+        return Err(Error::InvalidRequest("URL must have a domain name.".into()));
+    }
     let mut data = match client
         .get(url)
         .timeout(std::time::Duration::from_secs(2))
