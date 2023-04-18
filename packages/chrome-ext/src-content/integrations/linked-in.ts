@@ -626,7 +626,8 @@ const changeBackgroundTour = {
 			activate: async (tour: any) => {
 				// console.log('# 1');
 				// debugger;
-				let userId: string| null = null;
+				let userId: string | null = null;
+				userId = getUserIdInUrl();
 				const loc = window.location.href.toLowerCase();
 				const onProfile = loc.indexOf('/in/' + userId + '/' ) >= 0 &&
 									qs('.profile-topcard-background-image-edit__icon');
@@ -650,7 +651,7 @@ const changeBackgroundTour = {
 					a?.click();
 					console.log('# 2c');
 					if ( !a ) {
-						console.error('Profile link not found.');
+            console.error('Feed profile link not found.');
 					}
 					let max = 0;
 					console.log('# 2d');
@@ -663,22 +664,25 @@ const changeBackgroundTour = {
 					console.log('# 2e');
 				}
 
-				userId = getUserIdInUrl();
 
+				console.log('# 2f');
+				userId = getUserIdInUrl();
 				if ( !userId ) {
+					console.log('# 2g');
 					tour.endWithError('Failed changing background (1)', 'Please try again later or change the background manually.');
 					return;
 				}
 
 				const reg = registrations.select(mysome.platform, userId);
+				console.log('# 2g');
 				if ( !reg ) {
 					tour.endWithError('Failed changing background (2)', 'Please try again later or change the background manually.');
 					return;
 				}
 
 				console.log('# 3');
-				const editBgButton = document.querySelector<HTMLElement>(".profile-topcard-background-image-edit")
-																			?.querySelector<HTMLElement>("button");
+				const editBgButton = document.querySelector(".profile-topcard-background-image-edit")?.querySelector("button");
+									 // document.querySelector<HTMLElement>(".profile-topcard-background-image-edit")?.querySelector<HTMLElement>("button");
 				if ( !editBgButton ) {
 					tour.endWithError('Failed changing background (3)', 'Please try again later or change the background manually.');
 					return;
@@ -696,7 +700,7 @@ const changeBackgroundTour = {
 
 				// Test what kind of view shows up.
 				const changeBackgroundFound = qsa("div").find( x => x.innerText === 'Background photo' )?.parentElement?.parentElement?.qsa("label").find( x => x.innerText === "Change photo" );
-				const addBackgroundViewFound = qsa("div").find( x => x.innerText === 'Add background photo' );
+				const addBackgroundViewFound = qsa("h2").find( x => x.innerText.trim() === 'Add background photo' );
 
 				// 1. If we have not previously send a photo we need to detect if there is one available.
 				const editProfileBackgroundButton = document.querySelector('[aria-label="Edit profile background"]');
@@ -705,6 +709,7 @@ const changeBackgroundTour = {
 					addBackgroundViewFound,
 					editProfileBackgroundButton,
 				});
+
 				if ( !changeBackgroundFound && addBackgroundViewFound && editProfileBackgroundButton ) {			
 					console.log('# 5a - We have not previously added a background picture');
 					let max = 0;
@@ -777,7 +782,7 @@ const changeBackgroundTour = {
 						console.error("Apply button not found.");
 						await sleep(1000);
 						if ( notFnd ++ > 10 ) {
-							console.error("Failed to find retry button"); // TODO: Show error message to user.
+							console.error("Failed to find Apply button"); // TODO: Show error message to user.
 							tour.endWithError('Failed to change background', 'Please try setting the background manually');
 							return;
 						} else {
@@ -788,13 +793,14 @@ const changeBackgroundTour = {
 						if ( !applyButton ) {
 							console.error("Error - cannot find apply button.");
 						}
-						console.log("applyButton", applyButton);
+						console.log("Clicking Apply button", applyButton);
 						applyButton?.click();
-						console.log("Clicking the apply button");
+						console.log("Clicked the apply button");
 					}
 					let cnt = 0;
 					// wait up to 30 seconds.
 					while ( document.querySelector('footer.image-edit-tool-footer') && cnt++ < 30 ) {
+						console.log("Waiting for apply to disappear");
 						await sleep(1000);
 					}
 				}
