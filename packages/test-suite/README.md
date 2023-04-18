@@ -9,7 +9,7 @@ The package contains a single test which tests the complete registration flow.
 
 The prerequisites for running the test is that the linkedin profile used for testing has been authenticated with the google session. See User data on how to do that.
 
-NOTE: Running the e2e test in a git job may not be feasible so for the time beeing consider the e2e test as a development tool to ensure that the 
+NOTE: Running the e2e test in a CI job may not be feasible so for the time beeing consider the e2e test as a development tool to ensure that the e2e registration flow works.
 
 
 ## Integration
@@ -38,7 +38,7 @@ E2E test suite
 yarn test:docker:integration:build && yarn test:docker:integration:run
 ```
 
-NOTE: Running the integration tests in a git job shouuld be possible since it uses a mocked version of linked-in. However the concordium wallet may need to be topped up with additional CCD on testnet in order to fully run it until something akin to Hardhat on Ethereum is developed for concordium which should allow for an improved integration test suite.
+NOTE: Running the integration tests in a CI job shouuld be possible since it uses a mocked version of linked-in. However the concordium wallet may need to be topped up with additional CCD on testnet in order to fully run it until something akin to Hardhat on Ethereum is developed for concordium which should allow for an improved integration test suite.
 
 
 ## How to develop the tests?
