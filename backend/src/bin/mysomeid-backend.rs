@@ -417,8 +417,8 @@ async fn main() -> anyhow::Result<()> {
         .layer(tower_http::timeout::TimeoutLayer::new(
             std::time::Duration::from_millis(app.request_timeout),
         ))
-        // TODO: .layer(tower_http::limit::RequestBodyLimitLayer::new(0)) // no bodies, we only have GET requests.
-        // TODO: .layer(tower_http::cors::CorsLayer::permissive().allow_methods([http::Method::GET]))
+        .layer(tower_http::limit::RequestBodyLimitLayer::new(16_386)) // 16kB bodies is plenty for the proofs we need.
+        .layer(tower_http::cors::CorsLayer::permissive().allow_methods([http::Method::GET, http::Method::POST]))
         .layer(prometheus_layer);
 
     if let Some(prometheus_address) = app.prometheus_address {
