@@ -1,0 +1,3 @@
+2023/03/31-23:34:41.678 a603 Reusing MANIFEST /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/IndexedDB/https_www.linkedin.com_0.indexeddb.leveldb/MANIFEST-000001
+2023/03/31-23:34:41.678 a603 Recovering log #4
+2023/03/31-23:34:41.681 a603 Reusing old log /Users/kristianmortensen/playground/mys/packages/test-suite/user-data/Default/IndexedDB/https_www.linkedin.com_0.indexeddb.leveldb/000004.log 
