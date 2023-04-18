@@ -81,7 +81,7 @@ export const InstallExtensions = ({children}: {children: any}) => {
         <Box sx={{    
           display: 'flex', flex: 1, flexGrow: 1, widthg: '100%', justifyContent: 'center',
         }}>
-          <Button variant="ghost" sx={{
+          {/*<Button variant="ghost" sx={{
             display: 'flex',
             flex: 1,
             fontSize: '16px !important',
@@ -94,7 +94,7 @@ export const InstallExtensions = ({children}: {children: any}) => {
             paddingRight: '16px',
           }} disableRipple onClick={skipInstallExt}>
             Skip
-          </Button>
+          </Button>*/}
           <Button sx={{
             display: 'flex',
             flex: 1,

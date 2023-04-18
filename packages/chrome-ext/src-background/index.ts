@@ -10,16 +10,31 @@ const SERVICE_BASE_URL = () => TEST ? 'http://localhost:4200' : `https://api.mys
 // Initialise.
 let state: any = null;
 chrome.storage.local.get("state", (result: any) => {
-	console.log("Init storage ; ", result );
-	if ( !result.state ) {
+	console.log("Init storage ; ", result);
+	if (!result.state) {
 		console.log("Creating empty state");
 	}
 	state = result.state ?? {};
-	if ( state['staging'] === undefined ) {
+	if (state['staging'] === undefined) {
 		state['staging'] = false;
 	}
 	TEST = state ? state['staging'] : null;
 	console.log("Test ", TEST);
+});
+
+chrome.runtime.onInstalled.addListener(function () {
+	console.log("ChromeExtension: Installed");
+	chrome.tabs.query({}, (tabs: any) => {
+		tabs.map((tab: any) => ({tabId: tab.id, tabUrl: tab.url}))
+			.forEach(({tabId, tabUrl}: any) =>
+			{
+				// Reload tabs
+				if (tabUrl.toLowerCase().indexOf('/create/1') >= 0 || tabUrl.indexOf('linkedin') >= 0 ) {
+					chrome.tabs.reload(tabId);
+				}
+			}
+		);
+	});
 });
 
 chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (what: any) => void) => {
@@ -39,9 +54,11 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 	const serial = Math.round(Math.random() * 99999999999);
 
 	const sendErrorResponse = (msg: string) => {
-		sendResponse({to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome', payload: {
-			error: msg,
-		}});
+		sendResponse({
+			to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome', payload: {
+				error: msg,
+			}
+		});
 	};
 
 	const sendAck = () => {
@@ -71,7 +88,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 		fetch(url).then(res => {
 			return res.json();
 		}).then(obj => {
-			if ( obj === null ) {
+			if (obj === null) {
 				setTimeout(() => {
 					sendErrorResponse('no connection');
 				});
@@ -87,7 +104,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 						payload: {
 							...obj,
 						},
-					});	
+					});
 				});
 			}
 		});
@@ -98,34 +115,34 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 			const {
 				state: registrationState,
 			} = request?.payload ?? {};
-	
+
 			const {
 				platform,
 				username,
 			} = registrationState;
-	
-			if ( !platform || typeof platform !== 'string' ) {
+
+			if (!platform || typeof platform !== 'string') {
 				sendErrorResponse('No platform given');
 				return;
 			}
-	
-			if ( !username || typeof username !== 'string' ) {
+
+			if (!username || typeof username !== 'string') {
 				sendErrorResponse('No username given');
 				return;
 			}
-	
-			if ( !registrationState || typeof registrationState !== 'object' ) {
+
+			if (!registrationState || typeof registrationState !== 'object') {
 				sendErrorResponse('No state given');
 				return;
 			}
 
 			await (new Promise<any>(resolve => {
-				if ( !state ) {
+				if (!state) {
 					console.error("Warning storage should already be initialised.")
 					chrome.storage.local.get("state", (r: any) => {
-						if ( !r.state ) {
+						if (!r.state) {
 							console.error("Creating empty state");
-						}					
+						}
 						state = r.state ?? {};
 						resolve(state);
 					});
@@ -140,12 +157,12 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 				state.regs[platform] = state.regs[platform] ?? {};
 
 				const current = state?.regs[platform]?.[username] ?? {};
-				
+
 				const updated = {
 					...(current ?? {}),
 					...(registrationState ?? {}),
 				};
-			
+
 				// update the state object with the update info.
 				state.regs[platform][username] = updated;
 
@@ -155,8 +172,8 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 				});
 			}));
 
-			sendResponse({state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome'});
-			console.log("updating registrations ", state.regs);	
+			sendResponse({ state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome' });
+			console.log("updating registrations ", state.regs);
 
 
 		})().then().catch(console.error);
@@ -165,15 +182,15 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 
 	else if (type === "get-url") {
 		const file = request?.payload?.file ?? '';
-		if ( !file ) {
+		if (!file) {
 			console.error("No file given");
 			sendErrorResponse('No file given');
 			return;
-		} 
-		let url: string | undefined;
+		}
+		let url: string | undefined;
 		try {
 			url = chrome.runtime.getURL(file);
-		}catch(e) {
+		} catch (e) {
 			console.error(e);
 		}
 
@@ -181,57 +198,57 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: (
 			url,
 		};
 
-		const data = {to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome', payload};
+		const data = { to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome', payload };
 		console.log("Sending response ", data);
 		sendResponse(data);
 		return;
 
-	} else if ( type === 'refresh-platform-pages' ) {
+	} else if (type === 'refresh-platform-pages') {
 		// TODO: Loop through all tabs and refresh them.
-		const data = {to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome', payload: {}};
+		const data = { to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome', payload: {} };
 		console.log("Sending response ", data);
 		sendResponse(data);
 		return;
 
 	} else if (type === "getState" || type === 'get-state') {
 		console.log("RECV: get-state ", state);
-    	if ( state === null ) {
-    		chrome.storage.local.get("state", (r: any) => {
-    			state = r.state ?? {};
-		      	sendResponse({state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome' });
+		if (state === null) {
+			chrome.storage.local.get("state", (r: any) => {
+				state = r.state ?? {};
+				sendResponse({ state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome' });
 			});
-    	} else {
-	      	sendResponse({state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome'});
-    	}
+		} else {
+			sendResponse({ state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome' });
+		}
 		return true;
 
-	} else if (type === "setState" || type === 'set-state') {
-    	const {key, value} = request.args;
+	} else if (type === "setState" || type === 'set-state') {
+		const { key, value } = request.args;
 
-    	if ( !state ) {
-    		chrome.storage.local.get("state", (r: any) => {
-			 	state = {
-			 		...(r?.state ?? {}),
-			 		[key]: value,
-			 	};
+		if (!state) {
+			chrome.storage.local.get("state", (r: any) => {
+				state = {
+					...(r?.state ?? {}),
+					[key]: value,
+				};
 				chrome.storage.local.set({ state }, () => {
-					sendResponse({state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome'});
+					sendResponse({ state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome' });
 				});
 			});
 
 		} else {
-		 	state = {
-		 		...state,
-		 		[key]: value,
-		 	};
+			state = {
+				...state,
+				[key]: value,
+			};
 			chrome.storage.local.set({ state }, () => {
-				sendResponse({state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome'});
+				sendResponse({ state, to: from, from: 'background', type: resp(type), serial, responseTo: s, origin: 'mysome' });
 			});
 		}
 		return true;
 
-    } else {
+	} else {
 		console.log("sendign default not recognised ack");
-	    sendResponse({}); 
+		sendResponse({});
 	}
 });

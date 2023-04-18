@@ -1,4 +1,5 @@
 /* eslint-disable */
+console.log("MySoMe extension");
 import injectLinkedInSnippet from './integrations/linked-in';
 import injectTestPageSnippet from './integrations/test';
 import injectMySoMeIdAPI from './integrations/mysome-api';
