@@ -2,6 +2,7 @@
 // - Documentation.
 // - Resend stored transactions.
 // - Do we need to support the order for transaction list?
+// -
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
@@ -119,7 +120,6 @@ struct Api {
     listen_address: std::net::SocketAddr,
     #[clap(
         long = "prometheus-address",
-        default_value = "0.0.0.0:9090",
         help = "Listen address for the server.",
         env = "MYSOMEID_PROMETHEUS_ADDRESS"
     )]
@@ -138,12 +138,6 @@ struct Api {
         env = "MYSOMEID_REQUEST_TIMEOUT"
     )]
     request_timeout: u64,
-    #[clap(
-        long = "assets-dir",
-        help = "Serve files from the supplied directory under /assets.",
-        env = "MYSOMEID_SERVE_ASSETS"
-    )]
-    assets_dir: Option<PathBuf>,
     #[clap(
         long = "log-headers",
         help = "Whether to log headers for requests and responses.",
@@ -259,13 +253,6 @@ async fn main() -> anyhow::Result<()> {
         .context("Unable to get cryptographic parameters from the node.")?
         .response;
 
-    // Serve static files.
-    let router = if let Some(assets_dir) = app.assets_dir {
-        axum::Router::new().nest_service("/assets", tower_http::services::ServeDir::new(assets_dir))
-    } else {
-        axum::Router::new()
-    };
-
     let signer =
         WalletAccount::from_json_file(app.concordium_wallet).context("Unable to read keys.")?;
 
@@ -358,7 +345,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // build our application with a route
-    let api = router
+    let api = axum::Router::new()
         .route(
             "/v1/proof/statement",
             axum::routing::get(get_statement),
@@ -382,7 +369,6 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/v1/proof/nft/:proofId/:encryptionKey",
             axum::routing::get(get_proof),
-
         )
         .route(
             "/v1/proof/validate-proof-url",
