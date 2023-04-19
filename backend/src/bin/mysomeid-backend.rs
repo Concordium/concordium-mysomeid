@@ -44,7 +44,13 @@ use image::GenericImageView;
 use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
-use std::{collections::BTreeMap, io::Read, path::PathBuf, str::FromStr, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    io::Read,
+    path::PathBuf,
+    str::FromStr,
+    sync::Arc,
+};
 use tokio::sync::mpsc::error::TrySendError;
 use tonic::transport::ClientTlsConfig;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse};
@@ -185,23 +191,24 @@ struct Api {
 
 #[derive(Debug, Clone)]
 struct ServiceState {
-    pub client:            reqwest::Client,
-    pub concordium_client: concordium::v2::Client,
-    pub crypto_params:     Arc<CryptographicParameters>,
-    pub base_url:          Arc<Url>,
-    pub statement:         Arc<Statement<ArCurve, AttributeKind>>,
-    pub nft_image:         Bytes,
-    pub nft_image_revoked: Bytes,
-    pub signer:            Arc<WalletAccount>,
-    pub contract_address:  ContractAddress,
+    pub client:                reqwest::Client,
+    pub concordium_client:     concordium::v2::Client,
+    pub crypto_params:         Arc<CryptographicParameters>,
+    pub base_url:              Arc<Url>,
+    pub statement:             Arc<Statement<ArCurve, AttributeKind>>,
+    pub nft_image:             Bytes,
+    pub nft_image_revoked:     Bytes,
+    pub signer:                Arc<WalletAccount>,
+    pub contract_address:      ContractAddress,
     // We deliberately use a mutex here instead of an atomicu64.
     // We use the mutex for synchronization of other actions to make sure
     // that we don't skip nonces in case of other failures, such as failure to send a transaction.
-    pub nonce_counter:     Arc<tokio::sync::Mutex<concordium::types::Nonce>>,
-    pub tx_sender:         tokio::sync::mpsc::Sender<TxChannelData>,
-    pub read_db:           db::ReadDatabase,
-    pub max_daily_mints:   u32,
-    pub allowed_domains:   Arc<Vec<String>>,
+    pub nonce_counter:         Arc<tokio::sync::Mutex<concordium::types::Nonce>>,
+    pub tx_sender:             tokio::sync::mpsc::Sender<TxChannelData>,
+    pub read_db:               db::ReadDatabase,
+    pub max_daily_mints:       u32,
+    pub allowed_domains:       Arc<Vec<String>>,
+    pub allowed_substitutions: Arc<HashMap<char, Vec<String>>>,
 }
 
 #[tokio::main]
@@ -307,6 +314,7 @@ async fn main() -> anyhow::Result<()> {
         read_db,
         max_daily_mints: app.max_daily_mints,
         allowed_domains: Arc::new(app.allowed_domains),
+        allowed_substitutions: Arc::new(get_allowed_substitutions()),
     };
 
     let (db_sender, db_receiver) = tokio::sync::mpsc::channel(100);
@@ -802,6 +810,7 @@ async fn validate_proof(
         contract_address,
         crypto_params,
         statement,
+        allowed_substitutions,
         ..
     }): State<ServiceState>,
 ) -> Result<axum::Json<serde_json::Value>, Error> {
@@ -831,15 +840,20 @@ async fn validate_proof(
 
     // Ensure that the parameters stored in the proof are the same as that sent in
     // the query parameters.
-    if !match_names(
+    match fuzzy_match_names(
         &first_name,
         &last_name,
         proof.private.first_name.0.as_str(),
         proof.private.surname.0.as_str(),
+        &allowed_substitutions,
     ) {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        Ok(true) => (),
+        Ok(false) => {
+            return Ok(axum::Json(
+                serde_json::json!({"status": "invalid", "id": token_id}),
+            ));
+        }
+        Err(_) => return Err(Error::Invalid),
     }
 
     let res = verify_proof_worker(concordium_client, crypto_params, statement, VerifyParams {
