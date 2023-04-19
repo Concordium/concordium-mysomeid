@@ -210,7 +210,7 @@ struct ServiceState {
     pub read_db:               db::ReadDatabase,
     pub max_daily_mints:       u32,
     pub allowed_domains:       Arc<Vec<String>>,
-    pub allowed_substitutions: HashMap<char, Vec<String>>,
+    pub allowed_substitutions: Arc<HashMap<char, Vec<String>>>,
 }
 
 #[tokio::main]
@@ -316,7 +316,7 @@ async fn main() -> anyhow::Result<()> {
         read_db,
         max_daily_mints: app.max_daily_mints,
         allowed_domains: Arc::new(app.allowed_domains),
-        allowed_substitutions: get_allowed_substitutions(),
+        allowed_substitutions: Arc::new(get_allowed_substitutions()),
     };
 
     let (db_sender, db_receiver) = tokio::sync::mpsc::channel(100);
