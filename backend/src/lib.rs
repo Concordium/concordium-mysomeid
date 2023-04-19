@@ -17,6 +17,8 @@ use concordium::{
 };
 use concordium_rust_sdk as concordium;
 use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
+use regex::Regex;
+use std::collections::HashMap;
 
 pub struct ContractClient {
     pub address: ContractAddress,
@@ -175,14 +177,239 @@ impl ContractClient {
     }
 }
 
-pub fn match_names(a1: &str, a2: &str, b1: &str, b2: &str) -> bool {
+/// Test whether two names match exactly.
+pub fn match_names(a1: &str, a2: &str, b1: &str, b2: &str) -> bool { a1 == b1 && a2 == b2 }
+
+/// Test whether the two names `a` and `b` match, where the case  and trailing
+/// whitespaces are ignored and some characters may be substituted.
+/// Substitutions are not applied recursively. E.g., if a -> aa is an allowed
+/// substitution, Dan can become Daan, but not Daaan. Furthermore, substitutions
+/// are only applied either from `a` to `b` or vice versa, but not in both
+/// directions. E.g., Jóhn Doe matches John Doe, but not John Doé. This avoids
+/// rules such as å -> (aa or a) to be misused to obtain Dan -> Dån -> Daan ->
+/// Dåån -> Daaaan.
+///
+/// Arguments:
+/// - `a1` - first name of `a`.
+/// - `a2` - last name of `a`.
+/// - `b1` - first name of `b`.
+/// - `b2` - last name of `b`.
+/// - `allowed_substitutions` - map containing for each substitutable character
+///   `c` a vector of strings with which `c` can be replaced. Only lowercase
+///   characters need to be considered and the strings in the vectors must all
+///   be lowercase.
+pub fn fuzzy_match_names(
+    a1: &str,
+    a2: &str,
+    b1: &str,
+    b2: &str,
+    allowed_substitutions: &HashMap<char, Vec<String>>,
+) -> bool {
+    // first test simplest case of exact match
     if a1 == b1 && a2 == b2 {
-        // simple case.
         return true;
     }
-    let a = format!("{a1} {a2}");
-    let b = format!("{b1} {b2}");
+    // next remove trailing whitespaces, convert to lower case, and concatenate into
+    // full name
+    let a1_trimmed = a1.trim();
+    let a2_trimmed = a2.trim();
+    let b1_trimmed = b1.trim();
+    let b2_trimmed = b2.trim();
+    let a = format!("{a1_trimmed} {a2_trimmed}").to_lowercase();
+    let b = format!("{b1_trimmed} {b2_trimmed}").to_lowercase();
+    if a == b {
+        return true;
+    }
+    // finally test allowed substitutions in both directions
+    can_transform_string(&a, &b, allowed_substitutions)
+        || can_transform_string(&b, &a, allowed_substitutions)
+}
 
-    // TODO: Allow special character mapping.
-    a.to_lowercase() == b.to_lowercase()
+/// Test whether the string `a` can be transformed into `b` using
+/// `allowed_substitutions`.
+fn can_transform_string(
+    a: &str,
+    b: &str,
+    allowed_substitutions: &HashMap<char, Vec<String>>,
+) -> bool {
+    // construct regular expression from `a` replacing all characters that can be
+    // substituted by `s1` or `s2` or ... or `sn` by `(s1|...|sn)`
+    let mut a_regex_string = "".to_string();
+    for c in a.chars() {
+        // escape all regular expression characters
+        let c_escaped = regex::escape(&format!("{c}"));
+        match allowed_substitutions.get(&c) {
+            Some(sub) => {
+                // If substitution exists, replace character by regex with allowed alternatives
+                let mut sub_exp = "(".to_string();
+                // include character itself, to allow not replacing it.
+                sub_exp += &c_escaped;
+                for s in sub {
+                    sub_exp.push('|');
+                    // also escape characters in substituted string
+                    sub_exp += &regex::escape(s);
+                }
+                sub_exp.push(')');
+                a_regex_string += &sub_exp;
+            }
+            // If no substitution for `c` exists, append escaped `c`
+            None => a_regex_string += &c_escaped,
+        }
+    }
+    // test whether b matches the constructed regular expression
+    let a_regex = Regex::new(&a_regex_string).unwrap();
+    // note: it is fine for `b` to be untrusted according to regex documentation
+    a_regex.is_match(b)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_test_allowed_substitutions() -> HashMap<char, Vec<String>> {
+        HashMap::from([
+            // Danish
+            ('å', ["aa", "a"].iter().map(|s| s.to_string()).collect()),
+            ('æ', ["ae"].iter().map(|s| s.to_string()).collect()),
+            ('ø', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+            // German
+            ('ä', ["ae", "a"].iter().map(|s| s.to_string()).collect()),
+            ('ü', ["ue", "u"].iter().map(|s| s.to_string()).collect()),
+            ('ö', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+            ('ß', ["ss", "s"].iter().map(|s| s.to_string()).collect()),
+            // French
+            ('ç', ["c"].iter().map(|s| s.to_string()).collect()),
+            ('é', ["e"].iter().map(|s| s.to_string()).collect()),
+            ('à', ["a"].iter().map(|s| s.to_string()).collect()),
+            ('è', ["e"].iter().map(|s| s.to_string()).collect()),
+            ('ì', ["i"].iter().map(|s| s.to_string()).collect()),
+            ('ò', ["o"].iter().map(|s| s.to_string()).collect()),
+            ('ù', ["u"].iter().map(|s| s.to_string()).collect()),
+            ('â', ["a"].iter().map(|s| s.to_string()).collect()),
+            ('ê', ["e"].iter().map(|s| s.to_string()).collect()),
+            ('î', ["i"].iter().map(|s| s.to_string()).collect()),
+            ('ô', ["o"].iter().map(|s| s.to_string()).collect()),
+            ('û', ["u"].iter().map(|s| s.to_string()).collect()),
+            ('ë', ["e"].iter().map(|s| s.to_string()).collect()),
+            ('ï', ["i"].iter().map(|s| s.to_string()).collect()),
+            ('œ', ["oe"].iter().map(|s| s.to_string()).collect()),
+            // Slovenian
+            ('č', ["c"].iter().map(|s| s.to_string()).collect()),
+            ('š', ["s"].iter().map(|s| s.to_string()).collect()),
+            ('ž', ["z"].iter().map(|s| s.to_string()).collect()),
+            // Only for testing
+            ('*', ["**"].iter().map(|s| s.to_string()).collect()),
+        ])
+    }
+
+    #[test]
+    /// Test whether matching names are accepted
+    fn test_matching_names() {
+        let allowed_substitutions = get_test_allowed_substitutions();
+
+        // test exact match
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test different cases
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "JOHN";
+        let b2 = "doE";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test trailing whitespaces
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = " John";
+        let b2 = "Doe  ";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test exact match containing regular expression characters
+        let a1 = "John";
+        let a2 = "Doe (Jr.*)";
+        let b1 = "John";
+        let b2 = "Doe (Jr.*)";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test basic substitutions
+        let a1 = "John";
+        let a2 = "Dåe";
+        let b1 = "John";
+        let b2 = "Daae";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test basic substitutions with uppercase special characters
+        let a1 = "JOHN";
+        let a2 = "DÆE";
+        let b1 = "John";
+        let b2 = "Daee";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test substitution with regular expression characters
+        let a1 = "Jöhn";
+        let a2 = "Doé (Jr.*)";
+        let b1 = "John";
+        let b2 = "Doe (Jr.*)";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test substitution with regular expression characters also in substituted
+        // string
+        let a1 = "J*hn";
+        let a2 = "Doé";
+        let b1 = "J**hn";
+        let b2 = "Doe";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+    }
+
+    #[test]
+    /// Test whether non matching names are rejected
+    fn test_non_matching_names() {
+        let allowed_substitutions = get_test_allowed_substitutions();
+
+        // different first names don't match
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "James";
+        let b2 = "Doe";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // different last names don't match
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Smith";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // interchanging first and last name doesn't match
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "Doe";
+        let b2 = "John";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test that substitutions are only applied in one direction
+        let a1 = "Jóhn";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doé";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test that regular expression character in name is not executed
+        let a1 = "John";
+        let a2 = "Do*e";
+        let b1 = "John";
+        let b2 = "Dooooe";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+
+        // test that substitution is only applied once
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "J***hn";
+        let b2 = "Doe";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+    }
 }
