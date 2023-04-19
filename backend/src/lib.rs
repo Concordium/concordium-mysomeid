@@ -204,10 +204,10 @@ pub fn fuzzy_match_names(
     b1: &str,
     b2: &str,
     allowed_substitutions: &HashMap<char, Vec<String>>,
-) -> bool {
+) -> Result<bool, regex::Error> {
     // first test simplest case of exact match
     if a1 == b1 && a2 == b2 {
-        return true;
+        return Ok(true);
     }
     // next remove trailing whitespaces, convert to lower case, and concatenate into
     // full name
@@ -218,11 +218,12 @@ pub fn fuzzy_match_names(
     let a = format!("{a1_trimmed} {a2_trimmed}").to_lowercase();
     let b = format!("{b1_trimmed} {b2_trimmed}").to_lowercase();
     if a == b {
-        return true;
+        return Ok(true);
     }
     // finally test allowed substitutions in both directions
-    can_transform_string(&a, &b, allowed_substitutions)
-        || can_transform_string(&b, &a, allowed_substitutions)
+    let transformable = can_transform_string(&a, &b, allowed_substitutions)?
+        || can_transform_string(&b, &a, allowed_substitutions)?;
+    Ok(transformable)
 }
 
 /// Test whether the string `a` can be transformed into `b` using
@@ -231,7 +232,7 @@ fn can_transform_string(
     a: &str,
     b: &str,
     allowed_substitutions: &HashMap<char, Vec<String>>,
-) -> bool {
+) -> Result<bool, regex::Error> {
     // construct regular expression from `a` replacing all characters that can be
     // substituted by `s1` or `s2` or ... or `sn` by `(s1|...|sn)`
     let mut a_regex_string = "".to_string();
@@ -257,9 +258,9 @@ fn can_transform_string(
         }
     }
     // test whether b matches the constructed regular expression
-    let a_regex = Regex::new(&a_regex_string).unwrap();
+    let a_regex = Regex::new(&a_regex_string)?;
     // note: it is fine for `b` to be untrusted according to regex documentation
-    a_regex.is_match(b)
+    Ok(a_regex.is_match(b))
 }
 
 #[cfg(test)]
@@ -312,49 +313,49 @@ mod tests {
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test different cases
         let a1 = "John";
         let a2 = "Doe";
         let b1 = "JOHN";
         let b2 = "doE";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test trailing whitespaces
         let a1 = "John";
         let a2 = "Doe";
         let b1 = " John";
         let b2 = "Doe  ";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test exact match containing regular expression characters
         let a1 = "John";
         let a2 = "Doe (Jr.*)";
         let b1 = "John";
         let b2 = "Doe (Jr.*)";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test basic substitutions
         let a1 = "John";
         let a2 = "Dåe";
         let b1 = "John";
         let b2 = "Daae";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test basic substitutions with uppercase special characters
         let a1 = "JOHN";
         let a2 = "DÆE";
         let b1 = "John";
         let b2 = "Daee";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test substitution with regular expression characters
         let a1 = "Jöhn";
         let a2 = "Doé (Jr.*)";
         let b1 = "John";
         let b2 = "Doe (Jr.*)";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test substitution with regular expression characters also in substituted
         // string
@@ -362,7 +363,7 @@ mod tests {
         let a2 = "Doé";
         let b1 = "J**hn";
         let b2 = "Doe";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 
     #[test]
@@ -375,41 +376,41 @@ mod tests {
         let a2 = "Doe";
         let b1 = "James";
         let b2 = "Doe";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // different last names don't match
         let a1 = "John";
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Smith";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // interchanging first and last name doesn't match
         let a1 = "John";
         let a2 = "Doe";
         let b1 = "Doe";
         let b2 = "John";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test that substitutions are only applied in one direction
         let a1 = "Jóhn";
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Doé";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test that regular expression character in name is not executed
         let a1 = "John";
         let a2 = "Do*e";
         let b1 = "John";
         let b2 = "Dooooe";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test that substitution is only applied once
         let a1 = "John";
         let a2 = "Doe";
         let b1 = "J***hn";
         let b2 = "Doe";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions));
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 }
