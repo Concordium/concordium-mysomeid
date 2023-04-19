@@ -58,7 +58,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
   // Use interval to detect when/if the plugin installs itself.
   useInterval(() => {
     const v = !!(window as any).mysome;
-    if ( !v && (new Date().getTime() - tsCreated < 300) ) {
+    if ( !v && (new Date().getTime() - tsCreated < 500) ) {
       // Wait for a little while to ensure that plugin gets time to be created.
       return;
     }

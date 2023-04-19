@@ -14,6 +14,8 @@ export function serviceUrl(route: string, params?: Record<string, string | numbe
 
 export const extensionUrl = process.env.REACT_APP_EXTENTION_URL ?? "https://chrome.google.com/webstore/detail/mozbar/eakacpaijcpapndcfffdgphdiccmpknp";
 
+export const ccdExtensionUrl = process.env.REACT_APP_CCD_EXTENTION_URL ?? "https://chrome.google.com/webstore/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
+
 export const proofBaseUri = process.env.REACT_APP_BASE_URL ?? "https://app.mysomeid.dev";
 
 export const appleAppstoreUrl = process.env.REACT_APP_STORE_URL ?? 'itms-apps://itunes.apple.com/app/apple-store/id375380948?mt=8';

@@ -128,7 +128,7 @@ const OpenButton = styled('a', {
   },
 }) );
 
-export function AppHeader({isConnected, onToggleConnect}: {isConnected: boolean, onToggleConnect: () => void}) {
+export function AppHeader({isConnected, isInstalled, onToggleConnect}: {isConnected: boolean, isInstalled: boolean | null, onToggleConnect: () => void}) {
   const theme = useTheme();
 
   const md = useMediaQuery(theme.breakpoints.down('md'));
@@ -190,13 +190,13 @@ export function AppHeader({isConnected, onToggleConnect}: {isConnected: boolean,
             </Box>
           </Link>
 
-          <Box sx={{ display: { xs: 'block', md: 'block' } }}>
+          {isInstalled !== null &&  isInstalled? <Box sx={{ display: { xs: 'block', md: 'block' } }}>
             <OpenButton className={shrink ? classes.buttonSmaller : undefined} onClick={() => {
               onToggleConnect();
             }}>
               {isConnected ? 'Connected' : 'Connect'}
             </OpenButton>
-          </Box>
+          </Box> : undefined}
         </Box>
       </Box>
     </Slide>
