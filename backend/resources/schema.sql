@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS concordium_transactions (
        CONSTRAINT concordium_transactions_tx_hash_unique UNIQUE (tx_hash)
        );
 
--- |Events recorded from the bridge manager contract on Concordium.
+-- |Events recorded from the registry contract on Concordium.
 CREATE TABLE IF NOT EXISTS concordium_events (
        id INT8 PRIMARY KEY UNIQUE,
        -- Hash of the transaction that logged the event. In principle

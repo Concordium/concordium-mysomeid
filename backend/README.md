@@ -3,13 +3,15 @@
 ## Exposed endpoints
 
 - `GET /v1/proof/statement`
-  Retrieves the statement to request a proof of from the wallet. No parameters
+  Retrieves the statement to request a proof of. No parameters
   are supported.
 
-- `GET /v1/wallet/txs/:accountAddress` returns a list of tokens in descending
+- `GET /v1/wallet/txs/:accountAddress` returns a list of tokens in **descending**
   order of minting. The `limit` and `from` parameters are supported, both
   optional. The `from` parameter refers to the `id` of the token minting event
-  that is returned with each response.
+  that is returned with each response. Only `id`'s <= `from` are returned, and
+  at most `limit` of them. If `limit` is not supplied, or exceeds `500` at most
+  500 results will be returned.
 
 - `GET /v1/proof/challenge` returns the challenge to be used for the proof.
   The `platform` and `userData` parameters are supported. `platform` currently
@@ -24,7 +26,7 @@
   `transactionHash` and `decryptionKey`. The latter is needed to decrypt the
   data stored in the contract on the chain and verify a proof.
 
-- `GET /v1/proof/nft/:proofId/:encryptionKey` Looks up the proof from the chain
+- `GET /v1/proof/nft/:proofId/:decryptionKey` Looks up the proof from the chain
   and decrypts it using the provided key.
 
 - `GET /v1/proof/validate-proof-url` verifies the proof it extracts from the
