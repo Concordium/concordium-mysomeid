@@ -651,7 +651,7 @@ const changeBackgroundTour = {
 					a?.click();
 					console.log('# 2c');
 					if ( !a ) {
-						console.error('Profile link not found.');
+            console.error('Feed profile link not found.');
 					}
 					let max = 0;
 					console.log('# 2d');
