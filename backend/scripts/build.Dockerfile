@@ -13,3 +13,5 @@ RUN apt-get update && \
     apt-get -y install ca-certificates libzbar0 && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=build /build/backend/target/release/mysomeid-backend /usr/local/bin/
+COPY backend/resources/nft-revoked.png /media
+COPY backend/resources/nft.png /media
