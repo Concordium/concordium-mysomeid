@@ -177,9 +177,6 @@ impl ContractClient {
     }
 }
 
-/// Test whether two names match exactly.
-pub fn match_names(a1: &str, a2: &str, b1: &str, b2: &str) -> bool { a1 == b1 && a2 == b2 }
-
 /// Test whether the two names `a` and `b` match, where the case  and trailing
 /// whitespaces are ignored and some characters may be substituted.
 /// Substitutions are not applied recursively. E.g., if a -> aa is an allowed
@@ -263,44 +260,50 @@ fn can_transform_string(
     Ok(a_regex.is_match(b))
 }
 
+/// Returns a map with default allowed substitutions.
+pub fn get_allowed_substitutions() -> HashMap<char, Vec<String>> {
+    HashMap::from([
+        // Danish
+        ('å', ["aa", "a"].iter().map(|s| s.to_string()).collect()),
+        ('æ', ["ae"].iter().map(|s| s.to_string()).collect()),
+        ('ø', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+        // German
+        ('ä', ["ae", "a"].iter().map(|s| s.to_string()).collect()),
+        ('ü', ["ue", "u"].iter().map(|s| s.to_string()).collect()),
+        ('ö', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+        ('ß', ["ss", "s"].iter().map(|s| s.to_string()).collect()),
+        // French
+        ('ç', ["c"].iter().map(|s| s.to_string()).collect()),
+        ('é', ["e"].iter().map(|s| s.to_string()).collect()),
+        ('à', ["a"].iter().map(|s| s.to_string()).collect()),
+        ('è', ["e"].iter().map(|s| s.to_string()).collect()),
+        ('ì', ["i"].iter().map(|s| s.to_string()).collect()),
+        ('ò', ["o"].iter().map(|s| s.to_string()).collect()),
+        ('ù', ["u"].iter().map(|s| s.to_string()).collect()),
+        ('â', ["a"].iter().map(|s| s.to_string()).collect()),
+        ('ê', ["e"].iter().map(|s| s.to_string()).collect()),
+        ('î', ["i"].iter().map(|s| s.to_string()).collect()),
+        ('ô', ["o"].iter().map(|s| s.to_string()).collect()),
+        ('û', ["u"].iter().map(|s| s.to_string()).collect()),
+        ('ë', ["e"].iter().map(|s| s.to_string()).collect()),
+        ('ï', ["i"].iter().map(|s| s.to_string()).collect()),
+        ('œ', ["oe"].iter().map(|s| s.to_string()).collect()),
+        // Slovenian
+        ('č', ["c"].iter().map(|s| s.to_string()).collect()),
+        ('š', ["s"].iter().map(|s| s.to_string()).collect()),
+        ('ž', ["z"].iter().map(|s| s.to_string()).collect()),
+    ])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn get_test_allowed_substitutions() -> HashMap<char, Vec<String>> {
-        HashMap::from([
-            // Danish
-            ('å', ["aa", "a"].iter().map(|s| s.to_string()).collect()),
-            ('æ', ["ae"].iter().map(|s| s.to_string()).collect()),
-            ('ø', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
-            // German
-            ('ä', ["ae", "a"].iter().map(|s| s.to_string()).collect()),
-            ('ü', ["ue", "u"].iter().map(|s| s.to_string()).collect()),
-            ('ö', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
-            ('ß', ["ss", "s"].iter().map(|s| s.to_string()).collect()),
-            // French
-            ('ç', ["c"].iter().map(|s| s.to_string()).collect()),
-            ('é', ["e"].iter().map(|s| s.to_string()).collect()),
-            ('à', ["a"].iter().map(|s| s.to_string()).collect()),
-            ('è', ["e"].iter().map(|s| s.to_string()).collect()),
-            ('ì', ["i"].iter().map(|s| s.to_string()).collect()),
-            ('ò', ["o"].iter().map(|s| s.to_string()).collect()),
-            ('ù', ["u"].iter().map(|s| s.to_string()).collect()),
-            ('â', ["a"].iter().map(|s| s.to_string()).collect()),
-            ('ê', ["e"].iter().map(|s| s.to_string()).collect()),
-            ('î', ["i"].iter().map(|s| s.to_string()).collect()),
-            ('ô', ["o"].iter().map(|s| s.to_string()).collect()),
-            ('û', ["u"].iter().map(|s| s.to_string()).collect()),
-            ('ë', ["e"].iter().map(|s| s.to_string()).collect()),
-            ('ï', ["i"].iter().map(|s| s.to_string()).collect()),
-            ('œ', ["oe"].iter().map(|s| s.to_string()).collect()),
-            // Slovenian
-            ('č', ["c"].iter().map(|s| s.to_string()).collect()),
-            ('š', ["s"].iter().map(|s| s.to_string()).collect()),
-            ('ž', ["z"].iter().map(|s| s.to_string()).collect()),
-            // Only for testing
-            ('*', ["**"].iter().map(|s| s.to_string()).collect()),
-        ])
+        let mut allowed_substitutions = get_allowed_substitutions();
+        // add extra substitution only for testing
+        allowed_substitutions.insert('*', ["**"].iter().map(|s| s.to_string()).collect());
+        allowed_substitutions
     }
 
     #[test]
