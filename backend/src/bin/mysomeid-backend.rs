@@ -1119,7 +1119,6 @@ async fn mint_nft(
         // We have verified the request. Now we mint.
         let key = Aes256Gcm::generate_key(&mut rng);
         let cipher = Aes256Gcm::new(&key);
-        // We use a fixed nonce.
         let nonce = rng.gen::<[u8; 12]>();
         drop(rng);
         let nonce = Nonce::from_slice(&nonce);
