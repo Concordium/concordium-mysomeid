@@ -190,12 +190,10 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
       client
         .invokeContract(params)
         .then(result => {
-          // console.log("result ", result);
           if (result && result.tag === 'success' && result.returnValue) {
             const bufferStream = toBuffer(result.returnValue, 'hex');
             const length = bufferStream.readUInt16LE(2);
             const url = bufferStream.slice(4, 4 + length).toString('utf8');
-            // resolve("asdad");
             resolve(url);
           } else {
             console.log("failed to get metadata for token", id);

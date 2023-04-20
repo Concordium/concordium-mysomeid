@@ -133,3 +133,5 @@ packages/mobile-app/android
 
 # Rust stuff
 **/target
+backend/Dockerfile
+packages/contracts/.env-tmp

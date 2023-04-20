@@ -43,7 +43,7 @@ NOTE: Running the integration tests in a CI job shouuld be possible since it use
 
 ## How to develop the tests?
 
-The tests needs sudo to be able to change the etc/hosts file to mock linkedin.com as well as to create a server that listens on 443 to simualte a https service.
+The tests needs sudo to be able to change the /etc/hosts file to mock linkedin.com as well as to create a server that listens on 443 to simualte a https service.
 
 To avoid having to run with sudo the development is dockerised so run 
 

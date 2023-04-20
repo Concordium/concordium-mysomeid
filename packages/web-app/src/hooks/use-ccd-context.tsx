@@ -173,7 +173,7 @@ export type CCDContextData = {
 
 const CCDContext = React.createContext<CCDContextData>(null);
 
-const CONTRACT_INDEX: bigint = BigInt(process.env.REACT_APP_CONTRACT_INDEX ?? 3330);
+const CONTRACT_INDEX: bigint = BigInt(process.env.REACT_APP_CONTRACT_INDEX ?? 4321);
 // const CONTRACT_SUB_INDEX = 0;
 
 export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {

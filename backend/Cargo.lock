@@ -585,6 +585,7 @@ dependencies = [
  "postgres-types",
  "prometheus",
  "rand 0.8.5",
+ "regex",
  "reqwest",
  "rustls 0.21.0",
  "rustls-native-certs",
