@@ -40,7 +40,7 @@ use concordium_base::{
 };
 use concordium_rust_sdk as concordium;
 use futures::{StreamExt, TryStreamExt};
-use image::GenericImageView;
+use image::{DynamicImage, GenericImageView};
 use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
@@ -646,6 +646,13 @@ async fn parse_qr(
             return Err(Error::InvalidRequest("Unreadable image.".into()));
         }
     };
+    parse_qr_from_image(img)
+}
+
+fn parse_qr_from_image(img: DynamicImage) -> Result<axum::Json<serde_json::Value>, Error> {
+    // pre-process image
+    let img = img.resize_exact(1600, 400, image::imageops::FilterType::Gaussian);
+
     let (width, height) = img.dimensions();
     let mut scanner = zbar_rust::ZBarImageScanner::new();
     let results = match scanner.scan_y800(img.into_luma8().into_raw(), width, height) {
@@ -1657,5 +1664,21 @@ async fn await_and_report<E: std::fmt::Display>(
                 log::error!("Task {descr} unexpectedly closed.");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    /// Try reading hard-to-read QR code from image
+    fn test_difficult_reading() {
+        let img = image::open("./resources/hard-to-read.jpg").unwrap();
+        let result = parse_qr_from_image(img).unwrap();
+        let result_string = result.to_string();
+        let expected_result = "{\"result\":\"https://mysomeid.com/v?i=0U8Qzw3CDWc=&k=iYS3HLt0ojTxm37gVlBZ5AkAPXcWdfqFO00_7vAApKc=\"}";
+
+        assert!(result_string == expected_result);
     }
 }
