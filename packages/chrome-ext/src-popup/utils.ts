@@ -155,7 +155,6 @@ export const storage = new (class {
 		}
 		return new Promise<void>(resolve => {
 			chrome.runtime.sendMessage({type: "get-state", origin: 'mysome', payload: {store: 'state'}}, ({state}: any) => {
-				debugger;
 				this.state = state;
 				resolve();
 			});

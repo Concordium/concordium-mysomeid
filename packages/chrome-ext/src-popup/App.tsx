@@ -18,7 +18,7 @@ import link from './ext-link.svg';
 
 import {storage} from './utils';
 
-import {config} from './config';
+// import {config} from './config';
 
 declare var chrome: any;
 
@@ -33,25 +33,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tab) => {
     });
   }
 });
-
-const TextButton = ({onClick, children}: {onClick: () => void, children?: any}) => {
-  return (
-    <Button {...{onClick}} disableRipple sx={{
-      background: 'transparent',
-      borderRadius: '100px',
-      height: '42px',
-      padding: '0px 24px',
-      color: 'black',
-      '&:hover': {
-        background: '#f7f7f7',
-        color: 'black',
-
-      },
-    }}>
-      {children}
-    </Button>
-  );
-};
 
 const PrimaryButton = ({onClick, children}: {onClick: () => void, children?: any}) => {
   return (
@@ -75,6 +56,7 @@ const PrimaryButton = ({onClick, children}: {onClick: () => void, children?: any
 let dev = false;
 let gDebugMode = false;
 
+// eslint-disable-next-line no-empty-pattern
 const Loading = ({}) => {
   return (
     <Box sx={{
@@ -104,7 +86,7 @@ const Centered = ({children}: {children: any}) => dev ? <Box sx={{
   justifyContent: 'center',
 }}>{children}</Box> : children;
 
-const messageHandler = createWidgetMessageHandler((m: any) => {
+createWidgetMessageHandler((m: any) => {
   console.log("Widget: on message - todo handle it" , m);
 });
 
@@ -168,47 +150,6 @@ const MYSOMEPage = ({url}: {url: string}) => {
       <PrimaryButton onClick={okayClicked}>Okay</PrimaryButton>
     </Box>
   </>; 
-};
-
-const ListItem = ({displayName, ok, grey, url}: {displayName: string, ok: boolean, grey: boolean, url: string}) => {
-  const openUrl = useCallback(() => {
-    console.log("open url ", url);
-    chrome?.tabs?.create({url});
-  }, []);
-  return (
-    <Box display="flex" height="38px" width="100%" paddingLeft="8px" paddingRight="8px" alignItems="center" sx={{background: !grey ? 'transparent' : '#f8f8f8'}}>
-      <Typography flex="1" sx={{fontSize: '18px', fontFamily: 'ClearSans', color: 'black', }}>{displayName}</Typography>
-      <Box flex="0" sx={{display: 'flex', height: '18px', width: '18px', opacity: ok ? 1 : 0.25 }}>
-        <img alt="img" src={ok ? greenCheck : greyCheck} />
-      </Box>
-      <Box component="button"
-        flex="0"
-        marginLeft="8px"
-        onClick={openUrl}
-        sx={{
-          background: 'none',
-          border: 'none',
-          padding: '0',
-          display: 'flex',
-          height: '18px',
-          width: '18px',
-          cursor: 'pointer'
-        }} >
-        <img src={link} alt="img" style={{width: '18px', height: '18px'}} />
-      </Box>
-    </Box>
-  );
-};
-
-const List = ({linkedInRegistered}: {linkedInRegistered: boolean}) => {
-  let i = 0;
-  return (
-    <Box>
-      <ListItem displayName="LinkedIn" ok={linkedInRegistered} grey={i++ % 2 == 1} url="https://www.linkedin.com/feed/" />
-      <ListItem displayName="Facebook" ok={false} grey={i++ % 2 == 1} url="https://facebook.com" />
-      <ListItem displayName="Twitter" ok={false} grey={i++ % 2 == 1} url="https://twitter.com" />
-    </Box>
-  );
 };
 
 const DebugView = (args: any) => {
