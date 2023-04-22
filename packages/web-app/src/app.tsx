@@ -36,6 +36,9 @@ import {
   ViewProofView,
   ViewMyProofView,
 } from 'src/views/view-proof';
+import {
+  staticBg,
+} from 'src/themes/theme';
 
 function App() {
   const {
@@ -59,8 +62,6 @@ function App() {
 
   return !isMobile ? (
     <>
-      {/* HACK: To make the overflow background match the top and bottom of the page when overscrolling */}
-      <div style={{background: 'linear-gradient(0deg, rgb(255 255 255) 0%, rgb(255 255 255) 49%, rgba(29,32,64,1) 50%, rgba(29,32,64,1) 100%)', position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, zIndex: -1}} />
       <Messages />
       <Box component="div" sx={{flex: 1}}>
         <AppHeader {...{isConnected, isInstalled: installed, onToggleConnect}}/>
@@ -82,7 +83,7 @@ function App() {
   ) : ( // Mobile 
     <>
       {/* HACK: To make the overflow background match the top and bottom of the page when overscrolling */}
-      <div style={{background: 'linear-gradient(0deg, rgb(255 255 255) 0%, rgb(255 255 255) 49%, rgba(29,32,64,1) 50%, rgba(29,32,64,1) 100%)', position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, zIndex: -1}} />
+      <div style={{background: staticBg, position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, zIndex: -1}} />
       <Messages />
       <Box component="div" sx={{flex: 1}}>
         {/*<AppHeader {...{isConnected, onToggleConnect}}/>*/}

@@ -5,6 +5,7 @@ import {
   Box,
   Typography,
 } from "@mui/material";
+import { defaultFontFamily } from "src/themes/theme";
 
 export const InputCaption = ({label, helpText}) => {
   return (
@@ -15,7 +16,7 @@ export const InputCaption = ({label, helpText}) => {
     }}>
       <Typography sx={{
         margin: '0px',
-        fontFamily: 'Inter, Arial',
+        fontFamily: defaultFontFamily,
         fontWeight: '400',
         letterSpacing: '0.009375rem',
         lineHeight: '143%',

@@ -16,10 +16,7 @@ import {
 } from "react-router-dom-last-location";
 import {
   reduxForm,
-  // Field,
   reset,
-  // formValueSelector,
-  // change,
 } from 'redux-form';
 import {
   Button,
@@ -30,7 +27,6 @@ import {
 } from './wizard-loading';
 import validate from './validate';
 import {
-  Typography,
   Box,
   ListItemText,
   MenuItem,
@@ -43,30 +39,14 @@ import {
 } from './supported-social-networks';
 import {
   renderSelect,
-  renderTextField
 } from './ui';
-import logo from 'src/images/mysomeid-logo.svg';
-import {
-  serviceUrl,
-  extensionUrl,
-} from 'src/constants';
 import formName, { selector } from './form-props';
 import {
   useExtension
 } from 'src/hooks/use-extension';
-
-// import LinkedInUsernameHelpPng from 'src/images/linkedin-user-name-help.png';
 import { error } from 'src/slices/messages-slice';
-// import { toUnitless } from '@mui/material/styles/cssUtils';
-// import { width } from '@mui/system';
 import useFetch from '@bloodyaugust/use-fetch';
-
 import { TrackBox } from './track-box';
-
-import {
-  Timeout
-} from 'src/utils';
-
 import {
   InstallExtensions
 } from './install-extensions';
@@ -94,11 +74,9 @@ export default connect(state => ({
     nextPage,
     pristine,
     submitting,
-    // network,
     platform,
     userData,
     template,
-    // proofData,
   } = props;
 
   const { installed: browserExtInstalled, startRegistration } = useExtension();
@@ -118,11 +96,8 @@ export default connect(state => ({
   const [searchParams] = useSearchParams();
 
   const { lastLocation } = useLastLocation();
-  // console.log("lastLocation ", lastLocation?.pathname);
 
   const previousFailed = searchParams.get('previousFailed');
-
-  const fetchHandler = useFetch();
 
   useEffect(() => {
     if (previousFailed !== null && previousFailed !== undefined) {
@@ -170,18 +145,13 @@ export default connect(state => ({
   }, []);
 
   useEffect(() => {
-    // HAck if user adds the whole linked in url by copy paste.
+    // Hack if user adds the whole linked in url by copy paste.
     if (userData && userData.match(new RegExp(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi))) {
       let tmp = userData.toLowerCase();
-      // console.log("name is a url");
       if (tmp.indexOf('linkedin.com/in/') >= 0) {
-        // console.log("tmp ", tmp );
         tmp = tmp.split('linkedin.com/in/');
-        // console.log("tmp ", tmp );
         if (tmp[1]) {
-          // console.log("tmp[1] ", tmp[1] );
           const newValue = tmp[1].split('/')[0];
-          // console.log("newValue ", newValue );
           if (newValue[0]) {
             props.change('userData', newValue);
           }
@@ -191,8 +161,6 @@ export default connect(state => ({
   }, [userData]);
 
   const nextDisabled = pristine || submitting || !platform || platform == '0' || fetchingProfileInfo;
-
-  const prevDisabled = submitting;
 
   const onNextPage = useCallback(() => {
     console.log("mounted ", mounted);
@@ -248,23 +216,6 @@ export default connect(state => ({
       return;
     }
 
-    // Reset some variables in case the user naviated back to the first page.
-    /*props.change('authorised', false);
-    props.change('statementInfo', null);
-    props.change('proof', null);
-    props.change('proofData', null);
-    props.change('profileInfo', {
-      profileExists: true,
-      profileInfo: {
-        onlyUrl: false,
-        name: template.name,
-        profileImage: ['default', null].indexOf(template?.profilePicUrl ?? null) === -1 ? template?.profilePicUrl : 'https://static.licdn.com/sc/h/13m4dq9c31s1sl7p7h82gh1vh',
-        backgroundImage: ['default', null].indexOf(template?.backgroundPicUrl ?? null) === -1 ? template?.backgroundPicUrl : 'https://static.licdn.com/sc/h/lortj0v1h4bx9wlwbdx6zs3f',
-        country: null,
-      },
-    });*/
-
-    // nextPage();
   }, [mounted, fetchingProfileInfo, platform, userData, props, template]);
 
   useEffect(() => {

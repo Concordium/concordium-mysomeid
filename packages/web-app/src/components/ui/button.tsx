@@ -21,6 +21,7 @@ import {
   __rest2,
   getSX,
 } from './utils';
+import { button2BGRGB, defaultFontFamily, primaryButtonBGRGB } from "src/themes/theme";
 
 function addFontSizes(theme: any, bp600: number, bp900: number, bp1200: number) {
   return {
@@ -220,19 +221,12 @@ export const CustomButton = (props: CustomButtonProps) => {
 };
 
 export const hoverDarkenButton = -25;
-export const buttonColor = {
-  r: 56,
-  g: 61,
-  b: 84,
-};
+
+export const buttonColor = primaryButtonBGRGB;
 
 export const hoverDarkenButton2 = -10;
 
-export const button2Color = {
-  r: 255,
-  g: 255,
-  b: 255,
-}
+export const button2Color = button2BGRGB;
 
 export const PrimaryButton = props => <CustomButton {...{
   ...props,
@@ -255,7 +249,7 @@ export const PrimaryButton = props => <CustomButton {...{
       color: 'rgb(255,255,255)',
       backgroundColor: `rgb(${buttonColor.r}, ${buttonColor.g}, ${buttonColor.b})`,
       boxShadow: 'none',
-      fontFamily: 'Inter, Arial',
+      fontFamily: defaultFontFamily,
       fontWeight: '500',
       lineHeight: '1.5rem',
       fontSize: '14px',
@@ -309,7 +303,7 @@ export const SecondaryButton = props => <CustomButton {...{
     color: 'rgb(48,53,73)',
     backgroundColor: `rgb(${button2Color.r}, ${button2Color.g}, ${button2Color.b})`,
     boxShadow: 'none',
-    fontFamily: 'Inter, Arial',
+    fontFamily: defaultFontFamily,
     fontWeight: '500',
     lineHeight: '1.5rem',
     fontSize: '14px',
@@ -359,7 +353,7 @@ const GhostButton = props => <CustomButton {...{
           color: 'rgb(48, 53, 73)',
           backgroundColor: undefined,
           boxShadow: 'none',
-          fontFamily: 'Inter, Arial',
+          fontFamily: defaultFontFamily,
           fontWeight: '500',
           lineHeight: '1.5rem',
           fontSize: '14px',
@@ -397,7 +391,7 @@ const WeakButton = props => <CustomButton {...{
         color: 'rgb(48, 53, 73)',
         backgroundColor: "#e6e6e6",
         boxShadow: 'none',
-        fontFamily: 'Inter, Arial',
+        fontFamily: defaultFontFamily,
         fontWeight: '500',
         lineHeight: '1.5rem',
         fontSize: '14px',

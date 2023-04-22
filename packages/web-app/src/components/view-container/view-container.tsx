@@ -9,6 +9,10 @@ import {
   Container,
 } from "@mui/material";
 
+import {
+  staticHeaderBg 
+} from 'src/themes/theme';
+
 const containerSx = theme => ({
   flex: 1,
   flexDirection: 'column',
@@ -34,7 +38,7 @@ const containerSx = theme => ({
     paddingRight: '20px',
   },
   [theme.breakpoints.up(1440)]: {
-    maxWidth: 'unset',
+    maxWidth: '1440px',
     paddingLeft: '96px',
     paddingRight: '96px',
   },          
@@ -42,7 +46,7 @@ const containerSx = theme => ({
 
 export const ViewContainer = ({title, children, subtitle, sx, paperSX}: {title: string, subtitle?: string | ReactNode, sx?: any, paperSX?: any, children: ReactNode}) => (<>
   <Box id="view-container" sx={theme => ({
-    background: 'linear-gradient(0deg, rgba(21,23,51,1) 0%, rgba(31,35,72,1) 64%, rgba(28,32,66,1) 100%)',
+    background: staticHeaderBg,
     color: 'white',
     paddingTop: '130px',
     [theme.breakpoints.up(0)]: {
@@ -111,97 +115,3 @@ export const ViewContainer = ({title, children, subtitle, sx, paperSX}: {title: 
   </Box></>
 );
 
-/*export const ViewContainerSmaller = ({title, children, subtitle, paperSX}: {title: string, subtitle?: string, paperSX?: any, children: ReactNode}) => (<>
-  <Box sx={theme => ({
-    color: 'rgb(48,53,73)',
-    [theme.breakpoints.up(0)]: {
-      paddingTop: '40px',
-      paddingBottom: '72px',
-      minHeight: '200px',
-    },
-    [theme.breakpoints.up(960)]: {
-      paddingTop: '48px',
-      paddingBottom: '75px',
-      minHeight: '200px',
-    },
-    [theme.breakpoints.up(1280)]: {
-      paddingBottom: '75px',
-      minHeight: '200px',
-    },
-    [theme.breakpoints.up(1440)]: {
-      paddingBottom: '75px',
-      minHeight: '200px',
-    },
-  })}>
-    <Container sx={containerSx}>
-      <Box>
-        <Typography variant="h1">{title}</Typography>
-        {subtitle ?
-          <Typography variant="subtitle1" sx={theme => ({
-            display: 'none',
-            marginTop: '6px',
-            [theme.breakpoints.up(960)]: {
-              display: 'initial',
-            },
-          })}>{subtitle}</Typography>
-          :
-          undefined}
-      </Box>
-    </Container>
-  </Box>
-  
-  <Box sx={theme => ({
-    flex: 1,
-    flexDirection: 'column',
-    display: 'flex',
-    [theme.breakpoints.up(0)]: {
-      marginTop: '-100px',
-    },
-    [theme.breakpoints.up(600)]: {
-      marginTop: '-84px',
-    },
-    [theme.breakpoints.up(640)]: {
-      marginTop: '-84px',
-    },
-    [theme.breakpoints.up(960)]: {
-      marginTop: '-74px',
-    },
-    [theme.breakpoints.up(1280)]: {
-      marginTop: '-64px',
-    },
-    [theme.breakpoints.up(1440)]: {
-      marginTop: '-58px',
-    },
-  })}>
-    <Container sx={containerSx}>
-      <Paper elevation={2} sx={theme => ({
-        color: '#303549',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '4px',
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
-        marginBottom: '4px',
-        paddingBottom: '16px',
-        paddingLeft: '32px',
-        paddingRight: '32px',
-        paddingTop: '16px',
-        [theme.breakpoints.up(0)]: {
-          //  minHeight: '200px',
-        },
-        [theme.breakpoints.up(640)]: {
-          // minHeight: '220px',
-        },
-        [theme.breakpoints.up(1280)]: {
-          // minHeight: '248px',
-        },
-        [theme.breakpoints.up(1440)]: {
-          // minHeight: '294px',
-        },
-        ...(paperSX ?? {}),
-      })}>
-        {children}
-      </Paper>
-    </Container>
-  </Box></>
-);*/
