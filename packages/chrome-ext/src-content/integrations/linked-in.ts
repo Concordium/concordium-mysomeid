@@ -41,8 +41,8 @@ let state = {
 	pageHasBeenVerified: false,
 };
 let TEST = false;
-const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.mysomeid.dev`;
-const SERVICE_BASE_URL = () => TEST ? 'http://localhost:4200' : `https://api.mysomeid.dev/v1`;
+const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://api.testnet.mysome.id/`;
+const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.testnet.mysome.id/v1`;
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
@@ -130,7 +130,8 @@ const fetchQRFromImage = async (url: string): Promise<{
 	}
 
 	try {
-		const validateUrl = `${SERVICE_BASE_URL()}/qr/validate?url=${encodeURIComponent(url)}`;
+		const base = SERVICE_BASE_URL();
+		const validateUrl = `${base}/qr/validate?url=${encodeURIComponent(url)}`;
 		console.log("Getting QR code for : " + url );
 		const qr = await fetch(validateUrl)
 			.then(response => {
@@ -991,7 +992,6 @@ const install = async () => {
 		}
 		// Resolve the params that we want to open the popup
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
-
 
 		let {
 			proofUrl,

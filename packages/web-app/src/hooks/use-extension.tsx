@@ -12,6 +12,7 @@ import {
 import {
   useInterval
 } from 'use-interval';
+import { ProofData } from './use-ccd-context';
 
 type Registration = {
   platform: 'li';
@@ -23,6 +24,8 @@ type Registration = {
   proofId: string;
   backgroundImage: string;
 };
+
+type ProofMap = Record<string, ProofData>;
 
 export type ExtensionData = {
   installed: boolean | null;  
@@ -36,6 +39,11 @@ export type ExtensionData = {
   startRegistration: (profileInfo: {platform: string}) => void;
 
   openLinkedInSinceRegistrationIsDone: (profilePageUrl: string) => void;
+
+  getStoredProofs: () => Promise<ProofMap>;
+  getStoredProof: (id: string) => Promise<ProofData>;
+  storeProof: (proofData: ProofData) => Promise<void>;
+  updateProofProperty: (id: string, key: string, value: any) => Promise<void>;
 } | null;
 
 type MySoMeAPI = {
@@ -46,6 +54,8 @@ type MySoMeAPI = {
   sendMessage: (to: string, type: string, payload: any) => void;
   sendMessageWResponse: (to: string, type: string, payload: any) => Promise<any>;
   createPlatformRequest: (platform: string, request: 'fetch-profile') => Promise<any>;
+  getStateValue: (store: string, key: string) => Promise<any | null>;
+  setStateValue: (store: string, key: string, value: any) => Promise<any | null>;
 };
 
 const ExtensionContext = createContext<ExtensionData>(null);
@@ -159,6 +169,64 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     }, 1000);
   };
 
+  const getStoredProofs = useCallback(async (): Promise<ProofMap> => {
+    let cnt = 0;
+    while( !mysome && cnt ++ < 3 ) {
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+    }
+    if ( !mysome ) {
+      return {};
+    }
+    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    return proofs as ProofMap;     
+  }, [mysome]);
+
+  const getStoredProof = useCallback(async (id: string): Promise<ProofData | null> => {
+    let cnt = 0;
+    while( !mysome && cnt ++ < 3 ) {
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+    }
+    if ( !mysome ) {
+      return null;
+    }
+    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    const proof = proofs[id] ?? null;
+    return proof as ProofMap | null;
+  }, [mysome]);
+
+  const storeProof = useCallback( async (proofData: ProofData) => {
+    let cnt = 0;
+    while( !mysome && cnt ++ < 3 ){
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+    }
+    if ( !mysome ) {
+      return;
+    }
+    if (proofData.id === undefined) {
+      throw new Error('Invalid prood id');
+    }
+    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    console.log("proofs before ", {proofs});
+    proofs[proofData.id] = proofData;
+    console.log("proofs after ", {proofs});
+    await mysome.setStateValue('proofs', 'set', proofs);
+  }, [mysome]);
+
+  const updateProofProperty = useCallback(async (id: string, key: string, value: any) => {
+    let cnt = 0;
+    while( !mysome && cnt ++ < 3 ){
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+    }
+    if ( !mysome ) {
+      return;
+    }
+    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    const proof = proofs[id] ?? {};
+    proof[key] = value;
+    proofs[id] = proof;
+    await mysome.setStateValue('proofs', 'set', proofs);
+  }, [mysome]);
+
   const value: ExtensionData = useMemo(() => ({
     installed,
     mysome,
@@ -169,6 +237,10 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     sendMessageWResponse,
     startRegistration,
     openLinkedInSinceRegistrationIsDone,
+    getStoredProofs,
+    getStoredProof,
+    storeProof,
+    updateProofProperty,
   }), [
     installed,
     mysome,
@@ -179,6 +251,10 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     sendMessageWResponse,
     startRegistration,
     openLinkedInSinceRegistrationIsDone,
+    getStoredProofs,
+    getStoredProof,
+    storeProof,
+    updateProofProperty,
   ]);
 
   return <ExtensionContext.Provider {...{value}}>{children}</ExtensionContext.Provider>;

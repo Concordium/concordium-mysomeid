@@ -224,6 +224,8 @@ export function BackgroundEditor({saveAndDl, getPic, id, bgImg, uri, widgetColor
                 height: `${Math.round(94 * factor * scale)}px`,
                 width: `${Math.round(94 * factor * scale)}px`,
                 marginTop: `${Math.round(4 * factor * scale)}px`,
+                padding: `${Math.round(4 * factor * scale)}px`,
+                background: 'white',
               }}
             />
             
@@ -287,6 +289,8 @@ export function BackgroundEditor({saveAndDl, getPic, id, bgImg, uri, widgetColor
                 width: `${Math.round(94 * factor * shadowScale)}px`,
                 marginTop: `${Math.round(4 * factor * shadowScale)}px`,
                 pointerEvents: 'none',
+                padding: `${Math.round(5 * factor * shadowScale)}px`,
+                background: 'white',
               }}
             />
             
@@ -369,7 +373,7 @@ export default connect(state => ({
 
   const [showLastHint, setShowLastHint] = useState(false);
 
-  const uri = [proofBaseUri, 'v', proofData?.id ].join('/');
+  const uri = [proofBaseUri, 'v', proofData?.id, encodeURIComponent(proofData?.decryptionKey) ].join('/');
   const [editorContentElement, setEditorContentElement] = useState(null);
 
   useEffect(() => {
@@ -408,7 +412,6 @@ export default connect(state => ({
 
   const notSpec = '';
 
-  console.log("profileInfo ", profileInfo );
   let profileImageUrl: string;
   try {
     profileImageUrl = profileInfo?.profileInfo?.profileImage;
@@ -524,10 +527,6 @@ export default connect(state => ({
                       state === 3 ? (ext.installed ? "Open LinkedIn" : "Done") :
                       "Open LinkedIn";
 
-  useEffect(() => {
-    console.log(uri);
-  }, []);
-
   const theme = useTheme();
   const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
   const ltmd = useMediaQuery(theme.breakpoints.down('md'));
@@ -581,7 +580,7 @@ export default connect(state => ({
             <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', opacity: showLoading ? 0.1 : 1}}>
                 <Typography variant="h3" display="block" fontWeight="500" fontSize="2.2rem">Your Proof is Ready</Typography>
                 <Certificate {...{
-                  mobileVersion: ltmd,
+                  mobileVersion: ltmd, 
                   profilePageUrl,
                   profileImageUrl,
                   uri,

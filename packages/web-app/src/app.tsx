@@ -72,9 +72,9 @@ function App() {
           <Route path="/create/*" element={
             <NewProofView />
           } />
-          <Route path="/view/:id" element={<ViewProofView/>} />
-          <Route path="/v/:id" element={<ViewProofView/>} />
-          <Route path="/my-proof/:id" element={<ViewMyProofView/>} />          
+          <Route path="/view/:id/:decryptionKey" element={<ViewProofView/>} />
+          <Route path="/v/:id/:decryptionKey" element={<ViewProofView/>} />
+          <Route path="/my-proof/:id/:decryptionKey" element={<ViewMyProofView/>} />          
           <Route path="*" element={<Navigate to="/home"/>} />
         </Routes>
       </Box>

@@ -19,6 +19,7 @@ import { BackgroundEditor } from "../new-proof/page-4";
 import { Button } from 'src/components/ui/button';
 import defaultBackground from 'src/images/background-default.png';
 import DownloadIcon from '@mui/icons-material/Download';
+import { proofBaseUri, linkedInProfileBaseUrl } from "src/constants";
 
 export type Command = {
     subscribe: (fn: () => void) => () => void;
@@ -128,7 +129,7 @@ export const BackgroundEditorView = ({uri, id, showLoading}: {uri: string, id: s
     );
 };
 
-export function ViewProof({id, noRevoke}: {id: string, noRevoke?: boolean}) {
+export function ViewProof({id, noRevoke, decryptionKey}: {id: string, noRevoke?: boolean, decryptionKey: string}) {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const [revokingProof, setRevoking] = useState(false);
@@ -162,21 +163,22 @@ export function ViewProof({id, noRevoke}: {id: string, noRevoke?: boolean}) {
             return;
         }
         setLoadingProof(true);
-        loadProof(id).then((data) => {
+
+        loadProof(id, decryptionKey).then((data) => {
             setFirstName(data.firstName);
-            setSurname(data.lastName);
+            setSurname(data.surName);
             setPlatform(data.platform);
             setUserData(data.userData);
             setProfileImageUrl(data.profileImageUrl);
-            setUri('https://app.mysomeid.dev/v/' + id);
-            setProfilePageUrl('https://www.linkedin.com/in/' + data.userData);
+            setUri([proofBaseUri, 'v', id, decryptionKey].join('/'));
+            setProfilePageUrl(linkedInProfileBaseUrl + data.userData);
             setLoadingProof(false);
         }).catch(err => {
             console.error(err);
             setLoadingProof(false);
             setFailedLoadingProof(true);
         });
-    }, [id, proofLoaded]);
+    }, [id, proofLoaded, decryptionKey]);
     
     const onPrev = useCallback(() => {
         if ( showEditor ) {
