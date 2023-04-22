@@ -440,8 +440,12 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     // Get the event data
     let event: any;
-    let cnt=0;
+    let cnt = 0;
     while( cnt++ < 10 ) {
+      if ( cnt > 1 ) {
+        await sleep(1000);
+      }
+
       const responseTxs = await fetch(
         serviceUrl(`/wallet/txs/${account}`, ''),
         {
@@ -459,7 +463,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       if ( event?.tokenId ) {
         break;
       }
-      await sleep(1000);
     }
 
     // Return the tokenId.
