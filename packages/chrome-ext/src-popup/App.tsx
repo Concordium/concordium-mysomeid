@@ -12,16 +12,17 @@ import {
 } from './messaging';
 
 import logo from './logo.svg';
-import greenCheck from './green-check.svg';
-import greyCheck from './grey-check.svg';
-import link from './ext-link.svg';
+
+import {
+  themeSX
+} from './theme';
 
 import {storage} from './utils';
 
-// import {config} from './config';
-
 declare var chrome: any;
 
+// When the popup is shown the the current page is linkedin we dont actually show anythign but we just send
+// a message to the page to open up a popup on the page.
 chrome.tabs.query({ active: true, currentWindow: true }, (tab) => {
   const url = tab?.[0]?.url;
   if ((url ?? '').indexOf('linkedin.com') >= 0 ) {
@@ -37,13 +38,13 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tab) => {
 const PrimaryButton = ({onClick, children}: {onClick: () => void, children?: any}) => {
   return (
     <Button {...{onClick}} disableRipple sx={{
-      background: '#1E2246',
+      background: themeSX.colors.buttomBGPrimary,
       borderRadius: '100px',
       height: '42px',
-      padding: '0px 24px',
+      padding: `0px ${themeSX.size.s2}`,
       color: 'white',
       '&:hover': {
-        background: '#1E2246',
+        background: themeSX.colors.buttomBGPrimaryHover,
         color: 'white',
         opacity: '0.8',
       }
@@ -60,7 +61,7 @@ let gDebugMode = false;
 const Loading = ({}) => {
   return (
     <Box sx={{
-      color: 'black',
+      color: '#292929',
       width: '100%',
       display: 'flex', 
       alignItems: 'center',
@@ -92,64 +93,18 @@ createWidgetMessageHandler((m: any) => {
 
 const Welcome = ({gettingStarted}: {gettingStarted: () => void}) => {
   return <>
-    <Box key="welcome-1" sx={{display: 'flex', flexDirection: 'column', paddingTop: '24px', textAlign: 'center' }}>
-      <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
-          Secure your social media profiles
+    <Box key="welcome-1" sx={{display: 'flex', flexDirection: 'column', paddingTop: themeSX.size.s3, textAlign: 'center' }}>
+      <Typography sx={themeSX.text.h2} component="h2">
+        Secure your social media profiles
       </Typography>
-      
-      <Typography sx={{fontFamily: 'ClearSans', fontSize: '18px', color: 'black', marginTop: '24px', padding: '0px 16px'}}>
+      <Typography sx={{...themeSX.text.medium, marginTop: themeSX.size.s3, padding: `0px ${themeSX.size.s2}`}}>
         Avoid identity theft and fraud by using your identity on the Concordium blockchain to issue a selv-soverign badge of authencitity.
       </Typography>
     </Box>,
-    <Box key="welcome-2" sx={{padding: '0px 16px', display: 'flex', marginTop: 'auto', marginBottom: '20px', justifyContent: 'center' }}>
+    <Box key="welcome-2" sx={{padding: `0px ${themeSX.size.s2}`, display: 'flex', marginTop: 'auto', marginBottom: '20px', justifyContent: 'center' }}>
       <PrimaryButton onClick={gettingStarted}>GETTING STARTED</PrimaryButton>
     </Box>
   </>;
-};
-
-const PlatformLinkedIn = ({url}: {url: string}) => {
-  const okayClicked = useCallback(() => {
-    // chrome.tabs.query({currentWindow: true, active: true}, function (tabs){
-      // var activeTab = tabs[0];
-      // const message = createMessage('content', 'show-content-widget', {});
-      // chrome.tabs.sendMessage(activeTab.id, message);
-      // setTimeout(() => {
-        window.close();
-      // }, 1);
-    // });
-  }, []);
-  return <>
-    <Box key="welcome-1" sx={{display: 'flex', flexDirection: 'column', paddingTop: '24px', textAlign: 'center' }}>
-      <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
-        Secure Your LinkedIn Profile
-      </Typography>
-      <Typography sx={{fontFamily: 'ClearSans', fontSize: '18px', color: 'black', marginTop: '24px', padding: '0px 16px'}}>
-        Get started or check the status of your or other Linked In profiles by clicking on the shield icon or the MYSOME.id badge located in the bottom left corner of LinkedIn.
-      </Typography>
-    </Box>,
-    <Box key="welcome-2" sx={{padding: '0px 16px', display: 'flex', marginTop: 'auto', marginBottom: '20px', justifyContent: 'center' }}>
-      <PrimaryButton onClick={okayClicked}>Okay</PrimaryButton>
-    </Box>
-  </>;
-};
-
-const MYSOMEPage = ({url}: {url: string}) => {
-  const okayClicked = useCallback(() => {
-    window.close();
-  }, []);
-  return <>
-    <Box key="welcome-1" sx={{display: 'flex', flexDirection: 'column', paddingTop: '24px', textAlign: 'center' }}>
-      <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
-        The MYSOME Dapp
-      </Typography>
-      <Typography sx={{fontFamily: 'ClearSans', fontSize: '18px', color: 'black', marginTop: '24px', padding: '0px 16px'}}>
-        The Dapp allows you to issue a proof of ownership of your social media accounts<br/><br/>Use the Dapp to revoke and inspect your existing proofs.
-      </Typography>
-    </Box>,
-    <Box key="welcome-2" sx={{padding: '0px 16px', display: 'flex', marginTop: 'auto', marginBottom: '20px', justifyContent: 'center' }}>
-      <PrimaryButton onClick={okayClicked}>Okay</PrimaryButton>
-    </Box>
-  </>; 
 };
 
 const DebugView = (args: any) => {
@@ -176,29 +131,23 @@ const DebugView = (args: any) => {
   }, [isStaging]);
 
   return (
-    <Box padding="16px" display="flex" flexDirection="column">
+    <Box padding={themeSX.size.s2} display="flex" flexDirection="column">
       <Typography sx={{
-        fontFamily: 'ClearSans',
-        fontSize: '17px',
-        color: 'black',
+        ...themeSX.text.medium,
         lineHeight: '6px',
         marginBottom: '13px',
       }}>
         Debug mode
       </Typography>
       <Typography sx={{
-        fontFamily: 'ClearSans',
-        fontSize: '17px',
-        color: 'black',
+        ...themeSX.text.medium,
         lineHeight: '6px',
         marginBottom: '13px',
       }}>
         Is Production: {isStaging === null  ? '?' : isStaging ? 'No' : 'Yes'}  
       </Typography>
       <Typography sx={{
-        fontFamily: 'ClearSans',
-        fontSize: '17px',
-        color: 'black',
+        ...themeSX.text.medium,
         lineHeight: '6px',
         marginBottom: '13px',
       }}>
@@ -211,7 +160,7 @@ const DebugView = (args: any) => {
 
 const Header = ({logoClick}: any) => {
   return (
-    <Box sx={{width: '100%', height: '131px', background: '#1F2348' , borderRadius: '7px'}}>
+    <Box sx={{width: '100%', height: '131px', background: themeSX.colors.headerBG, borderRadius: '7px'}}>
       <Box sx={{
         display: 'flex',
         justifyContent: 'center',
@@ -219,22 +168,20 @@ const Header = ({logoClick}: any) => {
         paddingTop: '32px',
       }}>
         <Box sx={{display: 'flex'}} onClick={logoClick}>
-          <img src={logo} className="App-logo" alt="logo" />
+          <img src={logo} alt="logo" style={{
+            height: '20vmin',
+            pointerEvents: 'none',
+          }}/>
         </Box>
 
-        <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: '8px'}}>
-          <Typography component="h2" sx={{
-            fontFamily: 'ClearSans',
-            fontSize: '32px',
-            color: 'white',
-          }}>
+        <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: themeSX.size.s1}}>
+          <Typography component="h1" sx={{...themeSX.text.h1, color: 'white'}}>
             MYSOME.ID
           </Typography>
           <Typography sx={{
-            fontFamily: 'ClearSans',
-            fontSize: '17px',
-            color: 'white',
+            ...themeSX.text.medium,
             lineHeight: '6px',
+            color: 'white',
             marginBottom: '13px',
           }}>
             Browser Extension
@@ -298,9 +245,6 @@ const App = () => {
   }, [hasInitStorage, linkedInRegistered]);
   
   const gettingStarted = useCallback(() => {
-    // setHasShownWelcome(true);
-    // console.log("Setting shown welcome : true");
-    // storage.set('shown-popup-welcome', true).then().catch(console.error);
     chrome.tabs.create({url: isStaging ? 'http://localhost:3000' : 'https://app.mysomeid.dev/home'});
   }, [isStaging]);
 
@@ -336,18 +280,12 @@ const App = () => {
   const loading = !hasInitStorage || !hasInitUrl;
   const isOnKnownUrl = isOnLinkedIn || isOnMySOMEUrl;
   return (
-    <Centered>  
-
-      <Box sx={{display: 'flex', flexDirection: 'column', width: '366px', padding: '3px', height: '575px', background: 'white', borderRadius: '8px'}}>
+    <Centered>
+      <Box sx={{display: 'flex', flexDirection: 'column', width: '366px', padding: '3px', height: '575px', background: themeSX.colors.panelBG, borderRadius: themeSX.size.s1}}>
         <Header {...{logoClick}}/>
-
         {loading ? <Loading /> : undefined}
-        {!debugMode &&  !loading && isOnLinkedIn ? <PlatformLinkedIn {...{url}} /> : undefined }
-        {!debugMode &&  !loading && isOnMySOMEUrl ? <MYSOMEPage {...{url}} /> : undefined }
         {!debugMode && !loading && !isOnKnownUrl ? <Welcome {...{gettingStarted}} /> : undefined }
         {debugMode && !loading ? <DebugView /> : undefined}
-        
-
       </Box>
     </Centered>
   );

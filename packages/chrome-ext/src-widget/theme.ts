@@ -5,6 +5,41 @@ import { red } from '@mui/material/colors';
 
 import {fontFaces} from './fonts';
 
+export const themeSX = {
+  colors: {
+    headerBG: '#5099E9',
+    panelBG: 'white',
+    buttonTextBG: 'transparent',
+    buttonTextBGHover: '#f7f7f7',
+    buttomBGPrimary: '#0615E2',
+    buttomBGPrimaryHover: '#020fbd',
+  },
+  size: {
+    s1: '8px',
+    s2: '16px',
+    s3: '24px',
+    s4: '32px',
+  },
+  text: {
+    h1: {
+      fontFamily: 'ClearSans',
+      fontSize: '32px',
+      color: '#292929',
+    },
+    h2: {
+      fontFamily: 'ClearSans',
+      fontWeight: 400,
+      fontSize: '28px',
+      color: '#292929',
+    },
+    medium: {
+      fontFamily: 'ClearSans',
+      fontSize: '18px',
+      color: '#292929',
+    },
+  },
+};
+
 declare module '@mui/material/styles' {
   interface Theme {
     gradients?: {

@@ -19,39 +19,21 @@ import {
   getMessageHandler
 } from './messaging';
 import Logo from './logo.svg';
-
-(window as any).widget = {
-  setLoading: () => {
-    getMessageHandler().sendMessage('widget-redirect', 'injected-widget', {
-      loading: 1,
-      message: 'Message ' + Math.round(Math.random() * 10),
-      title: 'Loading ' +  Math.round(Math.random() * 10),
-      primary: '',
-      secondary: '',
-    });
-  },
-  setMessage: () => {
-    getMessageHandler().sendMessage('widget-redirect', 'injected-widget', {
-      loading: 0,
-      message: 'Some Message ' + Math.round(Math.random() * 10),
-      title: 'Some Title ' +  Math.round(Math.random() * 10),
-      primary: 'Okay',
-      secondary: 'Cancel',
-    });
-  },
-};
+import {
+  themeSX 
+} from './theme';
 
 const TextButton = ({onClick, children}: {onClick: () => void, children?: any}) => {
   return (
     <Button {...{onClick}} disableRipple sx={{
-      background: 'transparent',
+      background: themeSX.colors.buttonTextBG,
       borderRadius: '100px',
       height: '42px',
-      padding: '0px 24px',
-      color: 'black',
+      padding: `0px ${themeSX.size.s3}`,
+      color: themeSX.text.medium.color,
       '&:hover': {
-        background: '#f7f7f7',
-        color: 'black',
+        background: themeSX.colors.buttonTextBGHover,
+        color: themeSX.text.medium.color,
       },
     }}>
       {children}
@@ -62,13 +44,13 @@ const TextButton = ({onClick, children}: {onClick: () => void, children?: any}) 
 const PrimaryButton = ({sx, onClick, children}: {sx?: any, onClick: () => void, children?: any}) => {
   return (
     <Button {...{onClick}} disableRipple sx={{
-      background: '#1E2246',
+      background: themeSX.colors.buttomBGPrimary,
       borderRadius: '100px',
       height: '42px',
-      padding: '0px 24px',
+      padding: `0px ${themeSX.size.s3}`,
       color: 'white',
       '&:hover': {
-        background: '#1E2246',
+        background: themeSX.colors.buttomBGPrimaryHover,
         color: 'white',
         opacity: '0.8',
       },
@@ -107,19 +89,19 @@ const NotVerified = ({id, messageHandler}: {id: number | undefined, messageHandl
 
   return (
     <>
-      <Box sx={{display: 'flex', flexDirection: 'column', paddingTop: '24px', textAlign: 'center' }}>
-        <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
+      <Box sx={{display: 'flex', flexDirection: 'column', paddingTop: themeSX.size.s3, textAlign: 'center' }}>
+        <Typography sx={themeSX.text.h2} component="h2">
             Your {words[platform]?.profileName ?? ''} profile is not verified.
         </Typography>
         
-        <Typography sx={{fontFamily: 'ClearSans', fontSize: '18px', color: 'black', marginTop: '24px', padding: '0px 16px'}}>
+        <Typography sx={{...themeSX.text.medium, marginTop: themeSX.size.s3, padding: `0px ${themeSX.size.s2}`}}>
           Secure your account now by self-issuing a certificate to prove your account ownership.
           <br/><br/>
           The certificate contains a cryptographic proof used to let other know that you are who you claim to be to prevent risks of identity theft and fraud.
         </Typography>
       </Box>
 
-      <Box component="footer" sx={{padding: '0px 16px', display: 'flex', marginTop: '16px', justifyContent: 'space-between', position: 'fixed', bottom: '0', left: '0', right: '0', marginBottom: '16px' }}>
+      <Box component="footer" sx={{padding: `0px ${themeSX.size.s2}`, display: 'flex', marginTop: themeSX.size.s2, justifyContent: 'space-between', position: 'fixed', bottom: '0', left: '0', right: '0', marginBottom: themeSX.size.s2 }}>
         <TextButton onClick={cancel}>CANCEL</TextButton>
         <PrimaryButton onClick={secureProfile}>SECURE PROFILE</PrimaryButton>
       </Box>
@@ -144,18 +126,18 @@ const FinalizeVerification = ({id, messageHandler}: {id: number | undefined, mes
  
   return !showAreYouSure ? (
     <>
-      <Box sx={{display: 'flex', flexDirection: 'column', paddingTop: '24px', textAlign: 'center' }}>
-        <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
+      <Box sx={{display: 'flex', flexDirection: 'column', paddingTop: themeSX.size.s3, textAlign: 'center' }}>
+        <Typography sx={themeSX.text.h2} component="h2">
           Finalize Verification
         </Typography>
         
-        <Typography sx={{fontFamily: 'ClearSans', fontSize: '18px', color: 'black', marginTop: '24px', padding: '0px 16px'}}>
+        <Typography sx={{...themeSX.text.medium, marginTop: themeSX.size.s3, padding: `0px ${themeSX.size.s2}`}}>
           Update your profile background picture with the one you just created to finalize the verification.
           <br/><br/>
         </Typography>
       </Box>
 
-      <Box component="footer" sx={{padding: '0px 16px', display: 'flex', marginTop: '16px', justifyContent: 'space-between', position: 'fixed', bottom: '0', left: '0', right: '0', marginBottom: '16px' }}>
+      <Box component="footer" sx={{padding: `0px ${themeSX.size.s2}`, display: 'flex', marginTop: themeSX.size.s2, justifyContent: 'space-between', position: 'fixed', bottom: '0', left: '0', right: '0', marginBottom: themeSX.size.s2}}>
         <TextButton onClick={cancel}>CANCEL</TextButton>
         <PrimaryButton onClick={next}>UPDATE BACKGROUND</PrimaryButton>
       </Box>
@@ -170,15 +152,15 @@ const FinalizeVerification = ({id, messageHandler}: {id: number | undefined, mes
       } else {
         setAreYouSure(false);
       }
-    }, title: 'Are you sure?', message: '⚠️If you do not update your background picture others will not be able to see that you are verified.', primary: 'Yes', secondary: 'Resume'}} /> 
+    }, title: 'Are you sure?', message: 'If you do not update your background picture others will not be able to see that you are verified.', primary: 'Yes', secondary: 'Resume'}} /> 
   );
 };
 
 const Err = ({id, messageHandler}: {id: number | undefined, messageHandler: any}) => {
   return (
     <Box>
-        <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
-          Invalid route requested          
+        <Typography sx={themeSX.text.h2} component="h2">
+          Invalid route requested
         </Typography>
     </Box>
   );
@@ -192,7 +174,6 @@ const MessageRoute = ({id, messageHandler}: {id: number | undefined, messageHand
   const secondary = (params.get("secondary") ?? '');
   const primary = (params.get("primary") ?? 'Okay');
   const primaryLink = ( params.get("primary_link") ?? '' );
-
   const loading = ['1', 'true'].indexOf(params.get('loading') ?? '') >= 0;
   const goto_button = (params.get('goto_button') ?? '');
   const gotoLink = (params.get('goto_link') ?? '');
@@ -265,12 +246,12 @@ const Message = ({
   return (
     <>
       {!loading ?
-      <Box sx={{display: 'flex', flexDirection: 'column', paddingTop: '24px', textAlign: 'center' }}>
-        {title ? <Typography sx={{fontFamily: 'ClearSans', fontSize: '28px', color: 'black'}}>
+      <Box sx={{display: 'flex', flexDirection: 'column', paddingTop: themeSX.size.s3, textAlign: 'center' }}>
+        {title ? <Typography sx={themeSX.text.h2} component="h2">
           {title}
         </Typography> : undefined}
 
-        {message ? <Typography sx={{fontFamily: 'ClearSans', fontSize: '18px', color: 'black', marginTop: '24px', padding: '0px 16px'}}>
+        {message ? <Typography sx={{...themeSX.text.medium, marginTop: themeSX.size.s3, padding: `0px ${themeSX.size.s2}`}}>
           {message.split('<br/>').map((x: string, i: number) => {
             return <>
               {<span key={'line-' + i}>{x ?? ''}</span>}
@@ -282,7 +263,7 @@ const Message = ({
       </Box> : undefined}
 
       {loading ? (
-        <WizardLoading {...{title: title  ?? 'Loading', subtitle: message, color: 'black'}} />
+        <WizardLoading {...{title: title  ?? 'Loading', subtitle: message, color: themeSX.text.h2.color}} />
       ) : undefined}
 
       {goto_button ? (
@@ -291,7 +272,7 @@ const Message = ({
         </Box>
       ) : undefined}
 
-      <Box component="footer" sx={{padding: '0px 16px', display: 'flex', marginTop: '16px', justifyContent: secondary ? 'space-between' : 'center', position: 'fixed', left: '0', right: '0', bottom: '0', marginBottom: '16px', }}>
+      <Box component="footer" sx={{padding: `0px ${themeSX.size.s2}`, display: 'flex', marginTop: themeSX.size.s2, justifyContent: secondary ? 'space-between' : 'center', position: 'fixed', left: '0', right: '0', bottom: '0', marginBottom: themeSX.size.s2, }}>
         {secondary ? <TextButton onClick={secondaryClick}>{secondary}</TextButton> : undefined}
         {primary ? <PrimaryButton sx={{minWidth: '100px'}} onClick={primaryClick}>{primary ?? 'Okay'}</PrimaryButton> : undefined}
       </Box>
@@ -350,29 +331,27 @@ const App = () => {
 
   return (
     <Centered>  
-      <Box sx={{width: w, padding: '3px', height: '503px', background: 'white', borderRadius: '8px'}}>
-        <Box sx={{width: '100%', height: '131px', background: '#1F2348' , borderRadius: '7px'}}>
+      <Box sx={{width: w, padding: '3px', height: '503px', background: themeSX.colors.panelBG, borderRadius: themeSX.size.s1}}>
+        <Box sx={{width: '100%', height: '131px', background: themeSX.colors.headerBG, borderRadius: '7px'}}>
           <Box sx={{
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: '32px',
+            paddingTop: themeSX.size.s4,
           }}>
             <Box sx={{display: 'flex'}}>
               <Logo />
             </Box>
 
-            <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: '8px'}}>
-              <Typography component="h2" sx={{
-                fontFamily: 'ClearSans',
-                fontSize: '32px',
+            <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: themeSX.size.s1}}>
+              <Typography component="h1" sx={{
+                ...themeSX.text.h1,
                 color: 'white',
               }}>
                 MYSOME.ID
               </Typography>
               <Typography sx={{
-                fontFamily: 'ClearSans',
-                fontSize: '17px',
+                ...themeSX.text.medium,
                 color: 'white',
                 lineHeight: '6px',
                 marginBottom: '13px',
