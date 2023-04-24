@@ -1,25 +1,23 @@
 import {
-  HttpProvider,
-  AccountAddress,
-  InstanceInfo,
-  JsonRpcClient,
   serializeUpdateContractParameters,
   deserializeReceiveReturnValue,
   toBuffer,
   AccountTransactionType,
   UpdateContractPayload,
   CcdAmount, 
-  deserializeTransaction
 } from "@concordium/web-sdk";
 
 import {
   detectConcordiumProvider,
-  WalletApi
 } from '@concordium/browser-wallet-api-helpers';
 
 import {
   default as RAW_SCHEMA_BASE64
 } from '!base64-inline-loader!./mysomeid.schema.bin';
+
+import {
+  littleEndianHexNumStringToNumber
+} from '../utils';
 
 const RAW_SCHEMA = RAW_SCHEMA_BASE64.substr(RAW_SCHEMA_BASE64.indexOf(',') + 1);
 
@@ -35,7 +33,7 @@ export type ContractFacade = {
   tokenMetadataUrl: (id: string) => Promise<string | null>;
   mint: (account: string, params: MintParams) => Promise<string>;
   burn: (account: string, params: BurnParams) => Promise<string>;
-  ownTokens: (account: string) => Promise<any[]>;
+  listOwnedTokens: (account: string) => Promise<any[]>;
 };
 
 type MintParams = {
@@ -52,9 +50,7 @@ type MintParams = {
   proofs: [number, string][];
 };
 
-type BurnParams = {
-  'token': string;
-};
+type BurnParams = string; 
 
 export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB_INDEX = 0n}: Params ): ContractFacade => { 
   const view = async (): Promise<null | any> => {
@@ -108,7 +104,7 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
     return tx;
   };
 
-  const burn = async (account: string, params: BurnParams): Promise<string> => {
+  const burn = async (account: string, tokenId: BurnParams): Promise<string> => {
     const provider = await detectConcordiumProvider();
 
     const updatePayload: UpdateContractPayload = {
@@ -126,41 +122,43 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
       account,
       AccountTransactionType.Update,
       updatePayload,
-      params,
+      tokenId as any,
       RAW_SCHEMA
     );
 
     return tx;
   };
 
-  const ownTokens = async (account: string): Promise<any[]> => {
+  const listOwnedTokens = async (account: string): Promise<any[]> => {
     const client = (await detectConcordiumProvider()).getJsonRpcClient();
+
+    if (!account || !account.length ) {
+      throw new Error('No account provided');
+    }
 
     const parameter = serializeUpdateContractParameters(
       CONTRACT_NAME,
-      'ownTokens',
-      {
-        owner: account
-      },
+      'listOwnedTokens',
+      account,
       toBuffer(RAW_SCHEMA, 'base64'),
     );
  
     const result = await client.invokeContract({
-      method: `${CONTRACT_NAME}.ownTokens`,
+      method: `${CONTRACT_NAME}.listOwnedTokens`,
       contract: { index: CONTRACT_INDEX, subindex: CONTRACT_SUB_INDEX },
       parameter,
-    });
+    }); 
 
     if( result?.tag === 'success' ) {
       const returnValue = deserializeReceiveReturnValue(
           toBuffer(result.returnValue, 'hex'),
           toBuffer(RAW_SCHEMA, 'base64'),
           CONTRACT_NAME,
-          'ownTokens',
+          'listOwnedTokens',
           2
       );
-      // debugger;
-      return returnValue.tokens;
+
+      return (returnValue?.tokens ?? []).map ( x => littleEndianHexNumStringToNumber(x).toString() );
 
     } else {
       console.error("Failed to read from contract ", result);
@@ -170,7 +168,6 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
   };
 
   const tokenMetadataUrl = async (id: string) => {
-    debugger;
     const client = (await detectConcordiumProvider()).getJsonRpcClient();
     const parameter = serializeUpdateContractParameters(
       CONTRACT_NAME,
@@ -190,12 +187,10 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
       client
         .invokeContract(params)
         .then(result => {
-          // console.log("result ", result);
           if (result && result.tag === 'success' && result.returnValue) {
             const bufferStream = toBuffer(result.returnValue, 'hex');
             const length = bufferStream.readUInt16LE(2);
             const url = bufferStream.slice(4, 4 + length).toString('utf8');
-            // resolve("asdad");
             resolve(url);
           } else {
             console.log("failed to get metadata for token", id);
@@ -230,7 +225,7 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
     view,
     tokenMetadataUrl,
     mint,
-    ownTokens,
+    listOwnedTokens,
     burn,
   };
 };

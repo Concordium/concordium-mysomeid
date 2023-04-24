@@ -165,8 +165,22 @@ const updateRegistration = async (state: any) => {
   });
 };
 
+const getState = async (store: string): Promise<any | null> => {
+  const response = await messageHandler.sendMessageWResponse("background", "get-state", {store});
+  return response?.store ?? null;
+};
+
+const getStateValue = async (store: string, key: string): Promise<any | null> => {
+  const response = await messageHandler.sendMessageWResponse("background", "get-state", {store});
+  return response?.store?.[key] ?? null;
+};
+
+const setStateValue = async (store: string, key: string, value: any): Promise<any | null> => {
+  await messageHandler.sendMessageWResponse("background", "set-state", {store, key, value});
+};
+
 const getPlatformRequests = async () => {
-  const response = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'platform-requests' });
+  const response = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'platform-requests'});
   const requests = response?.store?.array ?? [];
   console.log("getPlatform requests (state) ", requests );
   return requests?.store?.array ?? [];
@@ -185,9 +199,7 @@ const createPlatformRequest = async (platform: string, requestType: string) => {
       status: 'created',
     }
   ];
-  console.log("new request list ", value );
   await messageHandler.sendMessageWResponse("background", "set-state", {store: 'platform-requests', key: 'array', value});
-  debugger;
 };
 
 const getRegistrations = async () => {
@@ -212,6 +224,9 @@ class MySoMeAPI {
   getRegistrations = getRegistrations;
   getPlatformRequests = getPlatformRequests;
   createPlatformRequest = createPlatformRequest;
+  getStateValue = getStateValue;
+  setStateValue = setStateValue;
+  getState = getState;
 }
 
 (window as any).mysome = new MySoMeAPI();

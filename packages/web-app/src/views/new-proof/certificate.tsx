@@ -187,7 +187,9 @@ export const Certificate = ({
                       viewBox={`0 0 256 256`}
                       style={{
                         height: `${200-16}px`,
-                        width: `${200-16}px`
+                        width: `${200-16}px`,
+                        padding: `${Math.round(6)}px`,
+                        background: 'white',
                       }}
                     /> :
                     loading ? <Skeleton animation="wave" variant="rectangular" width={200-16} height={200-16}/> : undefined

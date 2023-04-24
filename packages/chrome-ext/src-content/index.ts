@@ -20,11 +20,6 @@ const platform = detectPlatform();
 // Expose the object to the console so we can run commands on it.
 (window as any).mysome = mysome;
 
-// Here to make it easy to open the debugger on the correct process.
-/* if ( window.location.href.indexOf('linkedin.com') > 0 ) {
-	debugger;
-}*/
-
 if ( platform !== null ) {
 	console.log("Creating message handler");
 	const messageHandler = getMessageHandler();
@@ -42,6 +37,7 @@ if ( platform !== null ) {
 			break;
 			case 'redirect':
 				if ( payload?.url ) {
+					console.log("Redirecting url ", {url: payload?.url});
 					window.location.href = payload.url;
 				} else {
 					console.error('Redirect requested - but no url given : ', payload);
@@ -50,6 +46,7 @@ if ( platform !== null ) {
 			case 'open-url': 
 			{
 				if ( payload?.url ) {
+					console.log("Opening url ", {url: payload.url});
 					window.open(payload.url, '_blank');
 				} else {
 					console.error('Open url requested - but no url given : ', payload);

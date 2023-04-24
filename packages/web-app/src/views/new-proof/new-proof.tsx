@@ -65,7 +65,7 @@ function Content({templateData, onSubmit, step, setGotoStep}) {
       return;
     }
     try {
-      const obj = JSON.parse(atob(decodeURIComponent(params.get("template"))));
+      const obj = params.get("template") ? JSON.parse(atob(decodeURIComponent(params.get("template")))) : null;
       if ( obj ) {
         setTemplate(obj);
       }

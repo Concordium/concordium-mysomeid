@@ -3,8 +3,7 @@ declare var chrome: any;
 let TEST = false;
 let verbose = false;
 
-const SERVICE_BASE_URL = () => TEST ? 'http://localhost:4200' : `https://api.mysomeid.dev/v1`;
-//const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://mysomeid.dev`;
+const SERVICE_BASE_URL = () => TEST ? 'http://0.0.0.0:8080/v1' : `https://api.mysomeid.dev/v1`;
 
 const stores: Record<string, any> = {};
 

@@ -151,6 +151,13 @@ export default connect(state => ({
     console.error(e);
   }
 
+  let profileBackgroundUrl: string;
+  try {
+    profileBackgroundUrl = profileInfo?.profileInfo?.backgroundImage;
+  } catch(e) {
+    console.error(e);
+  }
+
   const {
     profileFirstName,
     profileSurname,
@@ -186,7 +193,9 @@ export default connect(state => ({
       challenge,
       platform, 
       proof,
-      statementInfo
+      statementInfo,
+      profileBackgroundUrl,
+      profileImageUrl,
     }).then(({newProof}) => {
       setProofCreated(false);
       setCreatingProof(false);

@@ -41,8 +41,8 @@ let state = {
 	pageHasBeenVerified: false,
 };
 let TEST = false;
-const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.mysomeid.dev`;
-const SERVICE_BASE_URL = () => TEST ? 'http://localhost:4200' : `https://api.mysomeid.dev/v1`;
+const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://api.testnet.mysome.id/`;
+const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.testnet.mysome.id/v1`;
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
@@ -124,13 +124,14 @@ const fetchQRFromImage = async (url: string): Promise<{
 	qr: string | null,
 	connectionError: boolean,
 }> => {
-	console.log("getting QR code from url : " + url );
+	console.log("Getting QR code from url : " + url );
 	if ( !url ) {
 		throw new Error('No url provided');
 	}
 
 	try {
-		const validateUrl = `${SERVICE_BASE_URL()}/qr/validate?url=${encodeURIComponent(url)}`;
+		const base = SERVICE_BASE_URL();
+		const validateUrl = `${base}/qr/validate?url=${encodeURIComponent(url)}`;
 		console.log("Getting QR code for : " + url );
 		const qr = await fetch(validateUrl)
 			.then(response => {
@@ -241,7 +242,7 @@ const ensureWidget = () => {
 
 	const widget = createShieldWidget(nameElement.parentElement, {
 		onClicked: (state: string, proofUrl: string) => {
-			console.log('shield clicked : ' + state);
+			console.log('Shield clicked', {state, proofUrl});
 			(mysome as any).badgeClickHandler &&
 			(mysome as any).badgeClickHandler({
 				origin: 'shield',
@@ -385,7 +386,6 @@ const createHeartbeat = () => {
 					// console.log("resolved profile url profile name :"  + value);
 					return value;
 				} else if ( onFeedUrl ) {
-					// debugger;
 					const value = getUserIdOnPageFeed();
 					// console.log("resolved feed profile name :"  + value);
 					return value;
@@ -625,7 +625,6 @@ const changeBackgroundTour = {
 		{
 			activate: async (tour: any) => {
 				// console.log('# 1');
-				// debugger;
 				let userId: string | null = null;
 				userId = getUserIdInUrl();
 				const loc = window.location.href.toLowerCase();
@@ -730,7 +729,7 @@ const changeBackgroundTour = {
 					while ( !document.querySelector('footer.image-edit-tool-footer') ) {
 						console.log('# 7a');
 						await sleep(1000);
-						if ( max++ > 10 ) {
+						if ( max++ > 30 ) {
 							tour.endWithError('Failed changing background (4)', 'Please try again later or change the background manually.');	
 							return;
 						}
@@ -891,7 +890,8 @@ const getCreateLink = () => {
 		profilePicUrl: trackProfilePictureUrl.get(),
 		backgroundPicUrl: trackBackgroundUrl.get(),
 	})));
-	return `${WEBSITE_BASE_URL()}/create/1?${template}`;
+	const base = WEBSITE_BASE_URL();
+	return `${base}/create/1?${template}`;
 };
 
 function showWelcomePopup() {
@@ -991,7 +991,6 @@ const install = async () => {
 		}
 		// Resolve the params that we want to open the popup
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
-
 
 		let {
 			proofUrl,
@@ -1107,6 +1106,7 @@ const install = async () => {
 				if ( !welcomeShown && status === 'not-registered' ) {
 					showWelcomePopup();
 				} else {
+					console.log('Show status with info ', goto);
 					showMessagePopup({
 						title: 'Your Profile Status',
 						message: statusMessage,
@@ -1146,6 +1146,7 @@ const install = async () => {
 		const onOwnPageOrFeed = !!tracking.onOwnProfileOrFeed;
 
 		if ( proof && proof !== 'no-connection' && proof !== 'no-proof' ) {
+			console.log('Proof observed', proof);
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get();
 			const name = trackProfileName.get();

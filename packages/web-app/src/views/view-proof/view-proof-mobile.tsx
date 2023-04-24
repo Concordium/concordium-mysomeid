@@ -47,7 +47,9 @@ export const MobileViewProofView = ({}) => {
             return;
         }
         setLoadingProof(true);
-        loadProof(id).then((data) => {
+        throw new Error('todo: get decruåtion key');
+        const decryptionKey = 'encryption key';
+        loadProof(id, decryptionKey).then((data) => {
             setFirstName(data.firstName);
             setSurname(data.lastName);
             setPlatform(data.platform);

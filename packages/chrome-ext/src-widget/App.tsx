@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import React, { useCallback, useState } from "react";
-// Test 1: chrome-extension://djpgalkjihkfbccfmlfdpginepddgeho/widget/index.html#/not-verified?p=linked-in&u=kristian-mortensem-1234
 import {
   Route,
   Routes,
@@ -20,14 +19,6 @@ import {
   getMessageHandler
 } from './messaging';
 import Logo from './logo.svg';
-
-const BASE_URL = `http://localhost:3000`;
-
-/*getMessageHandler().sendMessage('redirect', 'content', {
-  url: `${BASE_URL}/create/1?${redirect}${template}`,
-});*/
-
-console.log("Creating test facade");
 
 (window as any).widget = {
   setLoading: () => {
@@ -94,16 +85,6 @@ const NotVerified = ({id, messageHandler}: {id: number | undefined, messageHandl
   const [params] = useSearchParams();
   
   const platform: 'li' = params.get("p") as 'li' ?? 'li';
-  const username = params.get("u") ?? '';
-  const back = params.get("redirect") ?? '';
-
-  /* console.log("arguments ", {
-    back,
-  }); */
-
-  if (!platform || platform !== 'li') {
-    // return null;
-  }
 
   const words = {
     'li': {
@@ -115,26 +96,14 @@ const NotVerified = ({id, messageHandler}: {id: number | undefined, messageHandl
     messageHandler.sendMessage('close-widget', 'content', {
       id
     });
-
-    function utf8_to_b64(str: string) {
-      return window.btoa(unescape(encodeURIComponent(str)));
-    }
-
-    const redirect = '';
-    const template = 'template=' + encodeURIComponent(utf8_to_b64(JSON.stringify({
-			userId: username,
-			platform: platform,
-		})));
-
     messageHandler.sendMessage('redirect', 'content', {});
-    // Open the dapp with the redirect url set.
-  }, [id]);
+  }, [id, messageHandler]);
 
   const cancel = useCallback(() => {
     messageHandler.sendMessage('close-widget', 'content', {
       id
     });
-  }, [id]);
+  }, [id, messageHandler]);
 
   return (
     <>
@@ -162,7 +131,7 @@ const FinalizeVerification = ({id, messageHandler}: {id: number | undefined, mes
   const [showAreYouSure, setAreYouSure] = useState(false); 
   const cancel = useCallback(() => {
     setAreYouSure(true);
-  }, [id, showAreYouSure]);
+  }, []);
 
   const next = useCallback(() => {
     if ( !showAreYouSure ) {
@@ -171,7 +140,7 @@ const FinalizeVerification = ({id, messageHandler}: {id: number | undefined, mes
         result: 'continue',
       });
     }
-  }, [id]);
+  }, [id, messageHandler, showAreYouSure]);
  
   return !showAreYouSure ? (
     <>
@@ -216,32 +185,17 @@ const Err = ({id, messageHandler}: {id: number | undefined, messageHandler: any}
 };
 
 const MessageRoute = ({id, messageHandler}: {id: number | undefined, messageHandler: any}) => {
-
   const [params] = useSearchParams();
 
-  // chrome-extension://djpgalkjihkfbccfmlfdpginepddgeho/widget/index.html
-  // #/message?
-      // u=kristian-mortensen-66bb291&
-      // p=linked-in&
-      // title=Registration%20Done&
-      // message=Your%20profile%20is%20verified.&
-      // primary=OK&
-      // secondary=
+  const title = (params.get("title") ?? '');
+  const message = (params.get("message") ?? '');
+  const secondary = (params.get("secondary") ?? '');
+  const primary = (params.get("primary") ?? 'Okay');
+  const primaryLink = ( params.get("primary_link") ?? '' );
 
-  // const platform = params.get("p");
-  // const username = params.get("u") ?? '';
-  // const back = params.get("redirect") ?? '';
-  const title = params.get("title") ?? '';;
-  const message = params.get("message") ?? '';
-  const secondary = params.get("secondary") ?? '';
-  const primary = params.get("primary") ?? 'Okay';
-  let primaryLink = params.get("primary_link") ?? undefined;
-  if ( primaryLink ) {
-    primaryLink  = decodeURIComponent(primaryLink);
-  }
   const loading = ['1', 'true'].indexOf(params.get('loading') ?? '') >= 0;
-  const goto_button = params.get('goto_button');
-  const gotoLink = params.get('goto_link');
+  const goto_button = (params.get('goto_button') ?? '');
+  const gotoLink = (params.get('goto_link') ?? '');
 
   return <Message {...{
     id,
@@ -288,7 +242,7 @@ const Message = ({
       id,
       result: false,
     }) : handler(false);
-  }, [id]);
+  }, [handler, id, messageHandler]);
 
   const primaryClick = useCallback(() => {
     !handler ? messageHandler.sendMessage('close-widget', 'content', {
@@ -300,13 +254,13 @@ const Message = ({
         url: primaryLink,
       });
     } 
-  }, [id, primaryLink]);
+  }, [handler, id, messageHandler, primaryLink]);
 
   const gotoButtonClick = useCallback(() => {
     gotoLink && messageHandler.sendMessage('open-url', 'content', {
       url: gotoLink,
     });
-  }, [gotoLink]);
+  }, [gotoLink, messageHandler]);
 
   return (
     <>
@@ -414,7 +368,7 @@ const App = () => {
                 fontSize: '32px',
                 color: 'white',
               }}>
-                MYSOMEID
+                MYSOME.ID
               </Typography>
               <Typography sx={{
                 fontFamily: 'ClearSans',

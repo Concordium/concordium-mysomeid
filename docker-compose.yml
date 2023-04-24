@@ -1,0 +1,12 @@
+services:
+  api:
+    build:
+      dockerfile: ./backend/scripts/build.Dockerfile
+    ports:
+      - "8080:8080"
+    entrypoint: ["/usr/local/bin/mysomeid-backend"]
+  db:
+    build:
+      dockerfile: ./backend/scripts/pg.Dockerfile
+    ports:
+      - "5432:5432"

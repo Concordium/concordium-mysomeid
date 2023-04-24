@@ -18,13 +18,13 @@ import { AttributesKeys, IdProofOutput /*, TransactionEvent*/ } from "@concordiu
 import {
   serviceUrl
 } from "src/constants";
-import ShortUniqueId from 'short-unique-id';
-import { toBuffer } from "@concordium/web-sdk";
 import {
   useInterval
 } from 'use-interval';
+import { useExtension } from "./use-extension";
+import {isNil, sleep} from '../utils';
 
-type ProofData = {
+export type ProofData = {
   id?: string;
   userData?: string; // linkedin username or other unique platform specific user info.
   proof?: IdProofOutput;
@@ -34,6 +34,9 @@ type ProofData = {
   firstName?: string;
   lastName?: string;
   tx?: string;
+  decryptionKey?: string;
+  profileImageUrl?: string;
+  profileBackgroundUrl?: string;
   meta?: {
     challenge?: string;
     credential?: string;
@@ -49,6 +52,8 @@ type CreateProofSBNFTArgs = {
   platform: "li";
   statementInfo: any;
   challenge: string;
+  profileImageUrl: string;
+  profileBackgroundUrl: string;
 };
 
 type CreateProofSBNFTResult = {
@@ -129,14 +134,12 @@ interface TransactionOrigin {
 
 export interface WalletProxyTransaction {
   id: number;
-  blockHash: string;
-  cost: string;
-  transactionHash: string;
-  details: Details;
-  origin: TransactionOrigin;
-  blockTime: number;
-  total: string;
-  subtotal: string;
+  eventTime: string;
+  eventType: string;
+  owner: string;
+  timestamp: number;
+  tokenId: number;
+  txHash: string;
 }
 
 type MintTx = {
@@ -168,12 +171,12 @@ export type CCDContextData = {
   loadMyProofs: () => Promise<ProofData[]>;
   revokeProof: (args: {id: string}) => Promise<void>;
 
-  loadProof: (id: string) => Promise<any>;
+  loadProof: (id: string, decryptionKey: string) => Promise<any>;
 } | null;
 
 const CCDContext = React.createContext<CCDContextData>(null);
 
-const CONTRACT_INDEX: bigint = BigInt(process.env.REACT_APP_CONTRACT_INDEX ?? 3330);
+const CONTRACT_INDEX: bigint = BigInt(process.env.REACT_APP_CONTRACT_INDEX ?? 4321);
 // const CONTRACT_SUB_INDEX = 0;
 
 export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
@@ -198,9 +201,9 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     proofStatementCreated: false,
   });
   const [mintTxs, setMintTxs] = useState<MintTx[] | null>(null);
-  const [addedMintTxsInfoToMyProofs, setAddedMintTxsInfoToMyProofs] = useState(false);
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [tsCreated] = useState(new Date().getTime());
+  const extension = useExtension();
 
   // Detect when the Concordium wallet is installed.
   useInterval(() => {
@@ -216,34 +219,38 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     setInstalled(!!(window as any).concordium);
   }, 100, true);
 
-  const _getTransactions = useCallback(async (accountAddress: string, limit: number = 1000, order: 'ascending' | 'descending' = 'descending', from: string | null = null): Promise<WalletProxyTransaction[]> => {
-    const proxyPath =
-      `/wallet/${accountAddress}/txs?limit=${limit}&order=${order}&includeRawRejectReason${from ? `&from=${from}` : ''}`;
-    const baseUrl = process.env.REACT_APP_EXPLORER_URL ?? "https://wallet-proxy.testnet.concordium.com";
-    const {
-      transactions
-    } = await fetch(
-        serviceUrl(proxyPath),
-        {method: 'GET', headers: { 'Content-Type': 'application/json' }}
-      )
-      .then(res => res.json());
-    return transactions ?? [];
+  const _getTransactions = useCallback(async (accountAddress: string): Promise<WalletProxyTransaction[]> => {
+    let responseTxs = await fetch(
+      serviceUrl(`/wallet/txs/${accountAddress}`, ''),
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },  
+      }
+    );
+
+    if ( responseTxs.status !== 200 ) {
+      throw new Error('Failed to store proof (1)');
+    }
+
+    const responseTxsJson = await responseTxs.json();
+
+    return responseTxsJson?.events ?? [];
   }, [isConnected, account]);
   
-  // debugger;
-  useEffect(() => {
-    if ( !mintTxs || !myProofs || addedMintTxsInfoToMyProofs ) {
+  useEffect(() => {    
+    if ( !mintTxs || !myProofs ) {
       return;
     }
-    setAddedMintTxsInfoToMyProofs(true);
-    const updatedProofs = myProofs.map( p => {
-      if ( !p || !p.id ) {
+    setMyProofs(myProofs.map( p => {
+      if ( !p || p.id === undefined ) {
         return p;
       }
       const mintTx = mintTxs.find( x => x.tokenId === p.id );
       if ( mintTx ) {
-        p.created = Math.round(mintTx.tx.blockTime ?? 0);
-        p.tx = mintTx.tx.transactionHash;
+        p.created = Math.round(mintTx.tx.timestamp ?? 0);
+        p.tx = mintTx.tx.txHash;
+      } else {
+        console.log(" no mint tx with id ", p.id );
       }
       return p;
     }).sort((a, b) => {
@@ -251,9 +258,8 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         return b.created - a.created;
       }
       return 0;
-    });
-    setMyProofs(updatedProofs);
-  }, [mintTxs, myProofs, addedMintTxsInfoToMyProofs]);
+    }));
+  }, [mintTxs?.length, myProofs?.length]);
 
   const handleSetAccountAndConnected = useCallback((accountAddress: string | undefined) => {
     console.log("Connected with wallet address : " + accountAddress);
@@ -261,50 +267,17 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     setIsConnected(!!accountAddress);
     if ( accountAddress ) {
       (async () => {
-        let more = true;
-        let from = 0;
-        const txs = await _getTransactions(accountAddress, 1000, 'descending', from ? from.toString() : null);
-        const mintTxs = txs.map( tx => {
-          const evt: string | null = tx.details?.description === 'Invoke smart contract' &&
-                                  tx.details?.events?.length === 1 ? tx.details?.events[0] : null;
-
-          if (!evt ||
-              evt.indexOf('function= mint') === -1 ||
-              evt.indexOf('contract= mysomeid') === -1 ||
-              evt.indexOf(`target=<${CONTRACT_INDEX}, 0>`) === -1 ) {
-            return null;
-          }
-
-          const message = evt.split("message=")[1]?.trim();
-          if ( !message ) {
-            console.error("Mint nft event contained no message");
-            return null;
-          }
-
-          const mlen = message?.length;
-          if ( mlen !== 978 ) {
-            console.error(`Unexpected message length (${mlen})`);
-          }
-
-          const buf = toBuffer(message, 'hex');
-          let s = '';
-          for(let i=37; i<37+8; i++ ) {
-            s += String.fromCharCode(buf.at(i));
-          }
-          const ret: MintTx = {
-            tokenId: s,
-            tx,
-          };
-          return ret;
-        }).filter( x => !!x );
-        mintTxs.forEach( x => {
-          if ( x.tx.blockTime < from || !from ) {
-            from = x.tx.blockTime;
-          }
-        } );
-        console.log("adding tx ", mintTxs.map(x => x.tokenId));
+        const txs = await _getTransactions(accountAddress);
+        const mintTxs = txs.filter(x => x.eventType === 'mint')
+          .map( tx => {
+            const ret: MintTx = {
+              tokenId: tx.tokenId.toString(),
+              tx,
+            };
+            return ret;
+          }).filter( x => !!x );
+        // console.log("Adding tx ", mintTxs.map(x => x.tokenId));
         setMintTxs(mintTxs);
-        setAddedMintTxsInfoToMyProofs(false);
       })().then().catch(err => {
         console.error(err);
       });
@@ -335,7 +308,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         });
     // TODO: Implment disconnection here.
   }, []);
-
 
   const createProofStatement = useCallback(async (args: CreateProofStatementArgs): Promise<CreateProofStatementResult> => {
     const {
@@ -418,14 +390,19 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     };
   }, [account]);
 
-  const createProofSBNFT = useCallback(async ({firstName, surName, userData, challenge, platform, proof}: CreateProofSBNFTArgs): Promise<CreateProofSBNFTResult> => {
+  const createProofSBNFT = useCallback(async ({
+    firstName,
+    surName,
+    userData,
+    challenge,
+    platform,
+    proof,
+    profileImageUrl,
+    profileBackgroundUrl
+  }: CreateProofSBNFTArgs): Promise<CreateProofSBNFTResult> => {
     if ( creatingProof ) {
       throw new Error('Already creating proof');
     }
-
-    // const provider = await detectConcordiumProvider();
-    const uid = new ShortUniqueId({ length: 8 });
-    const proofId = uid();
 
     if ( proof.credential.length !== 96 ) {
       throw new Error('Invalid length of credential');
@@ -435,25 +412,18 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       throw new Error('Invalid proof.');
     }
 
-    if ( proofId.length !== 8 ) {
-      throw new Error('Invalid token id');
-    }
-
-    const dt = new Date().getTime();
-
-    // TODO: Use this end-point to substidise paying for the 
-    // nft to be created.
+    // Use this end-point to substidise paying for the nft to be created.
     let response = await fetch(
-      serviceUrl(`/proof/${proofId}/nft`, ''),
+      serviceUrl(`/proof/nft`, ''),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName,
-          surName,
-          platform,
-          userData,
           account,
+          platform,
+          firstName,
+          surName, 
+          userData,
           challenge,
           proof,
         }),
@@ -464,62 +434,55 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       throw new Error('Failed to store proof (1)');
     }
 
-    const {status /*, tx: txHash*/ } = await response.json();
-    let tx: string | undefined;
+    const {decryptionKey, transactionHash} = await response.json();
 
-    if ( status === 'mint-yourself' ) {
-      const firstNameProof = proof.proof.value.proofs[0].proof;
-      const lastNameProof = proof.proof.value.proofs[1].proof;
-  
-      tx = await contract.mint(
-        account,
+    await contract.waitForTX(transactionHash);
+
+    // Get the event data
+    let event: any;
+    let cnt = 0;
+    while( cnt++ < 10 ) {
+      if ( cnt > 1 ) {
+        await sleep(1000);
+      }
+
+      const responseTxs = await fetch(
+        serviceUrl(`/wallet/txs/${account}`, ''),
         {
-          "owner": {
-            "Account": [account]
-          },
-          "token": proofId,
-          "platform": platform,
-          "credential": proof.credential,
-          "challenge": challenge,
-          "first_name": firstName,
-          "last_name": surName,
-          "user_data": userData,
-          "proofs": [
-            [AttributesKeys.firstName, firstNameProof], 
-            [AttributesKeys.lastName, lastNameProof],
-          ],
-        },
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },  
+        }
       );
   
-      await contract.waitForTX(tx);        
-    } else {
-      /*
-        psudo impl:
-        while( status === 'minting' ) {
-          sleep(5000);
-          status = (await fetch('/mint-status').then(ret => ret.json() )).status;
-        }
-        tx = txHash;
-      */
-      throw new Error('Not implemented yet');
+      if ( responseTxs.status !== 200 ) {
+        continue;
+      }
+
+      const responseTxsJson = await responseTxs.json();
+      event = responseTxsJson.events.find ( x => x.txHash === transactionHash && x.eventType === 'mint' );
+      if ( event?.tokenId ) {
+        break;
+      }
     }
 
-    // Loading takes at least 2 seconds.
-    const diff = 2000 - (new Date().getTime() - dt);
-    if ( diff > 0 ) {
-      await new Promise<void>(cb => setTimeout(cb, diff));
+    // Return the tokenId.
+    if ( event?.tokenId === undefined ) {
+      throw new Error('Failed to get event : ' + transactionHash);
     }
 
     // Create new proof data struct.
     const newProof: ProofData = {
-      id: proofId,
+      id: event.tokenId,
       platform,
       firstName,
       lastName: surName,
       userData,
       proof,
-      tx,
+      decryptionKey,
+      tx: transactionHash,
       created: Math.round(new Date().getTime() / 1000),
+      profileImageUrl,
+      profileBackgroundUrl,
       meta: {
         credential: proof.credential,
         challenge: challenge,
@@ -529,7 +492,9 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         ],
       }
     };
-    
+
+    await extension.storeProof(newProof);
+
     // Add to the list.
     const updatedProofsList = [
       newProof,
@@ -557,12 +522,8 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     const tx = await contract.burn(
       account,
-      {
-        "token": tokenId,
-      }
+      tokenId
     );
-    console.log("created revoke tx : " + tx);
-    // https://testnet.ccdscan.io/?dcount=1&dentity=transaction&dhash=1992421279116d6948ecb9e6f1b8248fbf11677b50c0b580b0cbfac9dd38d5ac
 
     await contract.waitForTX(tx);
 
@@ -579,38 +540,48 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     if ( myProofs !== null && myProofs.length > 0 ) {
       return myProofs; // ignoring loading them again when they have first been loaded.
     }
-    const tokens = await contract.ownTokens(account);
-    setMyProofs(tokens.map(([id, metaData]) => {
-      const {
-        challenge,
-        credential,
-        proofs,
-        revoked
-      } = metaData;
+
+    const tokens = await contract.listOwnedTokens(account);
+
+    const newList = tokens.map(id => {
       const proof: ProofData = {
         id,
-        revoked: !!revoked ? 1 : 0,
-        meta: {
-          challenge,
-          credential,
-          proofs,
-        }
+        revoked: null,
+        meta: null
       };
       return proof; 
-    }));
+    });
+
+    // Fetch the list of stored proofs and if there is stored data that is not undefined
+    // which is undefined for the own token we will reuse that data.
+    // Note that we discard any stored proofs which is not returned for the current wallet.
+    const proofs = await extension.getStoredProofs();
+    console.log("Stored proofs ", proofs);
+    Object.entries(proofs).forEach(([id, storedProof]) => {
+      const index = newList.findIndex(x => x.id !== undefined && x.id === id);
+      if ( index >= 0 ) {
+        const existing = newList[index];
+        Object.keys(storedProof).forEach( key => {
+          if ( !isNil(storedProof[key]) && isNil(existing[key]) ) {
+            existing[key] = storedProof[key];
+          }
+        });
+        newList[index] = existing;
+      }
+    });
+
+    setMyProofs(newList);
   }, [account, contract, myProofs]);
 
-  /*detectConcordiumProvider().then(provider => {
-    provider.
-  }).*/
-
-  const loadProof = useCallback(async (id: string) => {
+  const loadProof = useCallback(async (id: string, decryptionKey: string) => {
     if ( !id ) {
       throw new Error('No id');
     }
-    const url = serviceUrl(`/proof/${id}/nft`, '');
+    if ( !decryptionKey ) {
+      throw new Error('No decryptionKey given');
+    }
     const response = await fetch(
-      url,
+      serviceUrl(`/proof/nft/${id}/${encodeURIComponent(decryptionKey)}`, ''),
       {
         method: 'GET',
         headers: {
@@ -618,14 +589,20 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         }
       }
     );
+
     if ( response.status !== 200 ) {
-      throw new Error('Failed to get proof');
+      throw new Error(`Failed loading proof (${response.status})`);
     }
-    const data = await response.json();
-    if (!data ){
-      throw new Error('Failed loading proof');
+
+    const proofData = await response.json();
+
+    const storedProof = await extension.getStoredProof(id);
+    if ( storedProof ) {
+      proofData.profileImageUrl = storedProof.profileImageUrl;
+      proofData.profileBackgroundUrl = storedProof.profileBackgroundUrl;
     }
-    return data;
+
+    return proofData;
   }, []);
 
   useEffect(() => {

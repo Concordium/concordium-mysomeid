@@ -6,15 +6,18 @@ import { Navi } from "src/components/navi";
 import { paperSX } from "src/themes";
 import { ViewProof } from "./view-proof";
 
-export const ViewProofView = ({}) => {
+export const ViewProofView = ({ }) => {
     const {
-      id
+        id,
+        decryptionKey: decryptionKeyEncoded
     } = useParams();
-  
+
+    const decryptionKey = decodeURIComponent(decryptionKeyEncoded);
+
     const theme = useTheme();
     const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
     const ltmd = useMediaQuery(theme.breakpoints.down('md'));
-  
+
     return (
         <ViewContainer title={'Proof of Ownership'}
             subtitle={<Navi path={[['Home', '/home'], ['Proof']]} />}
@@ -26,9 +29,9 @@ export const ViewProofView = ({}) => {
                 padding: 0,
             }}
         >
-            <Paper elevation={2} sx={{...paperSX, marginLeft: 0}}>
-                <Box sx={{padding: !ltmd ? 1 : 0, display: 'flex', flexDirection: 'column'}}>
-                    <ViewProof {...{id, noRevoke: true}} />
+            <Paper elevation={2} sx={{ ...paperSX, marginLeft: 0 }}>
+                <Box sx={{ padding: !ltmd ? 1 : 0, display: 'flex', flexDirection: 'column' }}>
+                    <ViewProof {...{ id, noRevoke: true, decryptionKey }} />
                 </Box>
             </Paper>
         </ViewContainer>

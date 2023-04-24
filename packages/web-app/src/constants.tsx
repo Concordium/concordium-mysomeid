@@ -8,7 +8,7 @@ export function serviceUrl(route: string, params?: Record<string, string | numbe
                         }, '');
         }
     }
-    const baseUrl = process.env.REACT_APP_SERVICE_BASE ?? 'http://localhost:4200';    
+    const baseUrl = process.env.REACT_APP_SERVICE_BASE ?? 'http://0.0.0.0:8080/v1';
     return  baseUrl + route + (params ? '?' + params : '');
 }
 
@@ -23,6 +23,8 @@ export const appleAppstoreUrl = process.env.REACT_APP_STORE_URL ?? 'itms-apps://
 export const googlePlayUrl = process.env.REACT_APP_PLAY_URL ?? `https://play.google.com/store/apps/details?id=org.kidinov.unixadmin`;
 
 export const URLHANDLER_BASE_URL = process.env.REACT_URL_HANDLER_BASE  ?? 'exp://192.168.1.5:19000/--/';
+
+export const linkedInProfileBaseUrl = 'https://www.linkedin.com/in/';
 
 export function getUrlHandlerUrl(device: 'iOS' | 'Android', args: string) {
     if ( device === 'iOS' ) {

@@ -32,7 +32,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 
-import {ReactComponent as DownloadSvg} from 'src/assets/icons/download.svg';
 import {ReactComponent as TxSvg} from 'src/assets/icons/tx.svg';
 import {ReactComponent as PlatformLinkedInSvg} from 'src/images/platform-linked-in.svg';
 import {ReactComponent as QRSvg} from 'src/images/qr.svg';
@@ -67,13 +66,11 @@ export function MyProofs({}) {
   const {
     isConnected,
     installed,
-    provider,
-    connect: connect,
+    connect,
     contract,
     loadingMyProofs,
     myProofs,
     loadMyProofs,
-    account,
   } = useCCDContext();
   const styles = useStyles();
 
@@ -97,14 +94,14 @@ export function MyProofs({}) {
   }, [] );
 
   const listContent = myProofs;
-  const IDX_NETWORKID = 4;
   const rows: GridRowsProp = (listContent && !loading ? listContent : []).map(
-    ({id, platform, created}, index) => ({
+    ({id, platform, created, decryptionKey}, index) => ({
                                           no: (index + 1).toString(),
                                           platform,
                                           name: id,
                                           id,
                                           created: created && Number.isFinite(created) ? new Date((created ?? 0) * 1000).toLocaleDateString('en-US') : '',
+                                          decryptionKey, 
                                         }));
 
   const columns: GridColDef[] = [
@@ -124,7 +121,7 @@ export function MyProofs({}) {
       );
     } },
     { field: "name", headerName: "Name", hide: true, flex: 0.5, sortable: false, align: 'left', },
-    { field: "created", headerName: "Created at", hide: portraitFormat, flex: 0.25, headerAlign: 'center', sortable: false, align: 'center', },
+    { field: "created", headerName: "Created At", hide: portraitFormat, flex: 0.25, headerAlign: 'center', sortable: false, align: 'center', },
     { field: "id", headerName: "Id", cellClassName: styles.hashCell, flex: 1, sortable: false, align: 'left', },
     {
       field: "action", headerName: "",
@@ -136,7 +133,9 @@ export function MyProofs({}) {
           api
         } = params;
 
-        const gotoMyProof = (e) => {
+        const rowData = listContent?.find(x => x.id === params.row.id) ?? null;
+
+        const gotoMyProof = useCallback((e) => {
           e.stopPropagation(); // don't select this row after clicking
 
           const row = {} as any;
@@ -153,10 +152,12 @@ export function MyProofs({}) {
             console.error(`Error no row for id ${row.id} in list content ${listContent}.`);
           }
           
-          navigate(`/my-proof/${rowData?.id}`);
-        };
+          const decryptionKey = encodeURIComponent( rowData?.decryptionKey ?? 'null' );
+          navigate(`/my-proof/${rowData?.id}/${decryptionKey}`);
+        }, []);
 
-        const gotoExplorer = useCallback(() => {
+        const gotoExplorer = useCallback((e) => {
+          e.stopPropagation();
           const row = {} as any;
           api
             .getAllColumns()
@@ -164,7 +165,7 @@ export function MyProofs({}) {
             .forEach(
               (c) => (row[c.field] = params.getValue(params.id, c.field))
             );
-          const rowData = listContent?.find(x => x.id === row.id ) ?? null;
+          const rowData = listContent?.find(x => x.id === row.id) ?? null;
           if ( !rowData ) {
             console.error("Failed getting proof by row id : " + row.id );
             return;
@@ -234,7 +235,7 @@ export function MyProofs({}) {
                 color: 'white',
               },
             }} onClick={gotoMyProof}>VIEW</Button>
-            <Button id="view-in-explorer-button" sx={{
+            <Button id="view-in-explorer-button" disabled={!rowData.tx} sx={{
               marginLeft: 1,
               background: '#bababa',
               minWidth: '36px',
