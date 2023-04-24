@@ -3,33 +3,25 @@ import {
   useMediaQuery,
   useScrollTrigger,
   useTheme,
-  // Button,
   Typography
 } from '@mui/material';
-
 import {
   Theme,
 } from '@mui/material/styles';
-
 import {
   makeStyles,
 } from '@mui/styles';
-
-import {
-  styled,
-} from '@mui/system';
-
 import Box from '@mui/material/Box';
-import * as React from 'react';
 import {
   useState,
   useEffect
 } from 'react';
-
+import CCDLogo from 'src/images/ccd.png';
 import MySoMeIDLogo1 from 'src/images/logo-white.svg';
 import MySoMeIDLogo2 from 'src/images/logo-grey.svg';
 import { Link } from 'react-router-dom';
 import { defaultFontFamily } from 'src/themes/theme';
+import { useCCDContext } from 'src/hooks';
 
 const len = '0.2s';
 const curve = 'cubic-bezier(0, 0, 0.2, 1)';
@@ -90,42 +82,53 @@ const useStyles = makeStyles((theme: Theme) => {
   })
 });
 
-const OpenButton = styled('a', {
-  shouldForwardProp: (prop) => prop !== 'color' && prop !== 'variant' && prop !== 'sx',
-})( ({theme}) => ({
-  p: '6px 8px',
-  display: "inline-flex", 
-  alignItems: "center", 
-  justifyContent: "center", 
-  position: "relative", 
-  boxSizing: "border-box", 
-  outline: "0px", 
-  border: "0px", 
-  margin: "0px", 
-  cursor: "pointer", 
-  userSelect: "none", 
-  verticalAlign: "middle", 
-  appearance: "none", 
-  textDecoration: "none", 
-  minWidth: "64px", 
-  transition: "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms", 
-  boxShadow: "none", 
-  borderRadius: "625rem", 
-  fontWeight: "500", 
-  lineHeight: "1.5rem", 
-  fontSize: "18px", 
-  padding: "6px 12px", 
-  color: "white", 
-  backgroundColor: "rgb(252, 252, 252, 0.09)",
-  paddingLeft: '22px',
-  paddingRight: '22px',
-  paddingTop: '8px',
-  paddingBottom: '8px',
-  "&:hover": {
-    backgroundColor: 'rgb(252, 252, 252, 0.2)',
-    color: 'white',
-  },
-}) );
+const ConnectedStatusBadge = ({}) => {
+  const {
+    account,
+    isConnected
+  } = useCCDContext();
+  const shortWalletDesc = isConnected ? '#' + [account.slice(0, 4), account.slice(-4)].join('...') : '';
+  return (
+    <Box sx={{
+      p: '6px 8px',
+      display: "inline-flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      position: "relative", 
+      boxSizing: "border-box", 
+      outline: "0px", 
+      border: "0px", 
+      margin: "0px", 
+      userSelect: "none", 
+      verticalAlign: "middle", 
+      appearance: "none", 
+      textDecoration: "none", 
+      minWidth: "64px", 
+      boxShadow: "none", 
+      borderRadius: "8px",
+      fontWeight: "500", 
+      lineHeight: "1.5rem", 
+      fontSize: "18px", 
+      padding: "6px 12px", 
+      color: "white", 
+      backgroundColor: 'black',
+      paddingLeft: '16px',
+      paddingRight: '24px',
+      paddingTop: '8px',
+      paddingBottom: '8px',
+    }}>
+      <Box sx={{display: 'flex', flexDirection: 'row'}}>
+        <Box component="img" src={CCDLogo} sx={{width: "32px", height: "32px", marginRight: '16px'}}/>
+        <Box sx={{display: 'flex', flexDirection: 'column', marginTop: '1px'}}>
+          {isConnected ? <Typography sx={{textAlign: 'center'}}>{shortWalletDesc}</Typography> : undefined}
+          <Typography sx={{marginTop: '1px', textAlign: 'center'}}>
+            {isConnected ? 'Wallet Connected' : 'Not Connected'}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
 
 export function AppHeader({isConnected, isInstalled, onToggleConnect}: {isConnected: boolean, isInstalled: boolean | null, onToggleConnect: () => void}) {
   const theme = useTheme();
@@ -189,12 +192,8 @@ export function AppHeader({isConnected, isInstalled, onToggleConnect}: {isConnec
             </Box>
           </Link>
 
-          {isInstalled !== null &&  isInstalled? <Box sx={{ display: { xs: 'block', md: 'block' } }}>
-            <OpenButton className={shrink ? classes.buttonSmaller : undefined} onClick={() => {
-              onToggleConnect();
-            }}>
-              {isConnected ? 'Connected' : 'Connect'}
-            </OpenButton>
+          {isInstalled !== null && isInstalled && isConnected ? <Box sx={{ display: { xs: 'block', md: 'block' } }}>
+            <ConnectedStatusBadge />
           </Box> : undefined}
         </Box>
       </Box>
