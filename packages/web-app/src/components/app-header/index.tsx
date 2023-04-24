@@ -29,6 +29,7 @@ import {
 import MySoMeIDLogo1 from 'src/images/logo-white.svg';
 import MySoMeIDLogo2 from 'src/images/logo-grey.svg';
 import { Link } from 'react-router-dom';
+import { defaultFontFamily } from 'src/themes/theme';
 
 const len = '0.2s';
 const curve = 'cubic-bezier(0, 0, 0.2, 1)';
@@ -67,7 +68,7 @@ const useStyles = makeStyles((theme: Theme) => {
       height: `${headerHeight}px`,
       backgroundColor: '#f9f9f9',
       transition: transitionProps,
-      boxShadow: '0px 4px 10px rgb(53 53 53 / 16%)',
+      // boxShadow: '0px 4px 10px rgb(53 53 53 / 16%)',
     },
     logo: {
     },
@@ -110,10 +111,8 @@ const OpenButton = styled('a', {
   transition: "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms", 
   boxShadow: "none", 
   borderRadius: "625rem", 
-  // fontFamily: "Inter, Arial", 
   fontWeight: "500", 
   lineHeight: "1.5rem", 
-  // fontSize: "0.875rem", 
   fontSize: "18px", 
   padding: "6px 12px", 
   color: "white", 
@@ -182,7 +181,7 @@ export function AppHeader({isConnected, isInstalled, onToggleConnect}: {isConnec
                 lineHeight: '37px',
                 fontSize: '24px',
                 marginTop: '-8px',
-                fontFamily: 'Golos-UI',
+                fontFamily: defaultFontFamily,
                 fontWeight: 400,
                 marginLeft: 2,
               }}>MYSOMEID</Typography>

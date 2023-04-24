@@ -15,16 +15,21 @@ import {
 } from 'src/hooks/use-extension';
 import smallScreenshot from './small-screenshot.png';
 import { useCCDContext } from 'src/hooks';
+import { defaultFontFamily, primaryButtonBG } from 'src/themes/theme';
 
 const MySoMeExtNeeded = () => {
   return (
     <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-      <Typography variant="h3" display="block"><strong>Get started with the MYSOME Extension</strong></Typography>
-      <Typography variant="h6" display="block" gutterBottom sx={{marginTop: '8px', maxWidth: '65%', textAlign: 'center'}}>
+      <Typography variant="h3" fontFamily={defaultFontFamily} sx={{fontWeight: 500}} gutterBottom component="div">
+        Get started with the mysome.id Extension
+      </Typography>
+
+      <Typography variant="subtitle1" gutterBottom component="div" sx={{marginTop: '8px', maxWidth: '65%', textAlign: 'center'}}>
         Install the MYSOME Browser Extension to secure your Social Media profile.
         <br/>
         Supported by Chrome, Brave, Edge and Opera.
       </Typography>
+
       <Box sx={{display: 'flex', marginTop: '32px'}}>
         <Box sx={{
           display: 'flex',
@@ -66,7 +71,7 @@ const MySoMeExtNeeded = () => {
             display: 'flex',
             flex: 1,
             fontSize: '16px !important',
-            background: 'rgb(31,34,70)',
+            background: primaryButtonBG,
             color: 'white',
             minWidth: '100px',
             marginLeft: '8px',
@@ -74,6 +79,7 @@ const MySoMeExtNeeded = () => {
             padding: '6px 16px',
             paddingLeft: '16px',
             paddingRight: '16px',
+            fontFamily: defaultFontFamily,
           }} disableRipple onClick={() => {
             window.open(extensionUrl, '_blank');
           }}>
@@ -88,10 +94,14 @@ const MySoMeExtNeeded = () => {
 const CCDExtNeeded = () => {
   return (
     <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-      <Typography variant="h3" display="block"><strong>Install the Concordium Wallet</strong></Typography>
-      <Typography variant="h6" display="block" gutterBottom sx={{marginTop: '8px', maxWidth: '65%', textAlign: 'center'}}>
+      <Typography variant="h3" fontFamily={defaultFontFamily} sx={{fontWeight: 500}} gutterBottom component="div">
+        Install the Concordium Wallet
+      </Typography>
+
+      <Typography variant="subtitle1" gutterBottom component="div" sx={{textAlign: 'center'}}>
         Install the Concordium Wallet extension to provide your identity.
       </Typography>
+
       <Box sx={{marginTop: '24px', display: 'flex',  width: '100%', justifyContent: 'center'}}>
         <Box sx={{    
           display: 'flex', flex: 1, flexGrow: 1, widthg: '100%', justifyContent: 'center',
@@ -100,7 +110,7 @@ const CCDExtNeeded = () => {
             display: 'flex',
             flex: 1,
             fontSize: '16px !important',
-            background: 'rgb(31,34,70)',
+            background: primaryButtonBG,
             color: 'white',
             minWidth: '100px',
             marginLeft: '8px',
@@ -108,6 +118,7 @@ const CCDExtNeeded = () => {
             padding: '6px 16px',
             paddingLeft: '16px',
             paddingRight: '16px',
+            fontFamily: defaultFontFamily,
           }} disableRipple onClick={() => {
             window.open(ccdExtensionUrl, '_blank');
           }}>

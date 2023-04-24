@@ -37,10 +37,9 @@ import {ReactComponent as PlatformLinkedInSvg} from 'src/images/platform-linked-
 import {ReactComponent as QRSvg} from 'src/images/qr.svg';
 import { AppTheme } from "src/themes";
 import { makeStyles } from "@mui/styles";
+import { defaultFontFamily } from "src/themes/theme";
 
 const useStyles = makeStyles((theme: AppTheme) => {
-  // debugger;
-  // console.log(theme);
   return ({
     hashCell: theme => ({
       fontFamily: 'monospace',
@@ -294,7 +293,7 @@ export function MyProofs({}) {
         alignItems: 'center',
         padding: '24px',
       }}>
-        <Typography variant="h3" sx={{fontWeight: 400}} gutterBottom component="div">
+        <Typography variant="h3" fontFamily={defaultFontFamily} sx={{fontWeight: 500}} gutterBottom component="div">
           No Visible Proofs
         </Typography>
 
@@ -319,7 +318,7 @@ export function MyProofs({}) {
         width: "100%",
         padding: 0,
         display: 'flex',
-        alignItems: 'stretch'
+        alignItems: 'stretch',
       }}>
         <DataGrid
           disableColumnFilter

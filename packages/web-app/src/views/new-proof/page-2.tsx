@@ -57,21 +57,6 @@ export function parseNameAndCountry(profileInfo: ProfileInfo) {
     console.error(e);
   }
 
-  // The country string contains diffirent characters. 
-  /*const country = (capitalize(profileInfo?.country?.trim()) ?? '')
-                    .split(',')
-                    .map(x => x.trim())
-                    .reduce((acc: string[], x: string) => {
-                      return [
-                        ...acc,
-                        countries.find(y => y.name.toLowerCase() === x?.toLowerCase())?.code ??
-                          countries.find(y => y.code === x?.toLowerCase())?.code ??
-                            null
-                      ];
-                    }, [])
-                    .filter(x => !!x)
-                    .find( x => !!x );*/
-
   return {
     profileFirstName,
     profileSurname,
