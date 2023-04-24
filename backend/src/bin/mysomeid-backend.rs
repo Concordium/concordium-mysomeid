@@ -40,7 +40,6 @@ use concordium_base::{
 };
 use concordium_rust_sdk as concordium;
 use futures::{StreamExt, TryStreamExt};
-use image::GenericImageView;
 use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
@@ -54,6 +53,13 @@ use std::{
 use tokio::sync::mpsc::error::TrySendError;
 use tonic::transport::ClientTlsConfig;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse};
+
+/// Width to which background images are resized during pre-processing for
+/// QR-code reading. Should be original dimension used to generate image.
+const RESCALE_WIDTH: u32 = 1600;
+/// Height to which background images are resized during pre-processing for
+/// QR-code reading. Should be original dimension used to generate image.
+const RESCALE_HEIGHT: u32 = 400;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -646,9 +652,18 @@ async fn parse_qr(
             return Err(Error::InvalidRequest("Unreadable image.".into()));
         }
     };
-    let (width, height) = img.dimensions();
+    // rescale image to improve QR-code readability
+    let resized_img = img.resize_exact(
+        RESCALE_WIDTH,
+        RESCALE_HEIGHT,
+        image::imageops::FilterType::Triangle,
+    );
     let mut scanner = zbar_rust::ZBarImageScanner::new();
-    let results = match scanner.scan_y800(img.into_luma8().into_raw(), width, height) {
+    let results = match scanner.scan_y800(
+        resized_img.into_luma8().into_raw(),
+        RESCALE_WIDTH,
+        RESCALE_HEIGHT,
+    ) {
         Ok(results) => results,
         Err(e) => {
             tracing::debug!("Cannot scan image: {e}");
