@@ -340,7 +340,7 @@ const App = () => {
             paddingTop: themeSX.size.s4,
           }}>
             <Box sx={{display: 'flex'}}>
-              <Logo style={{width: '72px', height: '72px'}} />
+              <Logo />
             </Box>
 
             <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: themeSX.size.s1}}>
