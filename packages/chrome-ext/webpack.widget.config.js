@@ -43,7 +43,15 @@ module.exports = {
       {
         test: /\.svg$/i,
         issuer: /\.[jt]sx?$/,
-        use: ['@svgr/webpack'],
+        use: [{
+          loader: '@svgr/webpack',
+          options: {
+            svgoConfig: {
+              plugins: [
+              ]
+            }
+          }
+        }],
       },
       {
         test: /\.(woff|woff2|eot|ttf|otf)$/i,
