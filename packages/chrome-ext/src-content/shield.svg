@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="23px" height="23px" viewBox="0 0 23 23" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="shield" transform="translate(-1.000000, -1.000000)" fill="#D8D8D8">
-            <g id="Oval">
-                <ellipse cx="12.5" cy="12.5" rx="11.5" ry="11"></ellipse>
-            </g>
+<svg width="19px" height="23px" viewBox="0 0 19 23" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>verified-user-shield-check copy</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="verified-user-shield-check-copy" transform="translate(-3.000000, -1.000000)">
+            <polygon id="Path" points="0 0 25 0 25 25 0 25"></polygon>
+            <path d="M12.5,1.04166667 L3.125,5.20833333 L3.125,11.4583333 C3.125,17.2395833 7.125,22.6458333 12.5,23.9583333 C17.875,22.6458333 21.875,17.2395833 21.875,11.4583333 L21.875,5.20833333 L12.5,1.04166667 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
         </g>
     </g>
 </svg>
