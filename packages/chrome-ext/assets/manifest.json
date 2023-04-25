@@ -1,7 +1,7 @@
 {
-  "short_name": "MYSOME ID",
-  "name": "MYSOME ID",
-  "description": "Validate the authenticity of your social media profiles with the MYSOME ID browser extension.",
+  "short_name": "mysome.id",
+  "name": "mysome.id",
+  "description": "Validate the authenticity of your social media profiles with the mysome.id browser extension.",
   "version": "1.0",
   "manifest_version": 3,
 
@@ -27,11 +27,9 @@
 
   "permissions": [
     "tabs",
-    "webNavigation",
     "activeTab",
     "storage",
-    "unlimitedStorage",
-    "scripting"
+    "unlimitedStorage"
   ],
 
   "background": {

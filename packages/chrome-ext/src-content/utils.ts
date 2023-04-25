@@ -205,7 +205,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			return `http://localhost:3000/create/1?template=${data}`;
 		}
 
-		return `https://app.mysomeid.dev/create/1?template=${data}`;
+		return `https://app.testnet.mysomeid.dev/create/1?template=${data}`;
 	} 
 
 	throw new Error('Invalid platform : ' + platform);
@@ -232,7 +232,7 @@ export const detectPlatform = (): 'li' | 'test' | 'mysomeid' | null => {
 		return 'test';
 	}
 
-	if ( host.indexOf("localhost:3000") >= 0 || host.indexOf("app.mysomeid.dev") >= 0 || host.indexOf("app.mysome.id") >= 0 ) {
+	if ( host.indexOf("localhost:3000") >= 0 || host.indexOf("app.mysomeid.dev") >= 0 || host.indexOf("app.mysome.id") >= 0 || host.indexOf("app.testnet.mysome.id") >= 0 ) {
 		return 'mysomeid';
 	}
 
