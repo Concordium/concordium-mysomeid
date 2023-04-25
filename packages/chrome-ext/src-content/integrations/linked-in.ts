@@ -41,7 +41,7 @@ let state = {
 	pageHasBeenVerified: false,
 };
 let TEST = false;
-const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://api.testnet.mysome.id/`;
+const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.testnet.mysome.id`;
 const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.testnet.mysome.id/v1`;
 
 let welcomeShown: boolean | null = null;
@@ -571,7 +571,7 @@ const createHeartbeat = () => {
 					"!!profilePictureUrl": profilePictureUrl,
 					"!!profileUserId": profileUserId,
 					ret
-				});	*/		
+				});	*/
 				return ret;
 			},
 		});
