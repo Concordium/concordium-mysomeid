@@ -19,6 +19,10 @@ export const button2BGRGB = {
   b: 255,
 };
 
+export const errorText = 'rgb(242, 71, 38)';
+
+export const successText = 'rgb(21, 145, 19)';
+
 export const defaultFontFamily = 'Golos-UI, Inter, Arial';
 
 const themeValues = {

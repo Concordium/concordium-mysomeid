@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
     WizardNav
-} from 'src/views/new-proof/wizard-nav';
+} from 'src/views/desktop/new-proof/wizard-nav';
 import { LoadingIndicator } from "src/components";
 import { useNavigate } from "react-router-dom";
 import { useCCDContext } from "src/hooks/use-ccd-context";
@@ -170,7 +170,7 @@ export function ViewProof({id, noRevoke, decryptionKey}: {id: string, noRevoke?:
             setPlatform(data.platform);
             setUserData(data.userData);
             setProfileImageUrl(data.profileImageUrl);
-            setUri([proofBaseUri, 'v', id, decryptionKey].join('/'));
+            setUri([proofBaseUri, 'v', id, encodeURIComponent(decryptionKey)].join('/'));
             setProfilePageUrl(linkedInProfileBaseUrl + data.userData);
             setLoadingProof(false);
         }).catch(err => {

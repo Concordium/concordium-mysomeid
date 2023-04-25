@@ -10,7 +10,7 @@ import {
   Box,
 } from '@mui/material';
 
-export function AspectBox({onRef, id, sx, aspect, onClick, onWidth, children}: {onRef?: ((ref: any) => void), id: string, sx: any, aspect: number, onClick?: (e: any) => void, onWidth?: (v: number) => void, children?: any,}) {
+export function AspectBox({onRef, id, sx, aspect, onClick, onWidth, children}: {onRef?: ((ref: any) => void), id: string, sx?: any, aspect: number, onClick?: (e: any) => void, onWidth?: (v: number) => void, children?: any,}) {
   const ref = useRef(null);
   const [wh, setWH] = useState<{w: number, h: number} | null>(null);
 

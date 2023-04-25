@@ -18,6 +18,8 @@ export const ccdExtensionUrl = process.env.REACT_APP_CCD_EXTENTION_URL ?? "https
 
 export const proofBaseUri = process.env.REACT_APP_BASE_URL ?? "https://app.mysomeid.dev";
 
+export const proofViewUrlBase = [proofBaseUri, 'v'].join('/');
+
 export const appleAppstoreUrl = process.env.REACT_APP_STORE_URL ?? 'itms-apps://itunes.apple.com/app/apple-store/id375380948?mt=8';
 
 export const googlePlayUrl = process.env.REACT_APP_PLAY_URL ?? `https://play.google.com/store/apps/details?id=org.kidinov.unixadmin`;
