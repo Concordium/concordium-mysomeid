@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="26px" height="26px" viewBox="0 0 26 26" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>ID</title>
+    <desc>Created with Sketch.</desc>
+    <g id="ID" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Rectangle" stroke="#FFFFFF" stroke-width="3" x="1.5" y="1.5" width="23" height="23" rx="5"></rect>
+        <text font-family="Helvetica-Bold, Helvetica" font-size="14" font-weight="bold" letter-spacing="1.12" fill="#FFFFFF">
+            <tspan x="6" y="18">ID</tspan>
+        </text>
+    </g>
+</svg>

@@ -13,23 +13,26 @@ import App from "./app";
 import store from "./store";
 import { CCDContextProvider } from "./hooks";
 import { ExtensionProvider } from './hooks/use-extension';
+import { APIContextProvider } from "./hooks/use-api";
 
 export const Root: React.FC = () => {
   return (
     <Provider store={store}>
     <ExtensionProvider>
       <CCDContextProvider>
-        <BrowserRouter>
-          <LastLocationProvider>
-            <Outlet />
-            <MUI5ThemeProvider theme={appTheme}>
-            <LegacyThemeProvider theme={appTheme}>
-              <CssBaseline />
-              <App />
-            </LegacyThemeProvider>
-            </MUI5ThemeProvider>
-          </LastLocationProvider>
-        </BrowserRouter>
+        <APIContextProvider>
+          <BrowserRouter>
+            <LastLocationProvider>
+              <Outlet />
+              <MUI5ThemeProvider theme={appTheme}>
+              <LegacyThemeProvider theme={appTheme}>
+                <CssBaseline />
+                <App />
+              </LegacyThemeProvider>
+              </MUI5ThemeProvider>
+            </LastLocationProvider>
+          </BrowserRouter>
+        </APIContextProvider>
       </CCDContextProvider>
     </ExtensionProvider>
     </Provider>

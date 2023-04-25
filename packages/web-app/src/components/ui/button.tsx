@@ -271,7 +271,7 @@ export const PrimaryButton = props => <CustomButton {...{
       ...tmp,
       ...addOutsideProps(theme, props.sx),
     };
-
+    
     return tmp2;
   },
   template: "primary",
