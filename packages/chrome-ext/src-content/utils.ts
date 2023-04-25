@@ -232,7 +232,7 @@ export const detectPlatform = (): 'li' | 'test' | 'mysomeid' | null => {
 		return 'test';
 	}
 
-	if ( host.indexOf("localhost:3000") >= 0 || host.indexOf("app.mysomeid.dev") >= 0 || host.indexOf("app.mysome.id") >= 0 ) {
+	if ( host.indexOf("localhost:3000") >= 0 || host.indexOf("app.mysomeid.dev") >= 0 || host.indexOf("app.mysome.id") >= 0 || host.indexOf("app.testnet.mysome.id") >= 0 ) {
 		return 'mysomeid';
 	}
 
