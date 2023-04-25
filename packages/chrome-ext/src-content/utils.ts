@@ -205,7 +205,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			return `http://localhost:3000/create/1?template=${data}`;
 		}
 
-		return `https://app.mysomeid.dev/create/1?template=${data}`;
+		return `https://app.testnet.mysomeid.dev/create/1?template=${data}`;
 	} 
 
 	throw new Error('Invalid platform : ' + platform);

@@ -989,6 +989,7 @@ const install = async () => {
 		if ( shield && shield?.isLoading() ) {
 			return;
 		}
+
 		// Resolve the params that we want to open the popup
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
 
@@ -1000,14 +1001,14 @@ const install = async () => {
 			proofUrl = state.proofUrl;
 		}
 
-		// This is a hack to show your proof instead of "my proof" instead of just the proof page.
-		if ( trackOnOwnProfileOrFeed.get() ) {
-			proofUrl = proofUrl.replace('/v/', '/my-proof/');
+		if (!proofUrl) {
+			console.error('No proof url');
+			return;
 		}
 
-		if (!proofUrl) {
-			console.log('No proof url');			
-		}
+		const proofId = proofUrl.split('/')[4];
+		const proofKey = proofUrl.split('/')[5];
+		proofUrl = proofId && proofKey ? ['https://app.testnet.mysome.id', trackOnOwnProfileOrFeed.get() ? 'my-proof' : 'v', proofId, proofKey ].join('/') : proofUrl;
 
 		const onProfilePage = trackOnProfileUrl.get();
 		const onOwnProfileOrFeed = trackOnOwnProfileOrFeed.get();
