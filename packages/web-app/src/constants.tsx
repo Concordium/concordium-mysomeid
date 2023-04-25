@@ -8,7 +8,7 @@ export function serviceUrl(route: string, params?: Record<string, string | numbe
                         }, '');
         }
     }
-    const baseUrl = process.env.REACT_APP_SERVICE_BASE ?? 'http://0.0.0.0:8080/v1';
+    const baseUrl = 'https://api.testnet.mysome.id/v1';
     return  baseUrl + route + (params ? '?' + params : '');
 }
 
