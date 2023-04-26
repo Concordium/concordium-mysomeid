@@ -20,6 +20,7 @@ import { Button } from 'src/components/ui/button';
 import defaultBackground from 'src/images/background-default.png';
 import DownloadIcon from '@mui/icons-material/Download';
 import { proofBaseUri, linkedInProfileBaseUrl } from "src/constants";
+import { defaultProofColor } from "src/themes/theme";
 
 export type Command = {
     subscribe: (fn: () => void) => () => void;
@@ -110,7 +111,7 @@ export const BackgroundEditorView = ({uri, id, showLoading}: {uri: string, id: s
             <input ref={imageInputRef} accept="image/*" type="file" onChange={onImageChanged} style={{display: 'none'}}/>
 
             <Box sx={{marginTop: '24px', display: 'flex', flexDirection: 'column', width: lt800 ? '96%' : '80%'}}>
-                <BackgroundEditor {...{saveAndDl, getPic: null, id, bgImg, uri, widgetColor: color[selColor] ?? 'rgb(205, 90, 109)'}} />
+                <BackgroundEditor {...{saveAndDl, getPic: null, id, bgImg, uri, widgetColor: defaultProofColor}} />
                 <Box sx={{display: 'flex', flexDirection: lt620 ? 'column' : 'row', marginBottom: !lt620 ? '24px' : '16px', marginTop: '8px'}}>
                     <Box sx={{display: 'flex', flexDirection: 'row', height: "36px", alignItems: 'center', paddingTop: '16px'}}>
                         <Button variant="weak" sx={{minWidth: '32px', marginRight: '8px'}} onClick={onDownload}><DownloadIcon /></Button>
@@ -118,9 +119,9 @@ export const BackgroundEditorView = ({uri, id, showLoading}: {uri: string, id: s
                         <Button variant="weak" sx={{minWidth: '90px'}} onClick={setDefaultBg}>Default</Button>
                     </Box>
                     <Box sx={{display: 'flex', flex: 1, flexDirection: 'row', height: "36px", alignItems: 'center', paddingTop: '16px'}}>
-                        {color.map((color, index) => (
+                        {/*color.map((color, index) => (
                             <Box id={"col-" + index} key={`col-${index}`} sx={{cursor: 'pointer', marginLeft: '8px', marginTop: '2px', minWidth: '18px', width: '18px', height: '18px', background: color, border: selColor === index ? '1px solid black' : color === 'white' ? '1px solid #b0b0b0' : undefined, borderRadius: '24px'}} onClick={onColorClicked} />
-                        ))}
+                        ))*/}
                         {!lt800 ? <Typography height="36px" variant="h6"  width="100%" textAlign="right" marginRight="8px" fontSize="0.5rem" display="flex" alignItems="center" justifyContent="right">Drag the proof to move it to a diffirent location</Typography>: undefined}
                     </Box>
                 </Box>

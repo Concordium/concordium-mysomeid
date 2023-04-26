@@ -35,9 +35,7 @@ import {
   useExtension
 } from 'src/hooks/use-extension';
 import formName, {selector} from './form-props';
-import QRCode from "react-qr-code";
 import { error } from 'src/slices/messages-slice';
-import * as htmlToImage from 'html-to-image';
 import {
   proofBaseUri,
 } from 'src/constants';
@@ -54,6 +52,7 @@ import { Button } from 'src/components/ui/button';
 import { Command, createCommand } from '../view-proof/view-proof';
 
 import {BackgroundEditor, downloadBase64File} from './background-editor';
+import { defaultProofColor } from 'src/themes/theme';
 
 export {BackgroundEditor};
 
@@ -273,20 +272,20 @@ export default connect(state => ({
   const [manualBg, setManualBg] = useState<string | null>(null);
   const [bgImg, setBgImg] = useState(null);
 
-  const [selColor, setSelColor] = useState(0);
+  // const [selColor, setSelColor] = useState(0);
 
-  const color = [
+  /* const color = [
     'rgb(205, 90, 109)',
     '#79d179',
     '#54a9c5',
     '#e4b5e7',
     'grey',
     // 'white',
-  ];
+  ]; */
 
-  const onColorClicked = useCallback((event: any) => {
+  /* const onColorClicked = useCallback((event: any) => {
     setSelColor(Number.parseInt(event.target.id.split('-')[1]));
-  }, []);
+  }, []); */
   
   useEffect(() => {
     if ( manualBg ) {
@@ -352,12 +351,12 @@ export default connect(state => ({
                 <Typography variant="h6" display="block">Next, create and embed the Proof in your LinkedIn profile.  Follow the guide to update your LinkedIn background picture.</Typography>
 
                 <Box sx={{marginTop: '24px', display: 'flex', flexDirection: 'column', width: '90%'}}>
-                  <BackgroundEditor {...{saveAndDl: null, getPic, bgImg, id: proofData?.id ?? '', uri, widgetColor: color[selColor] ?? 'rgb(205, 90, 109)'}} />
+                  <BackgroundEditor {...{saveAndDl: null, getPic, bgImg, id: proofData?.id ?? '', uri, widgetColor: defaultProofColor}} />
                   <Box sx={{display: 'flex', flexDirection: 'row', height: "36px", alignItems: 'center', paddingTop: '16px'}}>
                     <Button variant="weak" sx={{minWidth: '168px'}} onClick={changeBackground}>Change background</Button>
-                    {color.map((color, index) => {
+                    {/*color.map((color, index) => {
                       return <Box id={"col-" + index} key={`col-${index}`} sx={{cursor: 'pointer', marginLeft: '8px', marginTop: '2px', minWidth: '18px', width: '18px', height: '18px', background: color, border: selColor === index ? '1px solid black' : color === 'white' ? '1px solid #b0b0b0' : undefined, borderRadius: '24px'}} onClick={onColorClicked} />
-                    })}
+                    })*/}
                     <Typography height="36px" variant="h6" display="block" width="100%" textAlign="right">Drag the proof to move it to a diffirent location</Typography>
                     <input ref={imageInputRef} accept="image/*" type="file" onChange={onImageChanged} style={{display: 'none'}}/>
                   </Box>

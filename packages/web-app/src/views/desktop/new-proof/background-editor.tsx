@@ -1,57 +1,14 @@
 import {useState, useCallback, useEffect, useRef} from 'react';
 import {
-  useNavigate
-} from 'react-router-dom';
-import {
-  connect,
-  useDispatch,
-} from 'react-redux';
-import {
-  reduxForm,
-} from 'redux-form';
-import validate from './validate';
-import {
   Typography,
   Box,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
-import {
-  useCCDContext,
-} from 'src/hooks';
-import {
-  WizardNav
-} from './wizard-nav';
-import {
-  Certificate
-} from './certificate';
-import defaultBackground from 'src/images/background-default.png';
 import logoSvg from 'src/images/logo-white.svg';
-import {
-  useSearchParams
-} from 'src/hooks/use-search-params';
-import toImg from 'react-svg-to-image';
-import {
-  useExtension
-} from 'src/hooks/use-extension';
-import formName, {selector} from './form-props';
 import QRCode from "react-qr-code";
-import { error } from 'src/slices/messages-slice';
 import * as htmlToImage from 'html-to-image';
-import {
-  proofBaseUri,
-} from 'src/constants';
-import {
-  TrackBox
-} from './track-box';
-import {
-  WizardLoading
-} from './wizard-loading';
 import {
   AspectBox
 } from './aspect-box';
-import { Button } from 'src/components/ui/button';
-import { Command, createCommand } from '../view-proof/view-proof';
 
 function px_pct_s(v: number, d: number): string {
   return ((v / d) * 100).toFixed(2) + '%';
