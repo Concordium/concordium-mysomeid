@@ -124,6 +124,7 @@ export default connect(state => ({
 
   useEffect(() => {
     if (template && !hasSetValuesFromTemplate) {
+      debugger;
       if (!template.userId) {
         console.error("Error template contained no userId");
       }

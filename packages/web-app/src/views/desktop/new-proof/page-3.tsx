@@ -49,6 +49,7 @@ import formName, {selector} from './form-props';
 import { TrackBox } from './track-box';
 import { parseNameAndCountry } from './page-2';
 import { error } from 'src/slices';
+import { fuzzyMatchNames } from 'src/utils';
 
 export default connect(state => ({
   ...(selector(state,
@@ -166,17 +167,13 @@ export default connect(state => ({
 
   const onlyUrl = profileInfo?.profileInfo?.onlyUrl ?? true;
 
-  const idAndProfileMatches = true; /*
-    profileFirstName?.toLowerCase()?.trim() === proofFirstName?.toLowerCase()?.trim() &&
-      profileSurname?.toLowerCase()?.trim() === proofSurname?.toLowerCase()?.trim() &&
-      proofCountry?.toLowerCase()?.trim() === proofCountry?.toLowerCase()?.trim();*/
-
-  // console.log('state ', state);
-  const firstNameMatch = (proofFirstName ?? '').trim().toLowerCase() === (profileFirstName ?? '').trim().toLowerCase();
-  const lastNameMatch = (proofSurname ?? '').trim().toLowerCase() === (profileSurname ?? '').trim().toLowerCase();
-  const nameMatch = onlyUrl || (firstNameMatch && lastNameMatch);
-
-  const nextDisabled = state === 'show-connect' || creating || !nameMatch; // || (location.href.indexOf('http://localhost:3000/') === -1 && !idAndProfileMatches);
+  const {
+    match: nameMatch,
+  } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname );
+  const firstNameMatch = nameMatch;
+  const lastNameMatch = nameMatch;
+ 
+  const nextDisabled = state === 'show-connect' || creating || !nameMatch;
 
   const onNext = useCallback(() => {
     if ( proofCreated ) {
@@ -312,11 +309,11 @@ export default connect(state => ({
                         <Box sx={{display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px'}}>
                           <Box sx={{display: 'flex'}}>
                             <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
-                            <Typography variant="h6" display="block" marginLeft="auto">{proofFirstName} { !onlyUrl ? '✅' : undefined}</Typography>
+                            <Typography variant="h6" display="block" marginLeft="auto">{proofFirstName}</Typography>
                           </Box>
                           <Box sx={{display: 'flex'}}>
                             <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
-                            <Typography variant="h6" display="block" marginLeft="auto">{proofSurname}  { !onlyUrl ? '✅' : undefined}</Typography>
+                            <Typography variant="h6" display="block" marginLeft="auto">{proofSurname}</Typography>
                           </Box>
                           {/*<Box sx={{display: 'flex'}}>
                             <Typography variant="h6" display="block" marginRight="12px">Country</Typography>

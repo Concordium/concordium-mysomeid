@@ -22,6 +22,7 @@ import Page4 from './page-4';
 import {
   useSearchParams
 } from "src/hooks/use-search-params";
+import { toBuffer } from "@concordium/web-sdk";
 
 const steps = (template: string) => [
   'Provide Info',
@@ -59,18 +60,23 @@ function Content({templateData, onSubmit, step, setGotoStep}) {
 
   const params = useSearchParams();
   const [template, setTemplate] = useState<any>(null);
-  
+
+  // Capture the template argument if present in arguments.
   useEffect(() => {
     if ( !params ) {
       return;
     }
     try {
-      const obj = params.get("template") ? JSON.parse(atob(decodeURIComponent(params.get("template")))) : null;
+      const base64Template = decodeURIComponent(params.get("template"));
+      const stringTemplate = toBuffer(base64Template, 'base64').toString('utf8');
+      const obj = params.get("template") ? JSON.parse(stringTemplate) : null;
       if ( obj ) {
         setTemplate(obj);
+      } else {
+        console.error("Failed to decode template");
       }
     } catch(e) {
-      console.error(e);
+      console.error("Failed to decode template", e);
       setTemplate(null);
     }
   }, [params]);
