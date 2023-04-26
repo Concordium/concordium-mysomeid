@@ -190,7 +190,6 @@ export default connect(state => ({
     });
   }, [props, userData, profileFirstName, profileSurname, platform, account, connectWithIDLoading]);
 
-
   return (
   <form onSubmit={nextPage}>
     <InstallExtensions>
