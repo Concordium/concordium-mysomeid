@@ -230,7 +230,7 @@ export const Certificate = ({
                 <Typography sx={{maxWidth: '100%', fontSize: '16px'}}>
                   Finalize the verification of your profile by connecting your Proof to LinkedIn.
                   <br/><br/>
-                  This step is needed to let other people to see that your profile is verified by scanning the proof with their mobile phone or using the MYSOME extension.
+                  This step is necessary to allow others to see that your profile is verified. They can do this by either scanning the proof with their mobile phone or using the MYSOME extension.
                   <br/><br/>
                   {'To do this you need to download the background picture and upload it to your LinkedIn profile.'}
                 </Typography>
