@@ -202,7 +202,6 @@ export const Certificate = ({
                     height: "44px",
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: 'contain',
-                    transform: 'scaleX(1.1)',
                     marginRight: '8px',
                   }}/>
                   <Typography sx={{fontSize: '16px', textAlign: 'center', color: 'white'}}>VERIFIED BY<br/>MYSOMEID</Typography>

@@ -236,7 +236,6 @@ export function BackgroundEditor({saveAndDl, getPic, id, bgImg, uri, widgetColor
                 height: `${Math.round(23 * factor * scale)}px`,
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: 'contain',
-                transform: 'scaleX(1.1)',
                 marginRight: `${Math.round(8 * factor * scale)}px`,
                 marginLeft: `${Math.round(-2 * factor * scale)}px`,
               }}/>
