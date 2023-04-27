@@ -1,3 +1,4 @@
+import {default as pkg} from "../package.json";
 import "./style.scss";
 import {
   useCallback,
@@ -8,7 +9,7 @@ import {
   Routes,
 } from "react-router-dom";
 import {
-  Box,
+  Box, Typography,
 } from "@mui/material";
 import {
   Messages,
@@ -63,6 +64,7 @@ function App() {
   return (
     <>
       <Messages />
+      <Typography sx={{position: 'fixed', left: '8px', bottom: '6px', textAlign: 'left', fontSize: '9px', fontFamily: 'sans-serif', color: '#777777', userSelect: 'none'}}>{pkg.version}</Typography>
       <Box component="div" sx={{flex: 1}}>
       {!isMobile ?
         <>
