@@ -1,3 +1,0 @@
-yarn run v1.22.19
-$ cargo run -- --node http://146.190.94.164:20001 --statement "$(<test-data/statement.json)" --address "$(<test-data/address.txt)" --proof "$(<test-data/proof.json)" --challenge "$(<test-data/proof.json)" 
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
