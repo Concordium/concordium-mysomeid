@@ -45,14 +45,9 @@ import {
 import {
   WizardLoading
 } from './wizard-loading';
-import {
-  AspectBox
-} from './aspect-box';
-import { Button } from 'src/components/ui/button';
-import { Command, createCommand } from '../view-proof/view-proof';
-
 import {BackgroundEditor, downloadBase64File} from './background-editor';
 import { defaultProofColor } from 'src/themes/theme';
+import { Command, createCommand } from '../view-proof/view-proof';
 
 export {BackgroundEditor};
 
@@ -351,15 +346,13 @@ export default connect(state => ({
                 <Typography variant="h6" display="block">Next, create and embed the Proof in your LinkedIn profile.  Follow the guide to update your LinkedIn background picture.</Typography>
 
                 <Box sx={{marginTop: '24px', display: 'flex', flexDirection: 'column', width: '90%'}}>
-                  <BackgroundEditor {...{saveAndDl: null, getPic, bgImg, id: proofData?.id ?? '', uri, widgetColor: defaultProofColor}} />
-                  <Box sx={{display: 'flex', flexDirection: 'row', height: "36px", alignItems: 'center', paddingTop: '16px'}}>
-                    <Button variant="weak" sx={{minWidth: '168px'}} onClick={changeBackground}>Change background</Button>
-                    {/*color.map((color, index) => {
-                      return <Box id={"col-" + index} key={`col-${index}`} sx={{cursor: 'pointer', marginLeft: '8px', marginTop: '2px', minWidth: '18px', width: '18px', height: '18px', background: color, border: selColor === index ? '1px solid black' : color === 'white' ? '1px solid #b0b0b0' : undefined, borderRadius: '24px'}} onClick={onColorClicked} />
-                    })*/}
-                    <Typography height="36px" variant="h6" display="block" width="100%" textAlign="right">Drag the proof to move it to a diffirent location</Typography>
-                    <input ref={imageInputRef} accept="image/*" type="file" onChange={onImageChanged} style={{display: 'none'}}/>
-                  </Box>
+                  <BackgroundEditor {...{
+                    getPic,
+                    bgImg,
+                    id: proofData?.id ?? '',
+                    uri,
+                    widgetColor: defaultProofColor,
+                  }} />
                 </Box>
 
             </Box>
