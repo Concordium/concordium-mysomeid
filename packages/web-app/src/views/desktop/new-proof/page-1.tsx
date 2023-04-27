@@ -19,7 +19,6 @@ import {
   reset,
 } from 'redux-form';
 import {
-  Button,
   WizardRow
 } from 'src/components';
 import {
