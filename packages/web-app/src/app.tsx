@@ -73,6 +73,7 @@ function App() {
             <Route path="/home" element={<>
               <HomeView />
             </>} />
+            <Route path="/start" element={<Navigate to="/create/1"/>} />
             <Route path="/create" element={<Navigate to="/create/1" />} />
             <Route path="/create/*" element={
               <NewProofView />
