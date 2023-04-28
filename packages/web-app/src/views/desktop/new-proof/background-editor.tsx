@@ -351,6 +351,20 @@ export function BackgroundEditor({ bgImg: _bgImg, getPic, id, uri, widgetColor }
 
   const [saveAndDl] = useState<Command>(createCommand());
 
+  // const [selColor, setSelColor] = useState(0);
+  /* const color = [
+    'rgb(205, 90, 109)',
+    '#79d179',
+    '#54a9c5',
+    '#e4b5e7',
+    'grey',
+    // 'white',
+  ]; */
+
+  /* const onColorClicked = useCallback((event: any) => {
+    setSelColor(Number.parseInt(event.target.id.split('-')[1]));
+  }, []); */
+
   useEffect(() => {
     if (!manualBg) {
       return;
