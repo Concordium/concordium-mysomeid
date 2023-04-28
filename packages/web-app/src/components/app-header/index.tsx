@@ -20,8 +20,11 @@ import CCDLogo from 'src/images/ccd.png';
 import MySoMeIDLogo1 from 'src/images/logo-white.svg';
 import MySoMeIDLogo2 from 'src/images/logo-grey.svg';
 import { Link } from 'react-router-dom';
-import { defaultFontFamily } from 'src/themes/theme';
 import { useCCDContext } from 'src/hooks';
+import TitleWhitePng from 'src/images/title-white.png';
+import TitleBlackPng from 'src/images/title-black.png';
+import PoweredByWhitePng from 'src/images/powered-by-white.png'
+import PoweredByBlackPng from 'src/images/powered-by-black.png'
 
 const len = '0.2s';
 const curve = 'cubic-bezier(0, 0, 0.2, 1)';
@@ -60,7 +63,6 @@ const useStyles = makeStyles((theme: Theme) => {
       height: `${headerHeight}px`,
       backgroundColor: '#f9f9f9',
       transition: transitionProps,
-      // boxShadow: '0px 4px 10px rgb(53 53 53 / 16%)',
     },
     logo: {
     },
@@ -69,7 +71,7 @@ const useStyles = makeStyles((theme: Theme) => {
       marginTop: '5px', 
     },
     logoLarger: {
-      transform: 'scale(1.1)',      
+      transform: 'scale(1.1)',
     },
     buttonSmaller: {
       backgroundColor: '#bababa !important',
@@ -134,11 +136,14 @@ export function AppHeader({isConnected, isInstalled, onToggleConnect}: {isConnec
   const theme = useTheme();
 
   const md = useMediaQuery(theme.breakpoints.down('md'));
+  
   const classes = useStyles();
-  const [scrollTarget, setScrollTarget] = useState(undefined)
+  const [scrollTarget, setScrollTarget] = useState(undefined);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [walletWidgetOpen, setWalletWidgetOpen] = useState(false);
+
+  const lt700 = useMediaQuery(theme.breakpoints.down(700));
 
   const shrink = useScrollTrigger({
     target: undefined,
@@ -176,23 +181,30 @@ export function AppHeader({isConnected, isInstalled, onToggleConnect}: {isConnec
                 backgroundSize: 'contain !important',
                 backgroundRepeat: 'no-repeat !important',
                 background: `url(${!shrink ? MySoMeIDLogo1 : MySoMeIDLogo2})`,
-                transform: 'scaleX(1.07)',
               }} />
-              <Typography sx={{
-                color: !shrink ? 'white' : '#4D4D4D',
-                letterSpacing: '2.56px',
-                lineHeight: '37px',
-                fontSize: '24px',
-                marginTop: '-8px',
-                fontFamily: defaultFontFamily,
-                fontWeight: 400,
-                marginLeft: 2,
-              }}>MYSOMEID</Typography>
+              <Box id="title" sx={{
+                background: `url(${!shrink ? TitleWhitePng : TitleBlackPng})`,
+                marginTop: !shrink ? '10px' : '0px',
+                marginLeft: 1,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'contain',
+                width: '155px',
+                height: '46px',
+              }} />
 
+              <Box id="powered-by-concordium" sx={{
+                background: `url(${!shrink ? PoweredByWhitePng : PoweredByBlackPng})`,
+                marginTop: !shrink ? '-9px' : '9px',
+                marginLeft: 1,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'contain',
+                width: '140px',
+                height: '30px',
+              }} />
             </Box>
           </Link>
 
-          {isInstalled !== null && isInstalled && isConnected ? <Box sx={{ display: { xs: 'block', md: 'block' } }}>
+          {isInstalled !== null && isInstalled && isConnected && !lt700 ? <Box sx={{ display: { xs: 'block', md: 'block' } }}>
             <ConnectedStatusBadge />
           </Box> : undefined}
         </Box>

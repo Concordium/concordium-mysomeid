@@ -4,7 +4,6 @@ export {default as Messages} from './messages/messages';
 export * from './panel/panel';
 export * from './panel-title/panel-title';
 export * from './summary';
-export * from './top-bar/top-bar';
 export * from './ui';
 export * from './view-container';
 export * from './wizard';
