@@ -1,6 +1,0 @@
-[submodule "concordium-base"]
-	path = concordium-base
-	url = ../concordium-base.git
-[submodule "concordium-grpc-api"]
-	path = concordium-grpc-api
-	url = ../concordium-grpc-api.git
