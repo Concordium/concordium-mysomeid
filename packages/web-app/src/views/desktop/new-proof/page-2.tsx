@@ -14,7 +14,7 @@ import {
 import {
   WizardNav
 } from './wizard-nav';
-import formName, {selector} from './form-props';
+import formName, { selector } from './form-props';
 import { useCallback, useEffect, useState } from 'react';
 import { useCCDContext } from 'src/hooks';
 import { error } from 'src/slices/messages-slice';
@@ -26,8 +26,8 @@ import { TrackBox } from './track-box';
 import { IdProofOutput } from '@concordium/common-sdk';
 import { InstallExtensions } from './install-extensions';
 
-function capitalize (s: string) {
-  if ( !s?.length ) {
+function capitalize(s: string) {
+  if (!s?.length) {
     return s;
   }
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -42,18 +42,18 @@ export function parseNameAndCountry(profileInfo: ProfileInfo) {
   let profileFirstName = '';
   let profileSurname = '';
   try {
-    const profileNameComponents = (profileInfo?.name?.split(' ') ?? []).filter( x => !!x.trim() );
+    const profileNameComponents = (profileInfo?.name?.split(' ') ?? []).filter(x => !!x.trim());
     profileFirstName = profileNameComponents[0] ?? '';
     profileFirstName = capitalize(profileFirstName.toLowerCase());
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
   try {
-    const profileNameComponents = (profileInfo?.name?.split(' ') ?? []).filter( x => !!x.trim() );
+    const profileNameComponents = (profileInfo?.name?.split(' ') ?? []).filter(x => !!x.trim());
     profileSurname = profileNameComponents[profileNameComponents.length - 1] ?? '';
     profileSurname = capitalize(profileSurname.toLowerCase());
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
@@ -90,18 +90,18 @@ export default connect(state => ({
     statementInfo,
     template,
   } = props;
-  
+
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
-  
+
   const [
     connectWithIDLoading,
     setConnectWithIDLoading
   ] = useState(false);
 
   useEffect(() => {
-    if ( !userData || !platform || !profileInfo ) {
+    if (!userData || !platform || !profileInfo) {
       console.log("no user data or platform or profileInfo");
       navigate('/create/1?previousFailed');
       return;
@@ -115,13 +115,32 @@ export default connect(state => ({
     account,
   } = useCCDContext();
 
-  const nextDisabled = !userData || !platform || pristine || !valid || !statementInfo || connectWithIDLoading;
+  const nextDisabled = !userData || !platform || pristine || !valid || connectWithIDLoading;
+
+  const nextLabel = !statementInfo ?
+    !isConnected ?
+      'Connect Concordium Wallet'
+      :
+      'Connect With Your Concordium ID'
+    :
+    'Next';
+
+  /*
+    <Box sx={{marginTop: '16px' }}>
+    <Button variant="contained" sx={{
+      minWidth: '100px',
+      marginLeft: '8px',
+      padding: '6px 16px',
+      opacity: statementInfo ? 0.1 : 1,
+    }} disabled={statementInfo} disableRipple onClick={authorize}>{!isConnected ? 'Connect Concordium Wallet' : 'Connect With Your Concordium ID'}</Button>
+    </Box>
+  */
 
   const prevDisabled = connectWithIDLoading;
 
   const profileImageUrl = profileInfo?.profileInfo?.profileImage;
 
-  console.log("profileImageUrl ", profileImageUrl );
+  // console.log("profileImageUrl ", profileImageUrl);
 
   const {
     profileFirstName,
@@ -129,19 +148,23 @@ export default connect(state => ({
   } = parseNameAndCountry(profileInfo?.profileInfo);
 
   const onlyUrl = profileInfo?.profileInfo?.onlyUrl ?? true; // when this is returned the paltform cannto give us a name,
-  console.log("profileInfo ", profileInfo );
+  // console.log("profileInfo ", profileInfo);
 
   const cancel = useCallback(() => {
     prevPage();
   }, []);
 
-  const authorize = useCallback(() => {
-    if ( connectWithIDLoading ) {
+  const onNext = useCallback(() => {
+    if ( nextDisabled ) {
+      console.error('next disabled.');
+    }
+
+    if (connectWithIDLoading) {
       console.error("Already loading - ignored");
       return;
     }
 
-    if ( !isConnected )  {
+    if (!isConnected) {
       connect();
       return;
     }
@@ -154,35 +177,32 @@ export default connect(state => ({
       platform,
       userData,
       account,
-    }).then((retval: {challenge: string, proof: IdProofOutput}) => {
+    }).then((retval: { challenge: string, proof: IdProofOutput }) => {
       const {
         challenge,
         proof
       } = retval ?? {};
       console.log(JSON.stringify(proof, null, ' '));
-      if ( challenge && proof ) {
-        props.change('statementInfo', proof );
+      if (challenge && proof) {
+        props.change('statementInfo', proof);
         props.change('proof', proof);
         props.change('challenge', challenge);
-        setConnectWithIDLoading(false);
-        nextPage();
+        window.setTimeout(() => nextPage()); // Allow promise to finalize before state is destroyed.
       } else {
-        setConnectWithIDLoading(false);
         const startMsg = 'Failed to Authorise: ';
         let errMsg = 'Unknown error';
-        if (!challenge ) {
+        if (!challenge) {
           errMsg = 'No challenge';
-        } else if ( !proof ) {
+        } else if (!proof) {
           errMsg = 'No proof created in wallet';
         } else {
           errMsg = 'Unkown error';
         }
         console.error('Error: ' + errMsg);
-        dispatch(error(`${startMsg} Unknown error`));  
-    }
+        dispatch(error(`${startMsg} Unknown error`));
+      }
     }).catch(e => {
       console.error('Authorise failed', e);
-      setConnectWithIDLoading(false);
       dispatch(error("Failed to Authorise: " + e.message));
     }).finally(() => {
       console.log('Authorise is done done');
@@ -190,81 +210,78 @@ export default connect(state => ({
     });
   }, [props, userData, profileFirstName, profileSurname, platform, account, connectWithIDLoading]);
 
-
   return (
-  <form onSubmit={nextPage}>
-    <InstallExtensions>
-      <TrackBox id="container-box" sx={{display: 'flex', flexDirection: 'column', }}>
-        {({width, height}: {width: number, height: number}) => (
-          <>
-            <Box id="layout-column" sx={{display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '400px'}}>
+    <form>
+      <InstallExtensions>
+        <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
+          {({ width, height }: { width: number, height: number }) => (
+            <>
+              <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '325px' }}>
 
-              <Box id="layout-centered" sx={{display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', height: '100%', position: 'absolute', opacity: connectWithIDLoading ? 0.1 : 1 }}>
-                <Box id="statement-info" sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-                  <Typography variant="h3" display="block" sx={{fontWeight: 500}}>Your Profile to Secure</Typography>
-                  <Typography variant="h6" display="block">{userData}</Typography>
-                  <Box sx={{
-                    width: '140px',
-                    height: '140px',
-                    background: `url(${profileImageUrl})`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: 'cover',
-                    borderRadius: '1111px',
-                    border: '1px solid',
-                    marginTop: '16px'
-                  }} />
-                  <Box sx={{display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px'}}>
-                    {
-                      !onlyUrl ? 
-                      <>
-                        <Box sx={{display: 'flex'}}>
-                          <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
-                          <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName}</Typography>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
-                          <Typography variant="h6" display="block" marginLeft="auto">{profileSurname}</Typography>
-                        </Box>
-                      </> : 
-                      <>
-                        <Box sx={{display: 'flex'}}>
-                          <Typography variant="h6" display="block" marginRight="12px">Platform</Typography>
-                          <Typography variant="h6" display="block" marginLeft="auto">LinkedIn</Typography>
-                        </Box>
-                        <Box sx={{display: 'flex'}}>
-                          <Typography variant="h6" display="block" marginRight="12px">User Id</Typography>
-                          <Typography variant="h6" display="block" marginLeft="auto">{userData}</Typography>
-                        </Box>
-                      </>
-                    }
+                <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', position: 'absolute', opacity: connectWithIDLoading ? 0.1 : 1 }}>
+
+                  <Box id="statement-info" sx={{ width: '25%', marginRight: '5%', display: 'flex', flexDirection: 'column', alignItems: 'center', }}>
+                    <Typography variant="h3" display="block" sx={{ fontWeight: 500 }}>Your Profile to Secure</Typography>
+                    <Typography variant="h6" display="block">{userData}</Typography>
+
+                    <Box sx={{
+                      width: '140px',
+                      height: '140px',
+                      background: `url(${profileImageUrl})`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: 'cover',
+                      borderRadius: '1111px',
+                      border: '1px solid',
+                      marginTop: '16px'
+                    }} />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px' }}>
+                      {
+                        !onlyUrl ?
+                          <>
+                            <Box sx={{ display: 'flex' }}>
+                              <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
+                              <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex' }}>
+                              <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
+                              <Typography variant="h6" display="block" marginLeft="auto">{profileSurname}</Typography>
+                            </Box>
+                          </> :
+                          <>
+                            <Box sx={{ display: 'flex' }}>
+                              <Typography variant="h6" display="block" marginRight="12px">Platform</Typography>
+                              <Typography variant="h6" display="block" marginLeft="auto">LinkedIn</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex' }}>
+                              <Typography variant="h6" display="block" marginRight="12px">User Id</Typography>
+                              <Typography variant="h6" display="block" marginLeft="auto">{userData}</Typography>
+                            </Box>
+                          </>
+                      }
+                    </Box>
                   </Box>
-                  <Box sx={{marginTop: '16px' }}>
-                    <Button variant="contained" sx={{
-                      minWidth: '100px',
-                      marginLeft: '8px',
-                      padding: '6px 16px',
-                      opacity: statementInfo ? 0.1 : 1,
-                    }} disabled={statementInfo} disableRipple onClick={authorize}>{!isConnected ? 'Connect Concordium Wallet' : 'Connect With Your Concordium ID'}</Button>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'center', width: '25%', marginLeft: '5%', flexDirection: 'column' }}>
+                    <Typography variant="h6" display="block">You have now gathered the information from the social media account you wish to verify, and the next step is to compare and connect this information with your Concordium ID.</Typography>
                   </Box>
                 </Box>
               </Box>
-            </Box>
 
-            {
-              connectWithIDLoading ?
-                <Box id="loader-container" sx={{display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                  <WizardLoading title="Getting Identity" subtitle="" />        
-                </Box>
-                :
-                undefined
-            }
-          </>
-        )}
-      </TrackBox>
-    </InstallExtensions>
+              {
+                connectWithIDLoading ?
+                  <Box id="loader-container" sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
+                    <WizardLoading title="Getting Identity" subtitle="" />
+                  </Box>
+                  :
+                  undefined
+              }
+            </>
+          )}
+        </TrackBox>
+      </InstallExtensions>
 
-    <WizardNav sx={{marginTop: '32px',}} prev={"Back"} prevDisabled={prevDisabled} nextDisabled={nextDisabled} next={'Next'} onPrev={previousPage} />
-  </form>);
+      <WizardNav sx={{ marginTop: '32px', }} prev={"Back"} prevDisabled={prevDisabled} nextDisabled={nextDisabled} next={nextLabel} onNext={onNext} onPrev={previousPage} />
+    </form>);
 }));
 
 
