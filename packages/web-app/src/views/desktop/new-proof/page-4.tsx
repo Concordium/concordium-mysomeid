@@ -58,51 +58,38 @@ import { PlatformProfileRepresentation } from './page-3';
 
 export { BackgroundEditor };
 
-type ProofCreatedConfirmationArgs = {
-  loading?: boolean;
-  sx?: any;
-  hideBorder?: boolean;
-  hideQR?: boolean;
-  subHeader?: string;
-  header?: string;
-  profilePageUrl: string;
-  profileImageUrl: string;
-  uri: string;
-  userData: string;
-  profileFirstName: string;
-  profileSurname: string;
-  mobileVersion?: boolean;
-  issueDate?: string;
-  urlMatch?: string;
-  activeValid?: string;
-  showConnectWithLinkedIn?: boolean;
+export const FormSubstepHeader = ({header, desc, sx}: {header: string, desc?: string, sx?: any}) => {
+  return (
+    <Box display="flex" flexDirection="column" alignItems="center" sx={{...(sx ?? {})}}>
+      <Typography key={header} variant="h3" display="block"><strong>{header}</strong></Typography>
+      {desc !== undefined ? <Typography key={desc} variant="h6" display="block">{desc}</Typography> : undefined}
+    </Box>
+  )
 };
 
-const ProofCreatedConfirmation = ({
-  mobileVersion: isMob,
-  hideBorder,
-  hideQR,
-  header,
-  loading,
-  subHeader,
-  sx: sx = {},
-  profilePageUrl,
+type ProofCreatedConfirmationArgs = {
+  profileImageUrl: string;
+  userData: string;
+  platform?: 'li',
+  profileFirstName: string;
+  profileSurname: string;
+  sx?: any;
+};
+
+export const ProofCreatedConfirmation = ({
   profileImageUrl,
-  uri,
   userData,
+  platform: platform = 'li',
   profileFirstName,
   profileSurname,
-  issueDate,
-  urlMatch,
-  activeValid,
-  showConnectWithLinkedIn,
+  sx,
 }: ProofCreatedConfirmationArgs) => {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-evenly' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-evenly', ...(sx ?? {}) }}>
       <Box sx={{ display: 'flex', background: `url(${ColoredRectSvg})`, height: '402px', paddingTop: '24px' }}>
         <PlatformProfileRepresentation {...{ // Show the profile content inside the box.
           userData,
-          platform: 'li',
+          platform,
           profileImageUrl,
           firstName: profileFirstName,
           surname: profileSurname,
@@ -119,6 +106,7 @@ export default connect(state => ({
     'profileInfo',
     'statementInfo',
     'proofData',
+    'confirmationSeen'
   ) ?? {})
 }))(reduxForm({
   form: formName,
@@ -133,9 +121,8 @@ export default connect(state => ({
     profileInfo,
     statementInfo,
     proofData,
+    confirmationSeen,
   } = props;
-
-  const params = useSearchParams();
 
   const dispatch = useDispatch();
 
@@ -157,9 +144,7 @@ export default connect(state => ({
 
   const ext = useExtension();
 
-  const [state, setState] = useState(1);
-
-  const [showLastHint, setShowLastHint] = useState(false);
+  const [state, setState] = useState<'confirmation' | 'editor' | 'fallback'>(!confirmationSeen ? 'confirmation' : 'editor');
 
   const uri = [proofBaseUri, 'v', proofData?.id, encodeURIComponent(proofData?.decryptionKey)].join('/');
   const [editorContentElement, setEditorContentElement] = useState(null);
@@ -183,22 +168,6 @@ export default connect(state => ({
   if (uriPresetable.length > (n * 2) + 3) {
     uriPresetable = uriPresetable.slice(0, n) + '...' + uriPresetable.slice(uriPresetable.length - n);
   }
-
-  /* const downloadQR = useCallback(() => {
-    toImg('#qr-code-canvas', `proof-${platform}-${proofData?.id}`, {
-      scale: 1,
-      format: 'png',
-      quality: 1,
-      download: true,
-    }).then().catch( () => {
-      dispatch(error("Failed to download"));
-    });
-    setDownloaded(true);
-  }, []);*/
-
-  const d = 256;
-
-  const notSpec = '';
 
   let profileImageUrl: string;
   try {
@@ -258,17 +227,18 @@ export default connect(state => ({
 
   const [showLoading, setShowLoading] = useState(false);
 
-  const nextDisabled = showLoading; // false; // !downloaded;
-  const prevDisabled = true;
+  const prevDisabled = showLoading;
+
+  const nextDisabled = showLoading;
 
   const onNext = useCallback(() => {
-    // navigate("/home");
-    if (state === 1 ) {
-      setState(2);
+    if (state === 'confirmation' ) {
+      props.change('confirmationSeen', true);
+      setState('editor');
       return;
     }
     
-    if (state === 2) {
+    if (state === 'editor') {
       if (!userData) {
         throw new Error('Invalid linked in username' + userData);
       }
@@ -302,45 +272,23 @@ export default connect(state => ({
       });
       return;
     }
-
-    if (state === 4) {
-      window.location.href = profilePageUrl;
-      return;
-    }
   }, [getPic, state, editorContentElement]);
 
-  const nextCaption = state === 1 ? "Next" :
-    state === 2 ? 'Next' :
-      state === 3 ? (ext.installed ? "Open LinkedIn" : "Done") :
-        "Open LinkedIn";
+  const nextCaption = state === 'confirmation' ? "Upload Badge" :
+    state === 'editor' ? 'Upload badge to your LinkedIn' :
+        "Next";
 
-  const theme = useTheme();
-  const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
-  const ltmd = useMediaQuery(theme.breakpoints.down('md'));
-
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-
-  const changeBackground = useCallback(() => {
-    imageInputRef?.current?.click();
-  }, [imageInputRef]);
-
-  const [manualBg, setManualBg] = useState<string | null>(null);
   const [bgImg, setBgImg] = useState(null);
 
   useEffect(() => {
-    if (manualBg) {
-      setBgImg(manualBg);
-    } else if ([null, 'default', ''].indexOf(profileInfo?.profileInfo?.backgroundImage ?? null) === -1) {
+    if ([null, 'default', ''].indexOf(profileInfo?.profileInfo?.backgroundImage ?? null) === -1) {
       setBgImg(profileInfo?.profileInfo?.backgroundImage);
     } else {
       setBgImg(defaultBackground)
     }
-  }, [defaultBackground, manualBg, profileInfo, profileInfo?.profileInfo?.backgroundImage]);
+  }, [defaultBackground, profileInfo?.profileInfo?.backgroundImage]);
 
-  const onImageChanged = useCallback((event: any) => {
-    const data = event?.target?.files?.[0] ? URL.createObjectURL(event?.target?.files?.[0]) : null;
-    setManualBg(data);
-  }, []);
+  console.log("profileInfo?.profileInfo?.backgroundImage ", profileInfo?.profileInfo?.backgroundImage);
 
   return (
     <form>
@@ -348,9 +296,9 @@ export default connect(state => ({
         <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
           {({ width, height }: { width: number, height: number }) => (
             <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
-              {state === 1 ?
+              {state === 'confirmation' ?
                 <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', opacity: showLoading ? 0.1 : 1 }}>
-                  <Typography variant="h3" display="block" fontWeight="500" fontSize="2.2rem" textAlign="center">Congratulations! <br/>Your Proof is Ready</Typography>
+                  <FormSubstepHeader header="Congratulations!" desc="Your Proof is ready" />
 
                   <Box sx={{
                     display: 'flex',
@@ -366,16 +314,10 @@ export default connect(state => ({
                       maxWidth: '50% !important',
                     }}>
                       <ProofCreatedConfirmation {...{
-                        mobileVersion: ltmd,
-                        profilePageUrl,
                         profileImageUrl,
-                        uri,
                         userData,
                         profileFirstName: proofFirstName,
                         profileSurname: proofSurname,
-                        country,
-                        sx: { marginTop: !ltmd ? '16px' : '38px' },
-                        showConnectWithLinkedIn: false,
                       }} />
                       <ProofWidget {...{
                         uri,
@@ -402,10 +344,9 @@ export default connect(state => ({
                   </Box>
                 </Box> 
 
-              : state === 2 ? /* This is the editor */
+              : state === 'editor' ? /* This is the editor */
                 <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', opacity: showLoading ? 0.1 : 1 }}>
-                  <Typography variant="h3" display="block"><strong>Connect With LinkedIn</strong></Typography>
-                  <Typography variant="h6" display="block">Next, create and embed the Proof in your LinkedIn profile.  Follow the guide to update your LinkedIn background picture.</Typography>
+                  <FormSubstepHeader header="Upload Badge" desc="Preview of badge displayed on your profile" />
 
                   <Box sx={{ marginTop: '24px', display: 'flex', flexDirection: 'column', width: '90%' }}>
                     <BackgroundEditor {...{
@@ -418,12 +359,12 @@ export default connect(state => ({
                   </Box>
 
                 </Box>
-              : state === 3 ? /* state 3 - show fallback if it cannot store backgrond */
+              : state === 'fallback' ? /* state 3 - show fallback if it cannot store backgrond */
                 <Box>
                   <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', opacity: showLoading ? 0.1 : 1 }}>
                     <Typography variant="h3" display="block"><strong>Upload background to LinkedIn Profile</strong></Typography>
-                    <Typography variant="h6" display="block"><strong>Your new background image has been downloaded to your Downloads folder.</strong></Typography>
-                    <Typography variant="h6" display="block"><strong>Click Next to go to linked in order to upload it as the background of your LinkedIn profile</strong></Typography>
+                    <Typography variant="h6" display="block">Your new background image has been downloaded to your Downloads folder.</Typography>
+                    <Typography variant="h6" display="block">Click Next to go to linked in order to upload it as the background of your LinkedIn profile</Typography>
                   </Box>
                </Box>              
               : // invalid state

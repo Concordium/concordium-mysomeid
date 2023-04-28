@@ -52,6 +52,7 @@ import { error } from 'src/slices';
 import { fuzzyMatchNames } from 'src/utils';
 import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
+import { FormSubstepHeader } from './page-4';
 
 type PlatformProfileRepresentationArgs = {
   userData: string;
@@ -64,7 +65,7 @@ type PlatformProfileRepresentationArgs = {
 };
 
 export const PlatformProfileRepresentation = ({
-  userData, 
+  userData,
   profileImageUrl,
   platform,
   firstName,
@@ -74,7 +75,7 @@ export const PlatformProfileRepresentation = ({
 }: PlatformProfileRepresentationArgs) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '287px', }}>
-      {platform === 'li' ? <Typography display="flex" variant="h6" fontSize="16px" fontWeight="400">LinkedIn<LinkedInIcon sx={{ marginTop: '2px', width: '21px', height: '21px' }} /></Typography>: undefined }
+      {platform === 'li' ? <Typography display="flex" variant="h6" fontSize="16px" fontWeight="400">LinkedIn<LinkedInIcon sx={{ marginTop: '2px', width: '21px', height: '21px' }} /></Typography> : undefined}
       <Typography variant="h6" display="block">{userData ?? '?'}</Typography>
       <Box sx={{
         width: '140px',
@@ -154,20 +155,17 @@ export default connect(state => ({
 
   console.log("statementInfo ", statementInfo, ' proof ', proof);
 
-  let state = !platform ?
-    'show-summary' :
-    !isConnected ?
-      'show-connect' :
-      !proofCreated ?
-        'show-summary' :
-        creatingProof ?
-          'create-proof' :
-          proofCreated ?
-            'done' :
-            '';
-  if (creatingProof) {
-    state = 'create-proof';
-  }
+  let state = !creatingProof ?
+                !isConnected ?
+                  'show-connect'
+                    :
+                  'create-proof'
+                :
+                'create-proof';
+
+  useEffect(() => {
+    console.log("mouted");
+  }, [statementInfo])
 
   let proofFirstName = "";
   try {
@@ -182,17 +180,6 @@ export default connect(state => ({
   } catch (e) {
     console.error(e);
   }
-
-  /* let proofCountry = ""; 
-  try {
-    proofCountry = statementInfo?.proof?.value.proofs[2]?.attribute;
-  } catch(e) {
-    console.error(e);
-  } */
-
-  // console.log("statementInfo ", statementInfo);
-  // console.log("profileInfo ", profileInfo );
-  // console.log('proof', proof);
 
   let profileImageUrl: string;
   try {
@@ -214,11 +201,10 @@ export default connect(state => ({
     // country: profileCountry,
   } = parseNameAndCountry(profileInfo?.profileInfo);
 
-  const onlyUrl = profileInfo?.profileInfo?.onlyUrl ?? true;
-
   const {
     match: nameMatch,
   } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
+
   const firstNameMatch = nameMatch;
   const lastNameMatch = nameMatch;
 
@@ -272,12 +258,15 @@ export default connect(state => ({
 
   const showLoading = creatingProof;
 
+  const nextLabel = !proofCreated ? 'Create Proof Of Authenticity' : 'Next';
+
   return (
     <form>
       <InstallExtensions>
         <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
           {({ width, height }: { width: number, height: number }) => (
             <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
+              <FormSubstepHeader header="Create Proof Of Authenticity" desc="Connect your Profile with your Concordium ID" sx={{ opacity: showLoading ? 0.1 : 1 }} />
 
               <Box sx={{ width: '100%', display: 'flex', opacity: showLoading ? 0.1 : 1 }}>
                 {state === 'show-connect' ? (
@@ -296,64 +285,59 @@ export default connect(state => ({
                     </Typography>
                     <PrimaryButton sx={{ marginTop: '24px' }} variant="understated" onClick={connect} >Connect</PrimaryButton>
                   </Box>
-                ) :
-                  state === 'show-summary' || state === 'create-proof' ? (
-                    <Box id="summary" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                ) : state === 'create-proof'  ? (
+                  <Box id="create-proof" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
+                      {statementInfo && proof ?
+                        <Box sx={{
+                          background: `url(${MeltSvg})`,
+                          width: '728px',
+                          height: '402px',
+                          display: 'flex',
+                          paddingTop: '24px',
+                          transform: lt900 ? `scale(${window.innerWidth / 900})` : undefined,
+                        }}>
+                          <PlatformProfileRepresentation {...{
+                            userData,
+                            platform,
+                            profileImageUrl,
+                            firstName: profileFirstName,
+                            surname: profileSurname,
+                            firstNameMatch: firstNameMatch,
+                            surnameMatch: lastNameMatch
+                          }} />
 
-                      <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
-                        {statementInfo && proof ?
-                          <Box sx={{
-                            background: `url(${MeltSvg})`,
-                            width: '728px',
-                            height: '402px',
-                            display: 'flex',
-                            paddingTop: '24px',
-                            transform: lt900 ? `scale(${window.innerWidth / 900})` : undefined,
-                          }}>
-                            <PlatformProfileRepresentation {...{
-                              userData,
-                              platform,
-                              profileImageUrl,
-                              firstName: profileFirstName,
-                              surname: profileSurname,
-                              firstNameMatch: firstNameMatch,
-                              surnameMatch: lastNameMatch
+                          <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
+                            <FormSubstepHeader header="Your Digital ID" desc="Concordium Identity" />
+                            <Box sx={{
+                              width: '140px',
+                              height: '140px',
+                              background: `url(${concordiumLogoSvg})`,
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: 'cover',
+                              borderRadius: '1111px',
+                              // border: '1px solid',
+                              backgroundPositionX: '3px',
+                              backgroundPositionY: '3px',
+                              marginTop: '16px'
                             }} />
-
-                            <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
-                              <Typography variant="h3" display="block"><strong>Your Digital ID</strong></Typography>
-                              <Typography variant="h6" display="block">Concordium Identity</Typography>
-                              <Box sx={{
-                                width: '140px',
-                                height: '140px',
-                                background: `url(${concordiumLogoSvg})`,
-                                backgroundRepeat: 'no-repeat',
-                                backgroundSize: 'cover',
-                                borderRadius: '1111px',
-                                // border: '1px solid',
-                                backgroundPositionX: '3px',
-                                backgroundPositionY: '3px',
-                                marginTop: '16px'
-                              }} />
-                              <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
-                                <Box sx={{ display: 'flex' }}>
-                                  <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
-                                  <Typography variant="h6" display="block" marginLeft="auto">{proofFirstName}</Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex' }}>
-                                  <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
-                                  <Typography variant="h6" display="block" marginLeft="auto">{proofSurname}</Typography>
-                                </Box>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
+                              <Box sx={{ display: 'flex' }}>
+                                <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
+                                <Typography variant="h6" display="block" marginLeft="auto">{proofFirstName}</Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex' }}>
+                                <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
+                                <Typography variant="h6" display="block" marginLeft="auto">{proofSurname}</Typography>
                               </Box>
                             </Box>
                           </Box>
-                          : undefined}
-                      </Box>
+                        </Box>
+                        : undefined}
                     </Box>
-                  ) : state === 'done' ? (
-                    null
-                  ) :
-                    undefined
+                  </Box>
+                ) :
+                  undefined
                 }
               </Box>
 
@@ -373,7 +357,7 @@ export default connect(state => ({
       <WizardNav {...{
         sx: { marginTop: '32px', },
         prev: "Back",
-        next: 'Create Proof Of Authenticity',
+        next: nextLabel,
         nextDisabled,
         onPrev: previousPage,
         onNext,

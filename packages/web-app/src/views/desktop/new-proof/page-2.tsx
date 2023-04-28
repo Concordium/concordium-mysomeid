@@ -25,6 +25,7 @@ import { TrackBox } from './track-box';
 import { IdProofOutput } from '@concordium/common-sdk';
 import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
+import { FormSubstepHeader, ProofCreatedConfirmation } from './page-4';
 
 function capitalize(s: string) {
   if (!s?.length) {
@@ -121,7 +122,7 @@ export default connect(state => ({
     !isConnected ?
       'Connect Concordium Wallet'
       :
-      'Connect With Your Concordium ID'
+      'Connect Concordium ID'
     :
     'Next';
 
@@ -155,7 +156,7 @@ export default connect(state => ({
   }, []);
 
   const onNext = useCallback(() => {
-    if ( nextDisabled ) {
+    if (nextDisabled) {
       console.error('next disabled.');
     }
 
@@ -166,6 +167,11 @@ export default connect(state => ({
 
     if (!isConnected) {
       connect();
+      return;
+    }
+
+    if (statementInfo) {
+      nextPage();
       return;
     }
 
@@ -217,49 +223,19 @@ export default connect(state => ({
           {({ width, height }: { width: number, height: number }) => (
             <>
               <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
+                <FormSubstepHeader header="Your Profile to Secure" desc={userData ?? ' '} sx={{ opacity: connectWithIDLoading ? 0.1 : 1 }} />
 
-                <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', position: 'absolute', opacity: connectWithIDLoading ? 0.1 : 1 }}>
+                <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', opacity: connectWithIDLoading ? 0.1 : 1 }}>
 
-                  <Box id="statement-info" sx={{ width: '25%', marginRight: '5%', display: 'flex', flexDirection: 'column', alignItems: 'center', }}>
-                    <Typography variant="h3" display="block" sx={{ fontWeight: 500 }}>Your Profile to Secure</Typography>
-                    <Typography variant="h6" display="block">{userData}</Typography>
-
-                    <Box sx={{
-                      width: '140px',
-                      height: '140px',
-                      background: `url(${profileImageUrl})`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundSize: 'cover',
-                      borderRadius: '1111px',
-                      border: '1px solid',
-                      marginTop: '16px'
-                    }} />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px' }}>
-                      {
-                        !onlyUrl ?
-                          <>
-                            <Box sx={{ display: 'flex' }}>
-                              <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
-                              <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex' }}>
-                              <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
-                              <Typography variant="h6" display="block" marginLeft="auto">{profileSurname}</Typography>
-                            </Box>
-                          </> :
-                          <>
-                            <Box sx={{ display: 'flex' }}>
-                              <Typography variant="h6" display="block" marginRight="12px">Platform</Typography>
-                              <Typography variant="h6" display="block" marginLeft="auto">LinkedIn</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex' }}>
-                              <Typography variant="h6" display="block" marginRight="12px">User Id</Typography>
-                              <Typography variant="h6" display="block" marginLeft="auto">{userData}</Typography>
-                            </Box>
-                          </>
-                      }
-                    </Box>
-                  </Box>
+                  <ProofCreatedConfirmation {...{
+                    profileImageUrl,
+                    userData,
+                    profileFirstName,
+                    profileSurname,
+                    sx: {
+                      width: '25%',
+                    }
+                  }} />
 
                   <Box sx={{ display: 'flex', justifyContent: 'center', width: '25%', marginLeft: '5%', flexDirection: 'column' }}>
                     <Typography variant="h6" display="block">You have now gathered the information from the social media account you wish to verify, and the next step is to compare and connect this information with your Concordium ID.</Typography>
