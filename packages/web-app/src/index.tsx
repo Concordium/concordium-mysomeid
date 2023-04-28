@@ -1,15 +1,14 @@
-// window.Buffer = require('buffer').Buffer;
+import {default as pkg} from "../package.json";
 window.process = {} as any;
 import "./index.css";
-
-// import ReactDOM from "react-dom";
 import * as ReactDOM from "react-dom/client";
-
-import {default as pkg} from "../package.json";
-
-console.log("Version " + pkg.version);
-
 import {Root} from "./root";
+
+const ve = pkg.version;
+console.log(`*********************************`);
+console.log(`* https://app.mysome.id         *`);
+console.log(`* version: ${ve}                *`);
+console.log(`*********************************`);
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<Root />);
