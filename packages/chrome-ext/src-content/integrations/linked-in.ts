@@ -957,7 +957,7 @@ const install = async () => {
 			platformRequests.removeRequests('li').then(() => {
 				showMessagePopup({
 					title: 'Get Profile Info',
-					message: 'Do you want to secure this profile?',
+					message: 'Do you want to secure your profile?',
 					secondary: 'CANCEL',
 					primary: 'Continue',
 					primary_link: getCreateLink(),
