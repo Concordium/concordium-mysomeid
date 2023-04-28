@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import {
   useNavigate
@@ -17,7 +17,9 @@ import validate from './validate';
 
 import {
   Typography,
-  Box
+  Box,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 
 import {
@@ -32,23 +34,72 @@ import {
   WizardNav
 } from './wizard-nav';
 
-import {
-  useSearchParams
-} from 'src/hooks/use-search-params';
+import MeltSvg from 'src/images/melt.svg';
 
 import {
   WizardLoading
 } from './wizard-loading';
 
-import concordiumLogoSvg from 'src/images/concordium-logo.svg';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
 
-import xSvg from 'src/images/X.svg';
+import concordiumLogoSvg from 'src/images/concordium-white-logo.svg';
 
-import formName, {selector} from './form-props';
+import formName, { selector } from './form-props';
 
 import { TrackBox } from './track-box';
 import { parseNameAndCountry } from './page-2';
 import { error } from 'src/slices';
+import { fuzzyMatchNames } from 'src/utils';
+import { InstallExtensions } from './install-extensions';
+import { minLayoutBoxHeight } from './form-consts';
+import { FormSubstepHeader } from './page-4';
+
+type PlatformProfileRepresentationArgs = {
+  userData: string;
+  profileImageUrl: string;
+  platform: 'li',
+  firstName: string;
+  surname: string;
+  firstNameMatch?: boolean;
+  surnameMatch?: boolean;
+};
+
+export const PlatformProfileRepresentation = ({
+  userData,
+  profileImageUrl,
+  platform,
+  firstName,
+  surname,
+  firstNameMatch: firstNameMatch = null,
+  surnameMatch: surnameMatch = null
+}: PlatformProfileRepresentationArgs) => {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '287px', }}>
+      {platform === 'li' ? <Typography display="flex" variant="h6" fontSize="16px" fontWeight="400">LinkedIn<LinkedInIcon sx={{ marginTop: '2px', width: '21px', height: '21px' }} /></Typography> : undefined}
+      <Typography variant="h6" display="block">{userData ?? '?'}</Typography>
+      <Box sx={{
+        width: '140px',
+        height: '140px',
+        background: `url(${profileImageUrl})`,
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        borderRadius: '1111px',
+        border: '1px solid',
+        marginTop: '24px'
+      }} />
+      <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
+        <Box sx={{ display: 'flex' }}>
+          <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
+          <Typography variant="h6" display="block" marginLeft="auto">{firstName} {firstNameMatch !== null ? firstNameMatch ? '✅' : '❌' : undefined}</Typography>
+        </Box>
+        <Box sx={{ display: 'flex' }}>
+          <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
+          <Typography variant="h6" display="block" marginLeft="auto">{surname} {surnameMatch !== null ? surnameMatch ? '✅' : '❌' : undefined}</Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
 
 export default connect(state => ({
   ...(selector(state,
@@ -93,10 +144,10 @@ export default connect(state => ({
   } = useCCDContext();
 
   const [creatingProof, setCreatingProof] = useState(false);
-  const [proofCreated, setProofCreated] = useState(false);
+  const [proofCreated, setProofCreated] = useState(!!proofData);
 
   useEffect(() => {
-    if ( !userData || !platform || !profileInfo || !statementInfo || !proof ) {
+    if (!userData || !platform || !profileInfo || !statementInfo || !proof) {
       navigate('/create/1?previousFailed');
       return;
     }
@@ -104,57 +155,43 @@ export default connect(state => ({
 
   console.log("statementInfo ", statementInfo, ' proof ', proof);
 
-  let state = !platform ?
-                  'show-summary' :
+  let state = !creatingProof ?
                 !isConnected ?
-                  'show-connect' :
-                !proofCreated ?
-                  'show-summary' :
-                creatingProof ?
-                  'create-proof' :
-                proofCreated ? 
-                  'done' : 
-                '';
-  if ( creatingProof ) {
-    state = 'create-proof';
-  }
+                  'show-connect'
+                    :
+                  'create-proof'
+                :
+                'create-proof';
 
-  let proofFirstName = ""; 
+  useEffect(() => {
+    console.log("mouted");
+  }, [statementInfo])
+
+  let proofFirstName = "";
   try {
     proofFirstName = statementInfo?.proof?.value.proofs[0]?.attribute;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
-  let proofSurname = ""; 
+  let proofSurname = "";
   try {
     proofSurname = statementInfo?.proof?.value.proofs[1]?.attribute;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
-  /* let proofCountry = ""; 
-  try {
-    proofCountry = statementInfo?.proof?.value.proofs[2]?.attribute;
-  } catch(e) {
-    console.error(e);
-  } */
-
-  // console.log("statementInfo ", statementInfo);
-  // console.log("profileInfo ", profileInfo );
-  // console.log('proof', proof);
-  
   let profileImageUrl: string;
   try {
     profileImageUrl = profileInfo?.profileInfo?.profileImage;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
   let profileBackgroundUrl: string;
   try {
     profileBackgroundUrl = profileInfo?.profileInfo?.backgroundImage;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
@@ -164,25 +201,34 @@ export default connect(state => ({
     // country: profileCountry,
   } = parseNameAndCountry(profileInfo?.profileInfo);
 
-  const onlyUrl = profileInfo?.profileInfo?.onlyUrl ?? true;
+  const {
+    match: nameMatch,
+  } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
 
-  const idAndProfileMatches = true; /*
-    profileFirstName?.toLowerCase()?.trim() === proofFirstName?.toLowerCase()?.trim() &&
-      profileSurname?.toLowerCase()?.trim() === proofSurname?.toLowerCase()?.trim() &&
-      proofCountry?.toLowerCase()?.trim() === proofCountry?.toLowerCase()?.trim();*/
+  const firstNameMatch = nameMatch;
+  const lastNameMatch = nameMatch;
 
-  // console.log('state ', state);
-  const firstNameMatch = (proofFirstName ?? '').trim().toLowerCase() === (profileFirstName ?? '').trim().toLowerCase();
-  const lastNameMatch = (proofSurname ?? '').trim().toLowerCase() === (profileSurname ?? '').trim().toLowerCase();
-  const nameMatch = onlyUrl || (firstNameMatch && lastNameMatch);
+  const theme = useTheme();
 
-  const nextDisabled = state === 'show-connect' || creating || !nameMatch; // || (location.href.indexOf('http://localhost:3000/') === -1 && !idAndProfileMatches);
+  const lt620 = useMediaQuery(theme.breakpoints.down(620));
+  const lt800 = useMediaQuery(theme.breakpoints.down(800));
+  const lt900 = useMediaQuery(theme.breakpoints.down(900));
+
+  const nextDisabled = state === 'show-connect' || creating || !nameMatch;
 
   const onNext = useCallback(() => {
-    if ( proofCreated ) {
-      console.log('proof is already created!');
+    if (proofCreated) {
+      console.log('Proof is already created!');
+      nextPage();
       return;
     }
+
+    // Ensure we are connected.
+    if (!isConnected) {
+      connect();
+      return;
+    }
+
     setCreating(true);
     setCreatingProof(true);
 
@@ -191,12 +237,12 @@ export default connect(state => ({
       surName: proofSurname,
       userData,
       challenge,
-      platform, 
+      platform,
       proof,
       statementInfo,
       profileBackgroundUrl,
       profileImageUrl,
-    }).then(({newProof}) => {
+    }).then(({ newProof }) => {
       setProofCreated(false);
       setCreatingProof(false);
       setCreating(false);
@@ -212,145 +258,106 @@ export default connect(state => ({
 
   const showLoading = creatingProof;
 
+  const nextLabel = !proofCreated ? 'Create Proof Of Authenticity' : 'Next';
+
   return (
     <form>
+      <InstallExtensions>
+        <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
+          {({ width, height }: { width: number, height: number }) => (
+            <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
+              <FormSubstepHeader header="Create Proof Of Authenticity" desc="Connect your Profile with your Concordium ID" sx={{ opacity: showLoading ? 0.1 : 1 }} />
 
-      <TrackBox id="container-box" sx={{display: 'flex', flexDirection: 'column', }}>
-        {({width, height}: {width: number, height: number}) => (
-
-          <>
-            <Box sx={{ width: '100%', display: 'flex', opacity: showLoading ? 0.1 : 1}}>
-              {state === 'show-connect' ? (
-                <Box sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
-                }}>
-                  <Typography variant="h3" sx={{}}>
-                    We are almost there
-                  </Typography>
-                  <Typography display="block" sx={{marginTop: '8px', textAlign: 'center', lineHeight: '1.3'}}>
-                    Please connect your wallet to Concordium to create the proof
-                  </Typography>
-                  <PrimaryButton sx={{marginTop: '24px'}} variant="understated" onClick={connect} >Connect</PrimaryButton>
-                </Box>
-              ) : 
-              state === 'show-summary' || state === 'create-proof' ? (
-                <Box id="summary" sx={{display: 'flex', flexDirection: 'column', width: '100%'}}>
-
-                  <Box sx={{display: 'flex', marginTop: '24px', justifyContent: 'space-evenly'}}>
-                    {statementInfo && proof ?
-                    <>
-                      <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-                        <Typography variant="h3" display="block"><strong>Your Profile to Secure</strong></Typography>
-                        <Typography variant="h6" display="block">{userData ?? '?'}</Typography>
-                        <Box sx={{
-                          width: '140px',
-                          height: '140px',
-                          background: `url(${profileImageUrl})`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: 'cover',
-                          borderRadius: '1111px',
-                          border: '1px solid',
-                          marginTop: '16px'
-                        }} />
-                        <Box sx={{display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px'}}>
-
-                          {
-                            !onlyUrl ? 
-                            <>
-                              <Box sx={{display: 'flex'}}>
-                                <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
-                                <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName} { !onlyUrl ? firstNameMatch ? '✅' : '❌' : undefined}</Typography>
-                              </Box>
-                              <Box sx={{display: 'flex'}}>
-                                <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
-                                <Typography variant="h6" display="block" marginLeft="auto">{profileSurname} { !onlyUrl ? lastNameMatch ? '✅' : '❌' : undefined}</Typography>
-                              </Box>
-                            </> : 
-                            <>
-                              <Box sx={{display: 'flex'}}>
-                                <Typography variant="h6" display="block" marginRight="12px">Platform</Typography>
-                                <Typography variant="h6" display="block" marginLeft="auto">LinkedIn</Typography>
-                              </Box>
-                              <Box sx={{display: 'flex'}}>
-                                <Typography variant="h6" display="block" marginRight="12px">User Id</Typography>
-                                <Typography variant="h6" display="block" marginLeft="auto">{userData}</Typography>
-                              </Box>
-                            </>
-                          }
-                        </Box>
-                      </Box>
-
-                      <Box sx={{
-                          width: '115px',
-                          height: '115px',
-                          background: `url(${xSvg})`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: 'contain',
-                          marginTop: 'auto',
-                          marginBottom: 'auto',
-                        }} />
-
-                      <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
-                        <Typography variant="h3" display="block"><strong>Your Digital ID</strong></Typography>
-                        <Typography variant="h6" display="block">Concordium Identity</Typography>
-                        <Box sx={{
-                          width: '140px',
-                          height: '140px',
-                          background: `url(${concordiumLogoSvg})`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: 'cover',
-                          borderRadius: '1111px',
-                          // border: '1px solid',
-                          backgroundPositionX: '3px',
-                          backgroundPositionY: '3px',
-                          marginTop: '16px'
-                        }} />
-                        <Box sx={{display: 'flex', flexDirection: 'column', minWidth: '200px', marginTop: '16px'}}>
-                          <Box sx={{display: 'flex'}}>
-                            <Typography variant="h6" display="block" marginRight="12px">First name</Typography>
-                            <Typography variant="h6" display="block" marginLeft="auto">{proofFirstName} { !onlyUrl ? '✅' : undefined}</Typography>
-                          </Box>
-                          <Box sx={{display: 'flex'}}>
-                            <Typography variant="h6" display="block" marginRight="12px">Surname</Typography>
-                            <Typography variant="h6" display="block" marginLeft="auto">{proofSurname}  { !onlyUrl ? '✅' : undefined}</Typography>
-                          </Box>
-                          {/*<Box sx={{display: 'flex'}}>
-                            <Typography variant="h6" display="block" marginRight="12px">Country</Typography>
-                            <Typography variant="h6" display="block" marginLeft="auto">{proofCountry} ✅</Typography>
-                          </Box>*/}
-                        </Box>
-                      </Box>
-                    </>
-                    : undefined}
+              <Box sx={{ width: '100%', display: 'flex', opacity: showLoading ? 0.1 : 1 }}>
+                {state === 'show-connect' ? (
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                  }}>
+                    <Typography variant="h3" sx={{}}>
+                      We are almost there
+                    </Typography>
+                    <Typography display="block" sx={{ marginTop: '8px', textAlign: 'center', lineHeight: '1.3' }}>
+                      Please connect your wallet to Concordium to create the proof
+                    </Typography>
+                    <PrimaryButton sx={{ marginTop: '24px' }} variant="understated" onClick={connect} >Connect</PrimaryButton>
                   </Box>
-                </Box>
-              ) : state === 'done' ? (
-                null
-              ) :
-                undefined 
+                ) : state === 'create-proof'  ? (
+                  <Box id="create-proof" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
+                      {statementInfo && proof ?
+                        <Box sx={{
+                          background: `url(${MeltSvg})`,
+                          width: '728px',
+                          height: '402px',
+                          display: 'flex',
+                          paddingTop: '24px',
+                          transform: lt900 ? `scale(${window.innerWidth / 900})` : undefined,
+                        }}>
+                          <PlatformProfileRepresentation {...{
+                            userData,
+                            platform,
+                            profileImageUrl,
+                            firstName: profileFirstName,
+                            surname: profileSurname,
+                            firstNameMatch: firstNameMatch,
+                            surnameMatch: lastNameMatch
+                          }} />
+
+                          <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
+                            <FormSubstepHeader header="Your Digital ID" desc="Concordium Identity" />
+                            <Box sx={{
+                              width: '140px',
+                              height: '140px',
+                              background: `url(${concordiumLogoSvg})`,
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: 'cover',
+                              borderRadius: '1111px',
+                              // border: '1px solid',
+                              backgroundPositionX: '3px',
+                              backgroundPositionY: '3px',
+                              marginTop: '16px'
+                            }} />
+                            <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
+                              <Box sx={{ display: 'flex' }}>
+                                <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
+                                <Typography variant="h6" display="block" marginLeft="auto">{proofFirstName}</Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex' }}>
+                                <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
+                                <Typography variant="h6" display="block" marginLeft="auto">{proofSurname}</Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Box>
+                        : undefined}
+                    </Box>
+                  </Box>
+                ) :
+                  undefined
+                }
+              </Box>
+
+              {
+                showLoading ?
+                  <Box sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
+                    <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof" />
+                  </Box>
+                  :
+                  undefined
               }
             </Box>
-
-            {
-              showLoading ?
-                <Box sx={{display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                  <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof" />
-                </Box>
-                :
-                undefined
-            }
-          </>
-        )}
-      </TrackBox>
+          )}
+        </TrackBox>
+      </InstallExtensions>
 
       <WizardNav {...{
-        sx: {marginTop: '32px',},
+        sx: { marginTop: '32px', },
         prev: "Back",
-        next: 'Create Proof',
+        next: nextLabel,
         nextDisabled,
         onPrev: previousPage,
         onNext,

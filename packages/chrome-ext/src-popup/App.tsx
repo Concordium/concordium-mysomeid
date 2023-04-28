@@ -98,7 +98,7 @@ const Welcome = ({gettingStarted}: {gettingStarted: () => void}) => {
         Secure your social media profiles
       </Typography>
       <Typography sx={{...themeSX.text.medium, marginTop: themeSX.size.s3, padding: `0px ${themeSX.size.s2}`}}>
-        Avoid identity theft and fraud by using your identity on the Concordium blockchain to issue a selv-soverign badge of authencitity.
+        Avoid identity theft and fraud by using your identity on the Concordium blockchain to issue a self-sovereign badge of authenticity.
       </Typography>
     </Box>,
     <Box key="welcome-2" sx={{padding: `0px ${themeSX.size.s2}`, display: 'flex', marginTop: 'auto', marginBottom: '20px', justifyContent: 'center' }}>
@@ -245,7 +245,7 @@ const App = () => {
   }, [hasInitStorage, linkedInRegistered]);
   
   const gettingStarted = useCallback(() => {
-    chrome.tabs.create({url: isStaging ? 'http://localhost:3000' : 'https://app.mysomeid.dev/home'});
+    chrome.tabs.create({url: isStaging ? 'http://localhost:3000' : 'https://app.testnet.mysome.id/home'});
   }, [isStaging]);
 
   const logoClick = useCallback(event => {

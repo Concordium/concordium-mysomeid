@@ -25,6 +25,8 @@ export const successText = 'rgb(21, 145, 19)';
 
 export const defaultFontFamily = 'Golos-UI, Inter, Arial';
 
+export const defaultProofColor = 'rgb(43, 148, 223)';
+
 const themeValues = {
   color: "#333333",
   gold: "#4e5cde",

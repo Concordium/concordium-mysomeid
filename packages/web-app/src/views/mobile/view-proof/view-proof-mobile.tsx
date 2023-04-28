@@ -100,7 +100,9 @@ export const MobileViewProofView = ({ }) => {
                             <Typography sx={{fontSize: '12px', fontWeight: 400, marginTop: '8px'}}>
                                 Interested in verifying yourself and protecting your social media accounts? 
                             </Typography>
-                            <Button variant="primary" sx={{marginTop: '16px !important', fontSize: '14px !important',}}>
+                            <Button variant="primary" sx={{marginTop: '16px !important', fontSize: '14px !important',}} onClick={() => {
+                                window.open('https://mysome.id', '_blank');
+                            }}>
                                 Learn More
                             </Button>
                         </Box>

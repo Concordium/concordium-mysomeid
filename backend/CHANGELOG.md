@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.0.2
+
+- Reduce postgres logging to WARN.
+
 ## 1.0.1
 
 - Add resizing of background image to improve QR-code readability.
