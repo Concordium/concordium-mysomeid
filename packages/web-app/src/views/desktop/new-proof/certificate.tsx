@@ -11,6 +11,7 @@ import {
 import logoSvg from 'src/images/logo-white.svg';
 import QRCode from 'react-qr-code';
 import { TrackBox } from './track-box';
+import { defaultProofColor } from 'src/themes/theme';
 
 let template: HTMLElement | null = null;
 
@@ -174,7 +175,7 @@ export const Certificate = ({
                   width: '200px',
                   minWidth: '200px',
                   minHeight: '260px',
-                  background: 'rgb(205, 90, 109)',
+                  background: defaultProofColor,
                   borderRadius: '8px',
                   padding: '8px',
               }}>
@@ -202,7 +203,6 @@ export const Certificate = ({
                     height: "44px",
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: 'contain',
-                    transform: 'scaleX(1.1)',
                     marginRight: '8px',
                   }}/>
                   <Typography sx={{fontSize: '16px', textAlign: 'center', color: 'white'}}>VERIFIED BY<br/>MYSOMEID</Typography>

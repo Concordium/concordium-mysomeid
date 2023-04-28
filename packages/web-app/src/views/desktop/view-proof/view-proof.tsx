@@ -15,11 +15,9 @@ import { Certificate } from "../new-proof/certificate";
 import { TrackBox } from "../new-proof/track-box";
 import { useDispatch } from "react-redux";
 import { error } from "src/slices/messages-slice";
-import { BackgroundEditor } from "../new-proof/page-4";
-import { Button } from 'src/components/ui/button';
-import defaultBackground from 'src/images/background-default.png';
-import DownloadIcon from '@mui/icons-material/Download';
+import { BackgroundEditor } from "../new-proof/background-editor";
 import { proofBaseUri, linkedInProfileBaseUrl } from "src/constants";
+import { defaultProofColor } from "src/themes/theme";
 
 export type Command = {
     subscribe: (fn: () => void) => () => void;
@@ -44,86 +42,36 @@ export const createCommand = (): Command => {
 }
 
 export const BackgroundEditorView = ({uri, id, showLoading}: {uri: string, id: string, showLoading: boolean}) => {
-    const [editorContentElement, setEditorContentElement] = useState(null);
-    const [manualBg, setManualBg] = useState<string | null>(null);
-    const [bgImg, setBgImg] = useState(null);
-    const [selColor, setSelColor] = useState(0);
+    // const [editorContentElement, setEditorContentElement] = useState(null);
+    // const [selColor, setSelColor] = useState(0);
 
-    const color = [
+    /* const color = [
       'rgb(205, 90, 109)',
       '#79d179',
       '#54a9c5',
       '#e4b5e7',
       'grey',
       // 'white',
-    ];
-
-    useEffect(() => {
-        const bgInCache = localStorage.getItem("reg_store_bg_" + id) ?? null;
-        if ( bgInCache ) {
-            setBgImg(bgInCache);    
-        } else {
-            setBgImg(defaultBackground);
-        }
-    }, []);
-
-    useEffect(() => {
-        if ( manualBg ) {
-          setBgImg(manualBg);
-        }
-    }, [manualBg]);
-    
-    const onImageChanged = useCallback((event: any) => {
-        const data = event?.target?.files?.[0] ? URL.createObjectURL(event?.target?.files?.[0]) : null;
-        setManualBg(data);
-    }, []);
-    
-    const onColorClicked = useCallback((event: any) => {
-        setSelColor(Number.parseInt(event.target.id.split('-')[1]));
-    }, []);
-
-    const imageInputRef = useRef<HTMLInputElement | null>(null);
-            
-    const [saveAndDl] = useState<Command>(createCommand());
-
-    const onDownload = useCallback(() => {
-        saveAndDl.exec();
-    }, [saveAndDl]);
-
-    const changeBackground = useCallback(() => {
-        imageInputRef?.current?.click();
-    }, [imageInputRef]);
-
-    const setDefaultBg = useCallback(() => {
-        setBgImg(defaultBackground);
-    }, []);
+    ]; */
 
     const theme = useTheme();
 
     const lt800 = useMediaQuery(theme.breakpoints.down(800));
-    const lt620 = useMediaQuery(theme.breakpoints.down(620));
+    // const lt620 = useMediaQuery(theme.breakpoints.down(620));
 
     return (
         <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', opacity: showLoading ? 0.1 : 1}}>
             <Typography variant="h3" display="block"><strong>LinkedIn profile image</strong></Typography>
             <Typography variant="h6" display="block"><strong>Edit and download your profile image</strong></Typography>
-            <input ref={imageInputRef} accept="image/*" type="file" onChange={onImageChanged} style={{display: 'none'}}/>
-
             <Box sx={{marginTop: '24px', display: 'flex', flexDirection: 'column', width: lt800 ? '96%' : '80%'}}>
-                <BackgroundEditor {...{saveAndDl, getPic: null, id, bgImg, uri, widgetColor: color[selColor] ?? 'rgb(205, 90, 109)'}} />
-                <Box sx={{display: 'flex', flexDirection: lt620 ? 'column' : 'row', marginBottom: !lt620 ? '24px' : '16px', marginTop: '8px'}}>
-                    <Box sx={{display: 'flex', flexDirection: 'row', height: "36px", alignItems: 'center', paddingTop: '16px'}}>
-                        <Button variant="weak" sx={{minWidth: '32px', marginRight: '8px'}} onClick={onDownload}><DownloadIcon /></Button>
-                        <Button variant="weak" sx={{minWidth: '148px', marginRight: '8px'}} onClick={changeBackground}>Set Background</Button>
-                        <Button variant="weak" sx={{minWidth: '90px'}} onClick={setDefaultBg}>Default</Button>
-                    </Box>
-                    <Box sx={{display: 'flex', flex: 1, flexDirection: 'row', height: "36px", alignItems: 'center', paddingTop: '16px'}}>
-                        {color.map((color, index) => (
-                            <Box id={"col-" + index} key={`col-${index}`} sx={{cursor: 'pointer', marginLeft: '8px', marginTop: '2px', minWidth: '18px', width: '18px', height: '18px', background: color, border: selColor === index ? '1px solid black' : color === 'white' ? '1px solid #b0b0b0' : undefined, borderRadius: '24px'}} onClick={onColorClicked} />
-                        ))}
-                        {!lt800 ? <Typography height="36px" variant="h6"  width="100%" textAlign="right" marginRight="8px" fontSize="0.5rem" display="flex" alignItems="center" justifyContent="right">Drag the proof to move it to a diffirent location</Typography>: undefined}
-                    </Box>
-                </Box>
+                <BackgroundEditor {...{
+                    controls: true,
+                    getPic: null,
+                    id,
+                    bgImg: localStorage.getItem("reg_store_bg_" + id) ?? null,
+                    uri,
+                    widgetColor: defaultProofColor
+                }} />                
             </Box>
         </Box>
     );

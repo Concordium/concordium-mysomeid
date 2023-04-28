@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="729px" height="402px" viewBox="0 0 729 402" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Melt</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M16.0634795,3.7803094e-13 C17.0943138,16.1887747 30.5510459,29 47,29 L138,29 C154.448954,29 167.905686,16.1887747 168.93652,4.41868764e-14 L185,0 L185,174 L169,174 L169,169 C169,151.879173 155.120827,138 138,138 L47,138 C29.8791728,138 16,151.879173 16,169 L16,174 L0,174 L0,0 L16.0634795,0 Z" id="path-1"></path>
+    </defs>
+    <g id="Melt" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Rectangle" fill="#2D9BF0" x="0" y="0" width="288" height="402" rx="31"></rect>
+        <g id="Group-2" transform="translate(272.000000, 117.000000)">
+            <mask id="mask-2" fill="white">
+                <use xlink:href="#path-1"></use>
+            </mask>
+            <use id="Combined-Shape-Copy" fill="#2D9BF0" xlink:href="#path-1"></use>
+            <rect id="Rectangle" fill="#000000" mask="url(#mask-2)" x="60" y="-11" width="126" height="185"></rect>
+            <rect id="Rectangle" fill="#2D9BF0" mask="url(#mask-2)" x="-67" y="65" width="205" height="37" rx="15"></rect>
+            <rect id="Rectangle" fill="#000000" mask="url(#mask-2)" x="45" y="29" width="205" height="36" rx="15"></rect>
+            <rect id="Rectangle-Copy-3" fill="#000000" mask="url(#mask-2)" x="45" y="102" width="205" height="36" rx="15"></rect>
+        </g>
+        <rect id="Rectangle-Copy" fill="#000000" x="441" y="0" width="288" height="402" rx="31"></rect>
+    </g>
+</svg>
