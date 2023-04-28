@@ -8,7 +8,6 @@ import {
 import validate from './validate';
 import {
   Box,
-  Button,
   Typography,
 } from '@mui/material';
 import {
@@ -25,6 +24,7 @@ import {
 import { TrackBox } from './track-box';
 import { IdProofOutput } from '@concordium/common-sdk';
 import { InstallExtensions } from './install-extensions';
+import { minLayoutBoxHeight } from './form-consts';
 
 function capitalize(s: string) {
   if (!s?.length) {
@@ -216,7 +216,7 @@ export default connect(state => ({
         <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
           {({ width, height }: { width: number, height: number }) => (
             <>
-              <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '325px' }}>
+              <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
 
                 <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', position: 'absolute', opacity: connectWithIDLoading ? 0.1 : 1 }}>
 

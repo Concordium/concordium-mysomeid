@@ -50,6 +50,55 @@ import { TrackBox } from './track-box';
 import { parseNameAndCountry } from './page-2';
 import { error } from 'src/slices';
 import { fuzzyMatchNames } from 'src/utils';
+import { InstallExtensions } from './install-extensions';
+import { minLayoutBoxHeight } from './form-consts';
+
+type PlatformProfileRepresentationArgs = {
+  userData: string;
+  profileImageUrl: string;
+  platform: 'li',
+  firstName: string;
+  surname: string;
+  firstNameMatch?: boolean;
+  surnameMatch?: boolean;
+};
+
+export const PlatformProfileRepresentation = ({
+  userData, 
+  profileImageUrl,
+  platform,
+  firstName,
+  surname,
+  firstNameMatch: firstNameMatch = null,
+  surnameMatch: surnameMatch = null
+}: PlatformProfileRepresentationArgs) => {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '287px', }}>
+      {platform === 'li' ? <Typography display="flex" variant="h6" fontSize="16px" fontWeight="400">LinkedIn<LinkedInIcon sx={{ marginTop: '2px', width: '21px', height: '21px' }} /></Typography>: undefined }
+      <Typography variant="h6" display="block">{userData ?? '?'}</Typography>
+      <Box sx={{
+        width: '140px',
+        height: '140px',
+        background: `url(${profileImageUrl})`,
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        borderRadius: '1111px',
+        border: '1px solid',
+        marginTop: '24px'
+      }} />
+      <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
+        <Box sx={{ display: 'flex' }}>
+          <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
+          <Typography variant="h6" display="block" marginLeft="auto">{firstName} {firstNameMatch !== null ? firstNameMatch ? '✅' : '❌' : undefined}</Typography>
+        </Box>
+        <Box sx={{ display: 'flex' }}>
+          <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
+          <Typography variant="h6" display="block" marginLeft="auto">{surname} {surnameMatch !== null ? surnameMatch ? '✅' : '❌' : undefined}</Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
 
 export default connect(state => ({
   ...(selector(state,
@@ -225,34 +274,34 @@ export default connect(state => ({
 
   return (
     <form>
+      <InstallExtensions>
+        <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
+          {({ width, height }: { width: number, height: number }) => (
+            <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
 
-      <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
-        {({ width, height }: { width: number, height: number }) => (
+              <Box sx={{ width: '100%', display: 'flex', opacity: showLoading ? 0.1 : 1 }}>
+                {state === 'show-connect' ? (
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                  }}>
+                    <Typography variant="h3" sx={{}}>
+                      We are almost there
+                    </Typography>
+                    <Typography display="block" sx={{ marginTop: '8px', textAlign: 'center', lineHeight: '1.3' }}>
+                      Please connect your wallet to Concordium to create the proof
+                    </Typography>
+                    <PrimaryButton sx={{ marginTop: '24px' }} variant="understated" onClick={connect} >Connect</PrimaryButton>
+                  </Box>
+                ) :
+                  state === 'show-summary' || state === 'create-proof' ? (
+                    <Box id="summary" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
 
-          <>
-            <Box sx={{ width: '100%', display: 'flex', opacity: showLoading ? 0.1 : 1 }}>
-              {state === 'show-connect' ? (
-                <Box sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
-                }}>
-                  <Typography variant="h3" sx={{}}>
-                    We are almost there
-                  </Typography>
-                  <Typography display="block" sx={{ marginTop: '8px', textAlign: 'center', lineHeight: '1.3' }}>
-                    Please connect your wallet to Concordium to create the proof
-                  </Typography>
-                  <PrimaryButton sx={{ marginTop: '24px' }} variant="understated" onClick={connect} >Connect</PrimaryButton>
-                </Box>
-              ) :
-                state === 'show-summary' || state === 'create-proof' ? (
-                  <Box id="summary" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-
-                    <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
-                      {statementInfo && proof ?
+                      <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
+                        {statementInfo && proof ?
                           <Box sx={{
                             background: `url(${MeltSvg})`,
                             width: '728px',
@@ -261,32 +310,17 @@ export default connect(state => ({
                             paddingTop: '24px',
                             transform: lt900 ? `scale(${window.innerWidth / 900})` : undefined,
                           }}>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '287px',}}>
-                              <Typography display="flex" variant="h6" fontSize="16px" fontWeight="400">LinkedIn<LinkedInIcon sx={{ marginTop: '2px', width: '21px', height: '21px' }} /></Typography>
-                              <Typography variant="h6" display="block">{userData ?? '?'}</Typography>
-                              <Box sx={{
-                                width: '140px',
-                                height: '140px',
-                                background: `url(${profileImageUrl})`,
-                                backgroundRepeat: 'no-repeat',
-                                backgroundSize: 'cover',
-                                borderRadius: '1111px',
-                                border: '1px solid',
-                                marginTop: '24px'
-                              }} />
-                              <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px'  }}>
-                                  <Box sx={{ display: 'flex' }}>
-                                    <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
-                                    <Typography variant="h6" display="block" marginLeft="auto">{profileFirstName} {!onlyUrl ? firstNameMatch ? '✅' : '❌' : undefined}</Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex' }}>
-                                    <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
-                                    <Typography variant="h6" display="block" marginLeft="auto">{profileSurname} {!onlyUrl ? lastNameMatch ? '✅' : '❌' : undefined}</Typography>
-                                  </Box>
-                              </Box>
-                            </Box>
+                            <PlatformProfileRepresentation {...{
+                              userData,
+                              platform,
+                              profileImageUrl,
+                              firstName: profileFirstName,
+                              surname: profileSurname,
+                              firstNameMatch: firstNameMatch,
+                              surnameMatch: lastNameMatch
+                            }} />
 
-                            <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px'}}>
+                            <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
                               <Typography variant="h3" display="block"><strong>Your Digital ID</strong></Typography>
                               <Typography variant="h6" display="block">Concordium Identity</Typography>
                               <Box sx={{
@@ -313,27 +347,28 @@ export default connect(state => ({
                               </Box>
                             </Box>
                           </Box>
-                        : undefined}
+                          : undefined}
+                      </Box>
                     </Box>
+                  ) : state === 'done' ? (
+                    null
+                  ) :
+                    undefined
+                }
+              </Box>
+
+              {
+                showLoading ?
+                  <Box sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
+                    <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof" />
                   </Box>
-                ) : state === 'done' ? (
-                  null
-                ) :
+                  :
                   undefined
               }
             </Box>
-
-            {
-              showLoading ?
-                <Box sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                  <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof" />
-                </Box>
-                :
-                undefined
-            }
-          </>
-        )}
-      </TrackBox>
+          )}
+        </TrackBox>
+      </InstallExtensions>
 
       <WizardNav {...{
         sx: { marginTop: '32px', },
