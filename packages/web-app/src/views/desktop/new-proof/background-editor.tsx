@@ -230,7 +230,7 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
               // marginRight: `${Math.round(8 * factor * scale)}px`,
               marginLeft: `${Math.round(-2 * factor * scale)}px`,
             }} />
-            <Typography sx={{ fontSize: `${Math.round(8 * factor * scale)}px`, textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOMEID</Typography>
+            <Typography sx={{ fontSize: `${Math.round(8 * factor * scale)}px`, textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
           </Box>
           <Box sx={{
             width: `100%`,
@@ -315,7 +315,7 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
               pointerEvents: 'none',
               userSelect: 'none',
             }} />
-            <Typography sx={{ fontSize: `${Math.round(8 * factor * shadowScale)}px`, textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOMEID</Typography>
+            <Typography sx={{ fontSize: `${Math.round(8 * factor * shadowScale)}px`, textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
           </Box>
 
           <Box sx={{

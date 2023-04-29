@@ -109,7 +109,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     }
 
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return false;
     }
 
@@ -120,7 +120,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
 
   const getRegistrations = async (): Promise<any> => {
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return null;
     }
 
@@ -130,7 +130,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
 
   const sendMessage = (to: string, type: string, payload: any) => {
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return;
     }
     mysome.sendMessage(to, type, payload);
@@ -138,7 +138,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
  
   const sendMessageWResponse = async (to: string, type: string, payload: any): Promise<any> => {
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return;
     }
     return mysome.sendMessage(to, type, payload);
