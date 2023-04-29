@@ -164,32 +164,21 @@ export const $array = (nodeList: NodeListOf<HTMLElement> | undefined) => {
 	return Array.prototype.slice.call(nodeList) ?? [];
 };
 
-function removeTitleFromName(name: string): string {
-	const titles = [
-		"Dr.",
-		"Doctor",
-		"PhD",
-		"Ph.D.",
-		"MD",
-		"DDS",
-		"DVM",
-		"JD",
-		"Esq.",
-		"CPA",
-		"Mr.",
-		"Mrs.",
-		"Ms.",
-		"Miss",
-		"Sir",
-		"Madam",
-	];
+function removeStringUpToComma(str: string): string {
+	const commaIndex = str.indexOf(",");
+	if (commaIndex === -1) {
+		return str; // No comma found, return original string
+	} else {
+		return str.slice(0, commaIndex + 1); // Include the comma in the result
+	}
+}
 
-	titles.forEach(title => {
-		if (name.startsWith(title)) {
-			name = name.slice(title.length + 1);
-		}
-	});
-
+function removeTitleFromName(name: string, titles: string[]): string {
+	let components = name.split(',').filter( x => titles.map(x => x.toLowerCase()).indexOf(x.toLowerCase()) === -1 );
+	name = components.join(',');
+	components = name.split(' ').filter( x => titles.map(x => x.toLowerCase()).indexOf(x.toLowerCase()) === -1 );
+	name = components.join(' ');
+	name = name.indexOf(',') >= 0 ? removeStringUpToComma(name) : name;
 	return name;
 }
 
@@ -211,18 +200,33 @@ function removeSpecialChars(name: string): string {
 }
 
 function trimName(s: string) {
+	const titles = [
+		"Dr.",
+		"Doctor",
+		"PhD",
+		"Ph.D.",
+		"MD",
+		"DDS",
+		"DVM",
+		"JD",
+		"Esq.",
+		"CPA",
+		"Sir",
+	];
+	s = s.split(',')[0];
 	return removeSpecialChars(
 		removeTitleFromName(
 			replaceMultipleSpaces(
 				removeEmojis(s)
-			)
+			),
+			titles
 		)
-		.trim()
+			.trim()
 	);
 };
 
 // TODO: Move to linked in file. ( this is a linkedin only tool )
-export const getUserNameOnFeed = (): string | null => {
+export const getUsersNameOnFeed = (): string | null => {
 	const loc = window.location.pathname === "/feed/";
 	if (!loc) {
 		// console.error("Not on feed url");
@@ -267,13 +271,13 @@ export const getUserNameOnFeed = (): string | null => {
 }
 
 // TODO: Move to linkedin.
-export const getUserNameOnProfile = () => {
+export const getUsersNameOnProfile = () => {
 	const nameElement = (document.querySelectorAll("h1")[0]) as any as HTMLElement;
 	if (!nameElement?.parentElement) {
 		return null;
 	}
-	const name = nameElement?.innerText?.trim();
-	return name ?? null;
+	const name = nameElement?.innerText?.trim() ?? null;
+	return name ? trimName(name) : null;
 }
 
 export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
