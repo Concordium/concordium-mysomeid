@@ -182,6 +182,7 @@ export const Certificate = ({
                       borderRadius: '1111px',
                       border: '1px solid',
                       marginTop: '16px',
+                      filter: blurQRCode ? 'blur(5px)' : undefined,
                       ...helpSx,
                     }} >
                       {loading && !profileImageUrl ? <Skeleton animation="wave" variant="circular" width={130} height={130} sx={{ marginLeft: '4px', marginTop: '4px' }} /> : undefined}

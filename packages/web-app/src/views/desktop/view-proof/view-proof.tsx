@@ -85,7 +85,7 @@ const generateRandomString = () => {
     return randomBytes.map(byte => ('0' + byte.toString(16)).slice(-2)).join('');
 };
 
-const encryptedPlaceholder = 'encrypted';
+const encryptedPlaceholder = '<encrypted>';
 
 export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevoke?: boolean, decryptionKey: string }) {
     const navigate = useNavigate();
@@ -104,43 +104,80 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
     const {
         revokeProof,
         loadProof,
+        loadProofMetadata,
     } = useCCDContext();
 
     const [proofLoaded, setProofLoaded] = useState(false);
     const [loadingProof, setLoadingProof] = useState(false);
+    const [metaDataLoaded, setMetaDataLoaded] = useState(false);
+    const [revoked, setRevoked] = useState<boolean | null>(null);
 
     const [failedLoadingProof, setFailedLoadingProof] = useState(false);
 
-    const nextDisabled = doneRevoking || revokingProof || revokingProof || (failedLoadingProof && !decryptionKey) || loadingProof;
+    const nextDisabled = revoked === true || doneRevoking || revokingProof || revokingProof || (failedLoadingProof && !decryptionKey) || loadingProof;
     const [showEditor, setShowEditor] = useState(false);
     const doShowEditor = useCallback(() => {
         setShowEditor(true);
     }, []);
+    
+    // If the decryptrion Key doesnt exist we can still determine if its revoked using
+    // the end-point that doesnt take a removed parameter. (this is needed if the user no longer has a locally stored copy)
+    useEffect(() => {
+        if (metaDataLoaded || failedLoadingProof) {
+            return;
+        }
+
+        if (decryptionKey) {
+            setMetaDataLoaded(true);
+            return;
+        }
+
+        setLoadingProof(true);
+        loadProofMetadata(id).then(metaData => {
+            setRevoked(metaData.revoked === true);
+            setMetaDataLoaded(true);
+        }).catch(err => {
+            console.error(err);
+            setFailedLoadingProof(true);
+        });
+    }, [id, metaDataLoaded, failedLoadingProof, decryptionKey]);
 
     useEffect(() => {
         if (proofLoaded) {
             return;
         }
 
-        if (decryptionKey) {
+        if (failedLoadingProof) {
+            return;
+        }
+
+        if (!metaDataLoaded) {
+            return;
+        }
+
+        setLoadingProof(true);
+
+        if (!decryptionKey) {
             setFirstName(encryptedPlaceholder);
             setSurname(encryptedPlaceholder);
             setPlatform('li');
             setUserData(encryptedPlaceholder);
             setUri([proofBaseUri, 'v', id, encodeURIComponent(generateRandomString())].join('/'));
             setUserData(encryptedPlaceholder);
+            setProfileImageUrl('https://static.licdn.com/sc/h/13m4dq9c31s1sl7p7h82gh1vh');
             setProfilePageUrl(linkedInProfileBaseUrl + encryptedPlaceholder);
+            setLoadingProof(false);
             return;
         }
 
-        setLoadingProof(true);
-
-        loadProof(id, decryptionKey).then((data) => {
+        loadProof(id, decryptionKey).then(({ proofData: data }) => {
+            debugger;
             setFirstName(data.firstName);
             setSurname(data.surName);
             setPlatform(data.platform);
             setUserData(data.userData);
-            setProfileImageUrl(data.profileImageUrl);
+            setProfileImageUrl(data.profileImageUrl ?? 'https://static.licdn.com/sc/h/13m4dq9c31s1sl7p7h82gh1vh');
+            setRevoked(data.revoked === true);
             setUri([proofBaseUri, 'v', id, encodeURIComponent(decryptionKey)].join('/'));
             setProfilePageUrl(linkedInProfileBaseUrl + data.userData);
             setLoadingProof(false);
@@ -149,7 +186,7 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
             setLoadingProof(false);
             setFailedLoadingProof(true);
         });
-    }, [id, proofLoaded, decryptionKey]);
+    }, [id, proofLoaded, failedLoadingProof, decryptionKey, metaDataLoaded]);
 
     const onPrev = useCallback(() => {
         if (showEditor) {
@@ -160,6 +197,9 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
     }, [showEditor]);
 
     const onRevoke = useCallback(() => {
+        if (revoked) {
+            return;
+        }
         if (!doneRevoking && !revokingProof) {
             setRevoking(true);
             revokeProof({ id }).then(() => {
@@ -173,13 +213,11 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                 dispatch(error('Failed to revoke the proof'));
             });
         }
-    }, [doneRevoking]);
+    }, [revoked, doneRevoking]);
 
     const theme = useTheme();
     const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
     const ltmd = useMediaQuery(theme.breakpoints.down('md'));
-
-    // console.log("ltmd", ltmd, " ltsm ", ltsm);
 
     return (
         <Box sx={{ backgroundColor: 'white', paddingTop: !ltmd ? '24px' : undefined }}>
@@ -187,21 +225,21 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                 <TrackBox id="container-box" sx={{ display: 'flex', flexDirection: 'column', }}>
                     {({ width, height }: { width: number, height: number }) => (
                         <>
-                            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', marginBottom: '48px', opacity: doneRevoking || failedLoadingProof || revokingProof ? 0.15 : undefined }}>
+                            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', marginBottom: '48px', opacity: revoked || doneRevoking || failedLoadingProof || revokingProof ? 0.15 : undefined }}>
                                 <Certificate {...{
                                     loading: loadingProof,
-                                    profilePageUrl: revokingProof ? '' : profilePageUrl,
-                                    profileImageUrl: revokingProof ? '' : profileImageUrl,
-                                    uri: revokingProof ? '' : uri,
-                                    userData: revokingProof ? '' : userData,
-                                    profileFirstName: revokingProof ? '' : profileFirstName,
-                                    profileSurname: revokingProof ? '' : profileSurname,
+                                    profilePageUrl: profilePageUrl,
+                                    profileImageUrl: profileImageUrl,
+                                    uri: uri,
+                                    userData: userData,
+                                    profileFirstName: profileFirstName,
+                                    profileSurname: profileSurname,
                                     mobileVersion: ltmd,
                                     blurQRCode: profileFirstName === encryptedPlaceholder
                                 }} />
                             </Box>
 
-                            {failedLoadingProof || doneRevoking || revokingProof ?
+                            {failedLoadingProof || revoked || doneRevoking || revokingProof ?
                                 <Box id="revoking-container" sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
                                     {failedLoadingProof && !doneRevoking && !revokingProof ?
                                         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -259,7 +297,7 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                                         </Box>
                                         : undefined}
 
-                                    {doneRevoking && !failedLoadingProof && !revokingProof ?
+                                    {revoked || (doneRevoking && !failedLoadingProof && !revokingProof) ?
                                         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                                             <Box sx={{
                                                 display: 'flex',
@@ -280,9 +318,9 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                                                     <Typography variant="h5" sx={{}}>
                                                         Proof Revoked
                                                     </Typography>
-                                                    <Typography display="block" sx={{ textAlign: 'center', lineHeight: '1.3', float: 'left' }}>
+                                                    {doneRevoking ? <Typography display="block" sx={{ textAlign: 'center', lineHeight: '1.3', float: 'left' }}>
                                                         Done revoking proof
-                                                    </Typography>
+                                                    </Typography> : undefined}
                                                     <br />
                                                     <br />
                                                     <LoadingIndicator sx={{ visibility: 'hidden' }} />
@@ -301,7 +339,7 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                 next: !noRevoke && !showEditor ? 'Revoke' : undefined,
                 onNext: onRevoke,
                 extraButton: !noRevoke && !showEditor ? 'Download Proof Again' : undefined,
-                extraButtonDisabled: profileFirstName === encryptedPlaceholder,
+                extraButtonDisabled: profileFirstName === encryptedPlaceholder || revoked || doneRevoking || revokingProof,
                 onExtraButton: doShowEditor,
                 nextDisabled,
             }} />

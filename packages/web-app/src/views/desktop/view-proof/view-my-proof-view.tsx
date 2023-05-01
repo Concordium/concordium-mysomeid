@@ -12,7 +12,7 @@ export const ViewMyProofView = ({ }) => {
         decryptionKey: decryptionKeyEncoded
     } = useParams();
 
-    const decryptionKey = decodeURIComponent(decryptionKeyEncoded);
+    const decryptionKey = decryptionKeyEncoded !== 'null' ? decodeURIComponent(decryptionKeyEncoded) : null;
 
     const theme = useTheme();
     // const ltsm = useMediaQuery(theme.breakpoints.down('sm'));

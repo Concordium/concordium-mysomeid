@@ -94,13 +94,6 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     });
   }, [mysome] );
 
-  /*{
-    platform: 'li',
-    step: 5,
-    username: userData,
-    url: profileImageUrl,
-    image: dataUrl,
-  }*/
   const updateRegistration = useCallback(async (reg: Registration): Promise<boolean> => {
     console.log("Updated registration ", reg);
 
@@ -131,7 +124,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     return result;
   };
 
-  const reloadTabs = async (args: {contains: string}): Promise<any> => {
+  const reloadTabs = useCallback(async (args: {contains: string}): Promise<any> => {
     if ( !mysome ) {
       console.error("Cannot find mysome extension.");
       return null;
@@ -139,7 +132,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
 
     const result = await mysome.reloadTabs(args);
     return result;
-  };
+  }, [mysome]);
 
   const sendMessage = (to: string, type: string, payload: any) => {
     if ( !mysome ) {

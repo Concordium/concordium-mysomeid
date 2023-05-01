@@ -392,6 +392,10 @@ async fn main() -> anyhow::Result<()> {
             axum::routing::get(get_proof),
         )
         .route(
+            "/v1/proof/nft/:proofId",
+            axum::routing::get(get_proof_state),
+        )
+        .route(
             "/v1/proof/validate-proof-url",
             axum::routing::get(validate_proof),
         )
@@ -947,6 +951,20 @@ async fn get_proof(
         .map(axum::Json)
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_proof_state(
+    Path((token_id)): Path<(ProofId)>,
+    State(ServiceState {
+        concordium_client,
+        contract_address,
+        ..
+    }): State<ServiceState>,
+) -> Result<axum::Json<GetProofStateResponse>, Error> {
+    get_proof_state_worker(token_id, concordium_client, contract_address)
+        .await
+        .map(axum::Json)
+}
+
 #[derive(serde::Deserialize)]
 struct GetEventsParams {
     limit: Option<u32>,
@@ -1059,6 +1077,59 @@ pub struct GetProofResponse {
     pub revoked:  bool,
     #[serde(flatten)]
     pub private:  PrivateTokenData,
+}
+
+#[tracing::instrument(level = "debug", skip(concordium_client, contract_address))]
+async fn get_proof_state_worker(
+    token_id: ProofId,
+    concordium_client: v2::Client,
+    contract_address: ContractAddress,
+) -> Result<GetProofStateResponse, Error> {
+    let mut contract_client = ContractClient {
+        address: contract_address,
+        client:  concordium_client,
+    };
+
+    let response = match contract_client.view_token_data(&token_id).await {
+        Ok(response) => response,
+        Err(e) => match e {
+            ContractQueryError::Network(rpc) => {
+                tracing::error!("Error querying the contract: {rpc}");
+                return Err(Error::Internal);
+            }
+            ContractQueryError::InvokeFailure(_) => {
+                return Err(Error::InvalidRequest(
+                    "The contract entrypoint failed.".into(),
+                ));
+            }
+            ContractQueryError::ParseResponseFailure => {
+                tracing::error!(
+                    "Could not parse response from the contract. This is likely a configuration \
+                     error."
+                );
+                return Err(Error::Internal);
+            }
+        },
+    };
+
+    let Some(view_data) = response else {
+        return Err(Error::InvalidRequest("No token with the given token ID.".into()))
+    };
+
+    Ok(GetProofStateResponse {
+        id: token_id,
+        platform: view_data.platform,
+        revoked: view_data.revoked,
+        owner: view_data.owner,
+    })
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct GetProofStateResponse {
+    pub id:       ProofId,
+    pub owner:    AccountAddress,
+    pub platform: SupportedPlatform,
+    pub revoked:  bool,
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
