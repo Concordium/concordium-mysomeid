@@ -164,24 +164,6 @@ export const $array = (nodeList: NodeListOf<HTMLElement> | undefined) => {
 	return Array.prototype.slice.call(nodeList) ?? [];
 };
 
-function removeStringUpToComma(str: string): string {
-	const commaIndex = str.indexOf(",");
-	if (commaIndex === -1) {
-		return str; // No comma found, return original string
-	} else {
-		return str.slice(0, commaIndex + 1); // Include the comma in the result
-	}
-}
-
-function removeTitleFromName(name: string, titles: string[]): string {
-	let components = name.split(',').filter( x => titles.map(x => x.toLowerCase()).indexOf(x.toLowerCase()) === -1 );
-	name = components.join(',');
-	components = name.split(' ').filter( x => titles.map(x => x.toLowerCase()).indexOf(x.toLowerCase()) === -1 );
-	name = components.join(' ');
-	name = name.indexOf(',') >= 0 ? removeStringUpToComma(name) : name;
-	return name;
-}
-
 function replaceMultipleSpaces(text: string): string {
 	return text.replace(/\s+/g, ' ');
 }
@@ -200,28 +182,11 @@ function removeSpecialChars(name: string): string {
 }
 
 function trimName(s: string) {
-	const titles = [
-		"Dr.",
-		"Doctor",
-		"PhD",
-		"Ph.D.",
-		"MD",
-		"DDS",
-		"DVM",
-		"JD",
-		"Esq.",
-		"CPA",
-		"Sir",
-	];
 	s = s.split(',')[0];
 	return removeSpecialChars(
-		removeTitleFromName(
-			replaceMultipleSpaces(
-				removeEmojis(s)
-			),
-			titles
-		)
-			.trim()
+		replaceMultipleSpaces(
+			removeEmojis(s)
+		),
 	);
 };
 
@@ -249,7 +214,10 @@ export const getUsersNameOnFeed = (): string | null => {
 		return trimName(name);
 	}
 
-	// Fallback
+	// Fallback: We can fall back on the code element if the other methods fails.
+	// Needs more testing to see how robust it is; but this may be the best solution of them all
+	// however its unclear when the element gets created as the intention is for analytics and not 
+	// part of the actual website.
 	const codeObject = $$('code').filter(x => x.innerText.indexOf('com.linkedin.voyager.common.Me') >= 0)
 		.map(x => {
 			try {
