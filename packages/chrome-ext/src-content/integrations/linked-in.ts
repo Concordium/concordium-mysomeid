@@ -1001,13 +1001,8 @@ const install = async () => {
 			proofUrl = state.proofUrl;
 		}
 
-		if (!proofUrl) {
-			console.error('No proof url');
-			return;
-		}
-
-		const proofId = proofUrl.split('/')[4];
-		const proofKey = proofUrl.split('/')[5];
+		const proofId = proofUrl?.split('/')?.[4] ?? '';
+		const proofKey = proofUrl?.split('/')?.[5] ?? '';
 		proofUrl = proofId && proofKey ? ['https://app.testnet.mysome.id', trackOnOwnProfileOrFeed.get() ? 'my-proof' : 'v', proofId, proofKey ].join('/') : proofUrl;
 
 		const onProfilePage = trackOnProfileUrl.get();
