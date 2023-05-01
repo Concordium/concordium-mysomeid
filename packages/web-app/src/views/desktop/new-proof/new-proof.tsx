@@ -58,6 +58,8 @@ function Content({templateData, onSubmit, step, setGotoStep}) {
     return null;
   }
 
+  const {installed: browserExtInstalled} = useExtension();
+
   const params = useSearchParams();
   const [template, setTemplate] = useState<any>(null);
 
@@ -66,10 +68,15 @@ function Content({templateData, onSubmit, step, setGotoStep}) {
     if ( !params ) {
       return;
     }
+    const encodedTemplate = params.get("template");
+    if ( !encodedTemplate ) {
+      setTemplate(null);
+      return;
+    }
     try {
-      const base64Template = decodeURIComponent(params.get("template"));
+      const base64Template = decodeURIComponent(encodedTemplate);
       const stringTemplate = toBuffer(base64Template, 'base64').toString('utf8');
-      const obj = params.get("template") ? JSON.parse(stringTemplate) : null;
+      const obj = JSON.parse(stringTemplate);
       if ( obj ) {
         setTemplate(obj);
       } else {
@@ -79,9 +86,7 @@ function Content({templateData, onSubmit, step, setGotoStep}) {
       console.error("Failed to decode template", e);
       setTemplate(null);
     }
-  }, [params]);
-
-  const {installed: browserExtInstalled} = useExtension();
+  }, [params, params.get("template")]);
 
   return <>
     <HorizontalLinearStepper {...{key: "stepper", steps: steps(template), activeStep: step, style: {
