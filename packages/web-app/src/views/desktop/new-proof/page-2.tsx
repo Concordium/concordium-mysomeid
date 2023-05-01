@@ -9,6 +9,8 @@ import validate from './validate';
 import {
   Box,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   WizardNav
@@ -125,7 +127,10 @@ export default connect(state => ({
       'Connect Concordium ID'
     :
     'Next';
-
+ 
+  const theme = useTheme();
+  const lt1130 = useMediaQuery(theme.breakpoints.down(1130));
+  
   /*
     <Box sx={{marginTop: '16px' }}>
     <Button variant="contained" sx={{
@@ -233,11 +238,11 @@ export default connect(state => ({
                     profileFirstName,
                     profileSurname,
                     sx: {
-                      width: '25%',
+                      width: !lt1130 ? '25%' : '50%',
                     }
                   }} />
 
-                  <Box sx={{ display: 'flex', justifyContent: 'center', width: '25%', marginLeft: '5%', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', width: !lt1130 ? '25%' : '50%', marginLeft: '5%', flexDirection: 'column' }}>
                     <Typography variant="h6" display="block">You have now gathered the information from the social media account you wish to verify, and the next step is to compare and connect this information with your Concordium ID.</Typography>
                   </Box>
                 </Box>
