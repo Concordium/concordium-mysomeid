@@ -40,7 +40,7 @@ export const MobileHeader = ({ }) => {
                         fontWeight: 400,
                         textAlign: 'center',
                     }}>
-                        MYSOME ID
+                        mysome.id
                     </Typography>
                     <Typography component="p" sx={{
                         color: 'white',

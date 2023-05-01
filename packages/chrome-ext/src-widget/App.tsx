@@ -348,7 +348,7 @@ const App = () => {
                 ...themeSX.text.h1,
                 color: 'white',
               }}>
-                MYSOME.ID
+                mysome.id
               </Typography>
               <Typography sx={{
                 ...themeSX.text.medium,
