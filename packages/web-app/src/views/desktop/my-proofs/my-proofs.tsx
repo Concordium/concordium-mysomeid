@@ -15,6 +15,7 @@ import {
 
 import {
   Button,
+  LoadingIndicator,
   PrimaryButton,
   SecondaryButton,
 } from 'src/components';
@@ -66,23 +67,14 @@ export function MyProofs({}) {
     isConnected,
     installed,
     connect,
-    contract,
     loadingMyProofs,
     myProofs,
-    loadMyProofs,
   } = useCCDContext();
   const styles = useStyles();
 
   const [state, setState] = useState({
     showBackdrop: true,
   } as any);
-
-  useEffect(
-    () => {
-      isConnected && contract && loadMyProofs().then().catch(console.error);
-    },
-    [isConnected, contract],
-  );
 
   const loading = loadingMyProofs && !myProofs;
 
@@ -259,6 +251,24 @@ export function MyProofs({}) {
       }
     }
   ];
+
+  if ( installed === null || loading || loadingMyProofs ) {
+    return (
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        margin: 'auto',
+        alignItems: 'center',
+        padding: '24px',
+        height: '236px'
+      }}>
+        <LoadingIndicator text="Loading" sx={{
+          display: 'flex',
+          flexDirection: 'column',
+        }} />
+      </Box>
+    );
+  }
 
   if ( isConnected && !loading && !listContent?.length ) {
     return (
