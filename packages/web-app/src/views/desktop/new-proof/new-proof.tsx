@@ -72,7 +72,6 @@ export function NewProof({}){
   } = useParams();
   const step = Number.parseInt(_step ?? '1') - 1;
 
-  // const step = (Number.parseInt(location.pathname.split('/').pop()) ?? 0) - 1;
   const setGotoStep = useCallback((pageIndex: number) => {
     const pathname = `/create/${pageIndex + 1}`;
     const search = template.getSearchArgs();

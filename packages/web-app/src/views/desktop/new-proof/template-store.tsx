@@ -92,14 +92,11 @@ export const TemplateStoreContextProvider: React.FC<{ children: ReactElement }> 
 		let newCache = {};
 		try {
 			const encodedTemplate = params.get('template');
-			// console.log('encodedTemplate ', { encodedTemplate });
 			if (!encodedTemplate || !encodedTemplate.length) {
 				return;
 			}
 			const base64Template = decodeURIComponent(encodedTemplate);
-			// console.log('base64Template ', { base64Template });
 			const stringTemplate = toBuffer(base64Template, 'base64').toString('utf8');
-			// console.log('stringTemplate ', { stringTemplate });
 			newCache = JSON.parse(stringTemplate);
 		} catch (e) {
 			console.error("Failed to decode template", e);
@@ -201,8 +198,15 @@ export const useTemplateStore = (formProps?: FormProps, savePropList?: PropName[
 			...ctx.cache,
 			...(values ?? {}),
 		} as any;
+
+		// Transform the default profile picture and background picture url into a default image
+		// this data comes from when scraping linkedin user profile and background.
+		// default: set when the profile pic url is the default
+		// data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 set when the profile picture url is the default
+		// null/undefined: should be converted to the default url in case nothing has been been defined.
 		input.profilePicUrl = ['default', 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', null, undefined].indexOf(input.profilePicUrl ?? null) === -1 ? input.profilePicUrl : 'https://static.licdn.com/sc/h/13m4dq9c31s1sl7p7h82gh1vh';
 		input.backgroundPicUrl = ['default', null, undefined].indexOf(input.backgroundPicUrl ?? null) === -1 ? input.backgroundPicUrl : 'https://static.licdn.com/sc/h/lortj0v1h4bx9wlwbdx6zs3f';
+
 		const output = ctx.update(input);
 		return output;
 	}, [ctx, values]);
