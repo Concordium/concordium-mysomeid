@@ -377,7 +377,7 @@ export const Certificate = ({
                         backgroundSize: 'contain',
                         marginRight: '8px',
                       }} />
-                      <Typography sx={{ fontSize: '16px', textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOMEID</Typography>
+                      <Typography sx={{ fontSize: '16px', textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
                     </Box>
                   </Box> : undefined}
                 </Box>
@@ -402,7 +402,7 @@ export const Certificate = ({
                     <Typography sx={{ maxWidth: '100%', fontSize: '16px' }}>
                       Finalize the verification of your profile by connecting your Proof to LinkedIn.
                       <br /><br />
-                      This step is needed to let other people to see that your profile is verified by scanning the proof with their mobile phone or using the MYSOME extension.
+                      This step is needed to let other people to see that your profile is verified by scanning the proof with their mobile phone or using the mysome.id extension.
                       <br /><br />
                       {'To do this you need to download the background picture and upload it to your LinkedIn profile.'}
                     </Typography>

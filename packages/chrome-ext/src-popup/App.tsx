@@ -176,7 +176,7 @@ const Header = ({logoClick}: any) => {
 
         <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: themeSX.size.s1}}>
           <Typography component="h1" sx={{...themeSX.text.h1, color: 'white'}}>
-            MYSOME.ID
+            mysome.id
           </Typography>
           <Typography sx={{
             ...themeSX.text.medium,
