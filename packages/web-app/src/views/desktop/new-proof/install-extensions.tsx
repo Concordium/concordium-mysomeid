@@ -30,9 +30,9 @@ const MySoMeExtNeeded = () => {
         Get started with the mysome.id Extension
       </Typography>
 
-      <Typography variant="subtitle1" gutterBottom component="div" sx={{ marginTop: '8px', maxWidth: '65%', textAlign: 'center' }}>
-        Install the MYSOME Browser Extension to secure your Social Media profile.
-        <br />
+      <Typography variant="subtitle1" gutterBottom component="div" sx={{marginTop: '8px', maxWidth: '65%', textAlign: 'center'}}>
+        Install the mysome.id browser extension to secure your social media profile.
+        <br/>
         Supported by Chrome, Brave, Edge and Opera.
       </Typography>
 
