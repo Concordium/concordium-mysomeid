@@ -75,7 +75,7 @@ function App() {
             </>} />
             <Route path="/start" element={<Navigate to="/create/1"/>} />
             <Route path="/create" element={<Navigate to="/create/1" />} />
-            <Route path="/create/*" element={
+            <Route path="/create/:step" element={
               <NewProofView />
             } />
             <Route path="/view/:id/:decryptionKey" element={<ViewProofView/>} />
