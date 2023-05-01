@@ -32,7 +32,7 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 			tooltip,
 		});*/
 		if ( !container || !dots || !shield || !check || !tooltip || !exclaim ) {
-			throw new Error('MySoMeID: Failed to install MySoMeID extension to profile page');
+			throw new Error('mysomeid: Failed to inject the mysome.id extension to profile page');
 		}
 		return {
 			container,
@@ -54,12 +54,12 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 	const dotsRadius = 2;
 	const dotsColor = '#000000';
 	const dotsAnimColor = 'rgba(0, 0, 0, 0.2)';
-	const tooltipTextVerified = 'MYSOMEID:</br></br>Profile Verified';
-	const tooltipTextOwnProfileVerified = 'MYSOMEID:</br></br>Your profile is secure'
-	const tooltipTextNotVerified = 'MYSOMEID:</br></br>Profile NOT verified'
-	const tooltipTextOwnProfileNotVerified = 'MYSOMEID:</br></br>You are not secured</br></br>Click to get started';
-	const tooltipTextOtherProfileNotVerified = 'MYSOMEID:</br></br>This profile is not verified.</br>';
-	const tooltipTextNoConnection = 'MYSOMEID:</br></br>No Connection</br>';
+	const tooltipTextVerified = 'mysome.id:</br></br>Profile Verified';
+	const tooltipTextOwnProfileVerified = 'mysome.id</br></br>Your profile is secure'
+	const tooltipTextNotVerified = 'mysome.id</br></br>Profile NOT verified'
+	const tooltipTextOwnProfileNotVerified = 'mysome.id</br></br>You are not secured</br></br>Click to get started';
+	const tooltipTextOtherProfileNotVerified = 'mysome.id</br></br>This profile is not verified.</br>';
+	const tooltipTextNoConnection = 'mysome.id</br></br>No Connection</br>';
 	let state: 'none' | 'no-connection' | 'verified' | 'own-profile-not-verified' | 'other-profile-not-verified' | 'suspecious';
 	let created = false;
 	let proofUrl = '';

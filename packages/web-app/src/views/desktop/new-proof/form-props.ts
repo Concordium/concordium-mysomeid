@@ -1,6 +1,6 @@
 import {formValueSelector} from 'redux-form';
 
-const formName = 'new-claim';
+export const formName = 'new-proof';
 
 export const selector = formValueSelector(formName);
 

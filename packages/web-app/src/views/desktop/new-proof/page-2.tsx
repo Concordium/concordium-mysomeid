@@ -9,6 +9,8 @@ import validate from './validate';
 import {
   Box,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   WizardNav
@@ -26,6 +28,7 @@ import { IdProofOutput } from '@concordium/common-sdk';
 import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader, ProofCreatedConfirmation } from './page-4';
+import { useTemplateStore } from './template-store';
 
 function capitalize(s: string) {
   if (!s?.length) {
@@ -38,12 +41,11 @@ type ProfileInfo = {
   name: string;
 };
 
-export function parseNameAndCountry(profileInfo: ProfileInfo) {
-  console.log('parseNameAndCountry ', profileInfo);
+export function parseNameFromNameString(name: string) {
   let profileFirstName = '';
   let profileSurname = '';
   try {
-    const profileNameComponents = (profileInfo?.name?.split(' ') ?? []).filter(x => !!x.trim());
+    const profileNameComponents = (name?.split(' ') ?? []).filter(x => !!x.trim());
     profileFirstName = profileNameComponents[0] ?? '';
     profileFirstName = capitalize(profileFirstName.toLowerCase());
   } catch (e) {
@@ -51,7 +53,7 @@ export function parseNameAndCountry(profileInfo: ProfileInfo) {
   }
 
   try {
-    const profileNameComponents = (profileInfo?.name?.split(' ') ?? []).filter(x => !!x.trim());
+    const profileNameComponents = (name?.split(' ') ?? []).filter(x => !!x.trim());
     profileSurname = profileNameComponents[profileNameComponents.length - 1] ?? '';
     profileSurname = capitalize(profileSurname.toLowerCase());
   } catch (e) {
@@ -66,7 +68,7 @@ export function parseNameAndCountry(profileInfo: ProfileInfo) {
 }
 
 export default connect(state => ({
-  userData: selector(state, 'userData'),
+  userId: selector(state, 'userId'),
   platform: selector(state, 'platform'),
   authorised: selector(state, 'authorised'),
   profileInfo: selector(state, 'profileInfo'),
@@ -81,16 +83,19 @@ export default connect(state => ({
 })((props) => {
   const {
     nextPage,
-    prevPage,
-    pristine,
     valid,
     previousPage,
-    userData,
-    platform,
-    profileInfo,
-    statementInfo,
-    template,
   } = props;
+
+  const {
+    updateProps: templateUpdateProps,
+    platform,
+    userId,
+    proof,
+    name,
+    statementInfo,
+    profilePicUrl,
+  } = useTemplateStore(props, ['proof', 'challenge', 'name', 'statementInfo']);
 
   const dispatch = useDispatch();
 
@@ -102,12 +107,12 @@ export default connect(state => ({
   ] = useState(false);
 
   useEffect(() => {
-    if (!userData || !platform || !profileInfo) {
+    if (!userId || !platform || !name) {
       console.log("no user data or platform or profileInfo");
       navigate('/create/1?previousFailed');
       return;
     }
-  }, [userData, platform, profileInfo, statementInfo]);
+  }, [userId, platform, name]);
 
   const {
     createProofStatement,
@@ -116,7 +121,7 @@ export default connect(state => ({
     account,
   } = useCCDContext();
 
-  const nextDisabled = !userData || !platform || pristine || !valid || connectWithIDLoading;
+  const nextDisabled = !userId || !platform || !valid || connectWithIDLoading;
 
   const nextLabel = !statementInfo ?
     !isConnected ?
@@ -126,52 +131,26 @@ export default connect(state => ({
     :
     'Next';
 
-  /*
-    <Box sx={{marginTop: '16px' }}>
-    <Button variant="contained" sx={{
-      minWidth: '100px',
-      marginLeft: '8px',
-      padding: '6px 16px',
-      opacity: statementInfo ? 0.1 : 1,
-    }} disabled={statementInfo} disableRipple onClick={authorize}>{!isConnected ? 'Connect Concordium Wallet' : 'Connect With Your Concordium ID'}</Button>
-    </Box>
-  */
-
   const prevDisabled = connectWithIDLoading;
-
-  const profileImageUrl = profileInfo?.profileInfo?.profileImage;
-
-  // console.log("profileImageUrl ", profileImageUrl);
 
   const {
     profileFirstName,
     profileSurname,
-  } = parseNameAndCountry(profileInfo?.profileInfo);
-
-  const onlyUrl = profileInfo?.profileInfo?.onlyUrl ?? true; // when this is returned the paltform cannto give us a name,
-  // console.log("profileInfo ", profileInfo);
-
-  const cancel = useCallback(() => {
-    prevPage();
-  }, []);
+  } = parseNameFromNameString(name);
 
   const onNext = useCallback(() => {
-    if (nextDisabled) {
-      console.error('next disabled.');
-    }
-
     if (connectWithIDLoading) {
       console.error("Already loading - ignored");
+      return;
+    }
+    
+    if (proof) {
+      nextPage();
       return;
     }
 
     if (!isConnected) {
       connect();
-      return;
-    }
-
-    if (statementInfo) {
-      nextPage();
       return;
     }
 
@@ -181,18 +160,20 @@ export default connect(state => ({
       firstName: profileFirstName,
       surName: profileSurname,
       platform,
-      userData,
+      userData: userId,
       account,
-    }).then((retval: { challenge: string, proof: IdProofOutput }) => {
+    }).then((retval: { challenge: string, proof: IdProofOutput, statement: any }) => {
       const {
         challenge,
-        proof
+        proof,
+        statement,
       } = retval ?? {};
-      console.log(JSON.stringify(proof, null, ' '));
       if (challenge && proof) {
-        props.change('statementInfo', proof);
-        props.change('proof', proof);
-        props.change('challenge', challenge);
+        templateUpdateProps(props, {
+          'statementInfo': statement,
+          'proof': proof,
+          'challenge': challenge,
+        });
         window.setTimeout(() => nextPage()); // Allow promise to finalize before state is destroyed.
       } else {
         const startMsg = 'Failed to Authorise: ';
@@ -214,7 +195,7 @@ export default connect(state => ({
       console.log('Authorise is done done');
       setConnectWithIDLoading(false);
     });
-  }, [props, userData, profileFirstName, profileSurname, platform, account, connectWithIDLoading]);
+  }, [props, userId, proof, profileFirstName, profileSurname, platform, account, connectWithIDLoading]);
 
   return (
     <form>
@@ -223,21 +204,21 @@ export default connect(state => ({
           {({ width, height }: { width: number, height: number }) => (
             <>
               <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
-                <FormSubstepHeader header="Your Profile to Secure" desc={userData ?? ' '} sx={{ opacity: connectWithIDLoading ? 0.1 : 1 }} />
+                <FormSubstepHeader header="Your Profile to Secure" desc={userId ?? ' '} sx={{ opacity: connectWithIDLoading ? 0.1 : 1 }} />
 
                 <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', opacity: connectWithIDLoading ? 0.1 : 1 }}>
 
                   <ProofCreatedConfirmation {...{
-                    profileImageUrl,
-                    userData,
+                    profileImageUrl: profilePicUrl,
+                    userData: userId,
                     profileFirstName,
                     profileSurname,
                     sx: {
-                      width: '25%',
+                      width: !lt1130 ? '25%' : '50%',
                     }
                   }} />
 
-                  <Box sx={{ display: 'flex', justifyContent: 'center', width: '25%', marginLeft: '5%', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', width: !lt1130 ? '25%' : '50%', marginLeft: '5%', flexDirection: 'column' }}>
                     <Typography variant="h6" display="block">You have now gathered the information from the social media account you wish to verify, and the next step is to compare and connect this information with your Concordium ID.</Typography>
                   </Box>
                 </Box>

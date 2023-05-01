@@ -231,7 +231,7 @@ const verifyProfile = async (profileUserId: string, backgroundUrl: string | null
 };
 
 const ensureWidget = () => {
-	logger.info("Adding MySoMe Widget");
+	logger.info("Adding mysome.id Widget");
 
 	const nameElement = (document.querySelectorAll("h1")[0]) as any as HTMLElement;
 
@@ -885,19 +885,18 @@ const getCreateLink = () => {
 	const template = 'template=' + encodeURIComponent(utf8_to_b64(JSON.stringify({
 		userId: trackOwnProfileUserId.get(),
 		platform: mysome.platform,
-		skipFirstPage: true,
 		name: trackOwnProfileName.get(),
 		profilePicUrl: trackProfilePictureUrl.get(),
 		backgroundPicUrl: trackBackgroundUrl.get(),
 	})));
 	const base = WEBSITE_BASE_URL();
-	return `${base}/create/1?${template}`;
+	return `${base}/create/2?${template}`;
 };
 
 function showWelcomePopup() {
 	showMessagePopup({
-		title: 'Thank you for installing MYSOME',
-		message: 'To get started you must link a proof of account ownership to your profile<br/><br/>Tip: If you need additional assistance, you can always click on the MYSOME shield or badge',
+		title: 'Thank you for installing mysome.id',
+		message: 'To get started you must link a proof of account ownership to your profile<br/><br/>Tip: If you need additional assistance, you can always click on the mysome.id shield or badge',
 		primary: 'Create Proof',
 		secondary: 'CANCEL',
 		primary_link: getCreateLink(),
@@ -1028,11 +1027,11 @@ const install = async () => {
 			if ( profileStatus.get() !== null ) {
 				const status = profileStatus?.get()?.status ?? null;
 				const statusMessage = status === 'no-connection' ?
-											'No connection to the MYSOME service' :
+											'No connection to the mysome.id service' :
 										status === 'not-registered' ?
-											'This persons profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using MYSOME.' :
+											'This persons profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.' :
 										status === 'registered' ?
-											'This persons profile is verified by MYSOME' :
+											'This persons profile is verified by mysome.id' :
 										status === 'suspecious' ?
 											'This persons profile is not verified or suspecious' :
 										'This profile status is unknown';
@@ -1095,13 +1094,13 @@ const install = async () => {
 				} : {};
 
 				const statusMessage = status === 'no-connection' ?
-											'No connection to MYSOME service' :
+											'No connection to the mysome.id service' :
 										status === 'not-registered' ?
 											'Your profile is not yet verified.' :
 										status === 'registered' ?
 											'Your profile is verified' :
 										status === 'suspecious' ?
-											'Your profile is invalid.<br/><br/>You will appear suspecious to other users on LinkedIn using MYSOME.<br/>To fix this you need to make sure your first name and last name matches the proof.' :
+											'Your profile is invalid.<br/><br/>You will appear suspecious to other users on LinkedIn using mysome.id.<br/>To fix this you need to make sure your first name and last name matches the proof.' :
 										'Your profile status is unknown';
 
 				if ( !welcomeShown && status === 'not-registered' ) {
