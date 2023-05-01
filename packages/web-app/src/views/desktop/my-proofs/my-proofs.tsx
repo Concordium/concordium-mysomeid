@@ -105,7 +105,7 @@ export function MyProofs({}) {
 
   const columns: GridColDef[] = [
     { field: "no", hide: true, flex: 0.1, sortable: false, align: 'left',  },
-    { field: "platform", headerName: "Platform", flex: 0.50, minWidth: 50, maxWidth: 50, sortable: false, align: 'center', headerAlign: 'center', renderCell: (params) => {
+    { field: "platform", headerName: "#", flex: 0.50, minWidth: 50, maxWidth: 50, sortable: false, align: 'center', headerAlign: 'center', renderCell: (params) => {
       return (
         <Box sx={{width: '36px', height: '36px'}}>
           <PlatformLinkedInSvg width="36" height="36"/>

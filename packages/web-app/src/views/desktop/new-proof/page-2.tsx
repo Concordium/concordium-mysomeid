@@ -101,6 +101,9 @@ export default connect(state => ({
 
   const navigate = useNavigate();
 
+  const theme = useTheme();
+  const lt1130 = useMediaQuery(theme.breakpoints.down(1130));
+
   const [
     connectWithIDLoading,
     setConnectWithIDLoading
