@@ -9,17 +9,29 @@ import {
 
 let numPopups = 0;
 
-export const createPopup = (src: string, route: string = '#/home', options?: any): any => {
+export const countPopupsWithClassName = (className: string): number => {
+	let cnt = 0;
+	for( let widget of Object.entries(mysome.widgets) ) {
+		cnt += widget[1].className === className ?  1 : 0;
+	}
+	return cnt;
+}
+
+export const createPopup = (src: string, route: string = '#/home', options?: any, className=''): any => {
 	if (numPopups > 0) {
 		console.error("Showing more than one popup.");
 	}
 	numPopups++;
 	const {
 		closeOnBgClick = true,
-		bgColor = '#c9c9c966'
+		bgColor = '#c9c9c966',
 	} = options ?? {};
 	const id = Math.round(Math.random() * 9999999999999);
 	mysome.widgets[id] = {
+		id,
+		src,
+		route,
+		className,
 		created: false,
 		creating: true,
 		onResult: null as ((result: any) => void) | null,
@@ -75,7 +87,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 		let interval: any | undefined;
 		interval = setInterval(() => {
 			if (cnt++ > 30) {
-				console.error('Timed out opening window - this happens if you close the bpopup before its fully shown.');
+				console.error('Timed out opening window - this happens if you close the popup before its fully shown.');
 				clearInterval(interval);
 				return;
 			}
@@ -127,6 +139,7 @@ type ShowMessagePopupArgs = {
 	platform?: string | undefined;
 	title: string;
 	message: string;
+	className?: string;
 	primary?: string;
 	secondary?: string;
 	primary_link?: string;
@@ -134,7 +147,7 @@ type ShowMessagePopupArgs = {
 	goto_link?: string;
 };
 
-export function showMessagePopup({ platform, title, message, primary, secondary, primary_link, goto_button, goto_link }: ShowMessagePopupArgs): any {
+export function showMessagePopup({ platform, title, message, className, primary, secondary, primary_link, goto_button, goto_link }: ShowMessagePopupArgs): any {
 	const args = objToUrlParms({
 		u: '1', // Dummy value. TODO: Get rid of this.
 		p: platform ?? 'li', // TODO: get rid of this.
@@ -145,10 +158,11 @@ export function showMessagePopup({ platform, title, message, primary, secondary,
 		...(primary_link ? { primary_link: encodeURIComponent(primary_link) } : {}),
 		...(goto_button ? { goto_button, goto_link: encodeURIComponent(goto_link ?? '') } : {}),
 	});
-	return mysome.createPopup("widget/index.html", `#/message?${args}`, {
+	const popupWidget = mysome.createPopup("widget/index.html", `#/message?${args}`, {
 		closeOnBgClick: true,
 		// bgColor: 'transparent',
-	});
+	}, className ?? 'popup');
+	return popupWidget;
 }
 
 export function showLoadingPopup(params: {
