@@ -885,13 +885,12 @@ const getCreateLink = () => {
 	const template = 'template=' + encodeURIComponent(utf8_to_b64(JSON.stringify({
 		userId: trackOwnProfileUserId.get(),
 		platform: mysome.platform,
-		skipFirstPage: true,
 		name: trackOwnProfileName.get(),
 		profilePicUrl: trackProfilePictureUrl.get(),
 		backgroundPicUrl: trackBackgroundUrl.get(),
 	})));
 	const base = WEBSITE_BASE_URL();
-	return `${base}/create/1?${template}`;
+	return `${base}/create/2?${template}`;
 };
 
 function showWelcomePopup() {

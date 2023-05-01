@@ -7,6 +7,7 @@ import {
   paperSX
 } from 'src/themes/index';
 import { NewProof } from '../new-proof/new-proof';
+import { TemplateStoreContextProvider } from './template-store';
   
 export const NewProofView = ({}) => {
   const theme = useTheme();
@@ -26,7 +27,9 @@ export const NewProofView = ({}) => {
     >
       <Paper elevation={2} sx={{...paperSX, marginLeft: 0}}>
         <Box sx={{padding: !ltmd ? 1 : 0, display: 'flex', flexDirection: 'column'}}>
-          <NewProof />
+          <TemplateStoreContextProvider>
+            <NewProof />
+          </TemplateStoreContextProvider>
         </Box>
       </Paper>
     </ViewContainer>

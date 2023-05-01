@@ -47,7 +47,7 @@ export type ProofData = {
 type CreateProofSBNFTArgs = {
   firstName: string;
   surName: string;
-  userData: string;
+  userId: string;
   proof: IdProofOutput;
   platform: "li";
   statementInfo: any;
@@ -64,6 +64,7 @@ type CreateProofSBNFTResult = {
 type CreateProofStatementResult = {
   challenge: string;
   proof: IdProofOutput | null;
+  statement: any;
 };
 
 type CreateProofStatementArgs = {
@@ -229,7 +230,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     );
 
     if ( responseTxs.status !== 200 ) {
-      throw new Error('Failed to store proof (1)');
+      throw new Error(`Failed to get transactions (${responseTxs.status})`);
     }
 
     const responseTxsJson = await responseTxs.json();
@@ -387,13 +388,14 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     return {
       challenge, 
       proof,
+      statement,
     };
   }, [account]);
 
   const createProofSBNFT = useCallback(async ({
     firstName,
     surName,
-    userData,
+    userId,
     challenge,
     platform,
     proof,
@@ -402,6 +404,14 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
   }: CreateProofSBNFTArgs): Promise<CreateProofSBNFTResult> => {
     if ( creatingProof ) {
       throw new Error('Already creating proof');
+    }
+
+    if ( !firstName ) {
+      throw new Error('No first name given');
+    }
+
+    if ( !surName ) {
+      throw new Error('No surname given');
     }
 
     if ( proof.credential.length !== 96 ) {
@@ -423,7 +433,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
           platform,
           firstName,
           surName, 
-          userData,
+          userData: userId,
           challenge,
           proof,
         }),
@@ -431,7 +441,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     );
 
     if ( response.status !== 200 ) {
-      throw new Error('Failed to store proof (1)');
+      throw new Error(`Failed to store proof (${response.status})`);
     }
 
     const {decryptionKey, transactionHash} = await response.json();
@@ -476,7 +486,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       platform,
       firstName,
       lastName: surName,
-      userData,
+      userData: userId,
       proof,
       decryptionKey,
       tx: transactionHash,
