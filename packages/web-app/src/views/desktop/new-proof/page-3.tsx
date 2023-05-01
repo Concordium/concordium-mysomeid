@@ -156,12 +156,12 @@ export default connect(state => ({
   console.log("statementInfo ", statementInfo, ' proof ', proof);
 
   let state = !creatingProof ?
-                !isConnected ?
-                  'show-connect'
-                    :
-                  'create-proof'
-                :
-                'create-proof';
+    !isConnected ?
+      'show-connect'
+      :
+      'create-proof'
+    :
+    'create-proof';
 
   useEffect(() => {
     console.log("mouted");
@@ -203,10 +203,9 @@ export default connect(state => ({
 
   const {
     match: nameMatch,
+    firstNameMatch,
+    lastNameMatch,
   } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
-
-  const firstNameMatch = nameMatch;
-  const lastNameMatch = nameMatch;
 
   const theme = useTheme();
 
@@ -285,7 +284,7 @@ export default connect(state => ({
                     </Typography>
                     <PrimaryButton sx={{ marginTop: '24px' }} variant="understated" onClick={connect} >Connect</PrimaryButton>
                   </Box>
-                ) : state === 'create-proof'  ? (
+                ) : state === 'create-proof' ? (
                   <Box id="create-proof" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                     <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
                       {statementInfo && proof ?
@@ -316,7 +315,6 @@ export default connect(state => ({
                               backgroundRepeat: 'no-repeat',
                               backgroundSize: 'cover',
                               borderRadius: '1111px',
-                              // border: '1px solid',
                               backgroundPositionX: '3px',
                               backgroundPositionY: '3px',
                               marginTop: '16px'
@@ -335,6 +333,25 @@ export default connect(state => ({
                         </Box>
                         : undefined}
                     </Box>
+
+                    {statementInfo && proof ?
+                    <Box sx={{
+                      width: '100%',
+                      maxWidth: '728px',
+                      background: 'red',
+                      display: 'flex',
+                      marginTop: '28px',
+                      padding: '16px',
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      alignCenter: 'auto',
+                      borderRadius: '16px',
+                    }}>
+                      <Typography sx={{width: '100%', fontSize: '16px', lineHeight: '18px', textAlign: 'center', color: 'white'}}>
+                        <strong>Your name doesn't match the name in your Concordium ID.  Consider renaming your LinkedIn profile name in to match your Concordium ID name.</strong>
+                      </Typography>
+                    </Box> : undefined }
+
                   </Box>
                 ) :
                   undefined
