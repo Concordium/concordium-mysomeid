@@ -44,6 +44,8 @@ export type ExtensionData = {
   getStoredProof: (id: string) => Promise<ProofData>;
   storeProof: (proofData: ProofData) => Promise<void>;
   updateProofProperty: (id: string, key: string, value: any) => Promise<void>;
+
+  reloadTabs: (args: {contains: string}) => Promise<any>;
 } | null;
 
 type MySoMeAPI = {
@@ -56,6 +58,7 @@ type MySoMeAPI = {
   createPlatformRequest: (platform: string, request: 'fetch-profile') => Promise<any>;
   getStateValue: (store: string, key: string) => Promise<any | null>;
   setStateValue: (store: string, key: string, value: any) => Promise<any | null>;
+  reloadTabs: (args: {contains: string}) => Promise<any>;
 };
 
 const ExtensionContext = createContext<ExtensionData>(null);
@@ -125,6 +128,16 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     }
 
     const result = await mysome.getRegistrations();
+    return result;
+  };
+
+  const reloadTabs = async (args: {contains: string}): Promise<any> => {
+    if ( !mysome ) {
+      console.error("Cannot find mysome extension.");
+      return null;
+    }
+
+    const result = await mysome.reloadTabs(args);
     return result;
   };
 
@@ -241,6 +254,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     getStoredProof,
     storeProof,
     updateProofProperty,
+    reloadTabs,
   }), [
     installed,
     mysome,
@@ -255,6 +269,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     getStoredProof,
     storeProof,
     updateProofProperty,
+    reloadTabs,
   ]);
 
   return <ExtensionContext.Provider {...{value}}>{children}</ExtensionContext.Provider>;
