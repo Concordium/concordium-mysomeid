@@ -129,9 +129,6 @@ export default connect(state => ({
     'Next';
  
   const theme = useTheme();
-  const lt620 = useMediaQuery(theme.breakpoints.down(620));
-  const lt800 = useMediaQuery(theme.breakpoints.down(800));
-  const lt900 = useMediaQuery(theme.breakpoints.down(900));
   const lt1130 = useMediaQuery(theme.breakpoints.down(1130));
   
   /*
