@@ -164,32 +164,6 @@ export const $array = (nodeList: NodeListOf<HTMLElement> | undefined) => {
 	return Array.prototype.slice.call(nodeList) ?? [];
 };
 
-function replaceMultipleSpaces(text: string): string {
-	return text.replace(/\s+/g, ' ');
-}
-
-function removeEmojis(text: string): string {
-	return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
-}
-
-// Remove special characters from the name string
-function removeSpecialChars(name: string): string {
-	const specialChars = [",", ";", ".", ":", "*", "@", "\"", "'", "$"];
-	specialChars.forEach(char => {
-		name = name.split(char).join("");
-	});
-	return name;
-}
-
-function trimName(s: string) {
-	s = s.split(',')[0];
-	return removeSpecialChars(
-		replaceMultipleSpaces(
-			removeEmojis(s)
-		),
-	);
-};
-
 // TODO: Move to linked in file. ( this is a linkedin only tool )
 export const getUsersNameOnFeed = (): string | null => {
 	const loc = window.location.pathname === "/feed/";
@@ -211,7 +185,7 @@ export const getUsersNameOnFeed = (): string | null => {
 	}
 
 	if (name?.length > 0) {
-		return trimName(name);
+		return name;
 	}
 
 	// Fallback: We can fall back on the code element if the other methods fails.
@@ -232,7 +206,7 @@ export const getUsersNameOnFeed = (): string | null => {
 	name = firstName + ' ' + lastName;
 
 	if (name?.length > 0) {
-		return trimName(name);
+		return name;
 	}
 
 	return null;
@@ -245,7 +219,7 @@ export const getUsersNameOnProfile = () => {
 		return null;
 	}
 	const name = nameElement?.innerText?.trim() ?? null;
-	return name ? trimName(name) : null;
+	return name ? name : null;
 }
 
 export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
