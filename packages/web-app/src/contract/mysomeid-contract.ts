@@ -117,12 +117,16 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
       receiveName: `${CONTRACT_NAME}.burn`,
       maxContractExecutionEnergy: 30000n,
     };
+    
+    let asNumber = Number.parseInt(`${tokenId}`); // integer to be formatted
+    let hexString = asNumber.toString(16).padStart(16, '0'); // convert to hex and pad with zeros
+    let littleEndianHexString = hexString.match(/.{1,2}/g).reverse().join(''); // split into pairs and reverse order
 
     const tx = await provider.sendTransaction(
       account,
       AccountTransactionType.Update,
       updatePayload,
-      tokenId as any,
+      littleEndianHexString as any,
       RAW_SCHEMA
     );
 
