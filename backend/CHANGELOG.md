@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.0.3
+
+- GET request to return revoked state of on-chain proof added.
+
 ## 1.0.2
 
 - Reduce postgres logging to WARN.
