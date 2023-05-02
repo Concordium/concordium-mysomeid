@@ -4,36 +4,41 @@ const {escapeRegExp} = _;
 type AllowedSubstitutions = Map<string, string[]>;
 
 export function fuzzyMatchNames(
-    a1: string,
-    a2: string,
-    b1: string,
-    b2: string,
+    aFirstName: string,
+    aSurname: string,
+    bFirstName: string,
+    bSurname: string,
     allowedSubstitutions: AllowedSubstitutions = getAllowedSubstitutions()
-): {match: boolean, a: boolean, b: boolean} {
-    if (a1 === b1 && a2 === b2) {
-        return {match: true, a: true, b: true};
+): {fullNameMatch: boolean, firstNameMatch: boolean, lastNameMatch: boolean} {
+    if (aFirstName === bFirstName && aSurname === bSurname) {
+        return {fullNameMatch: true, firstNameMatch: true, lastNameMatch: true};
     }
 
-    const a1Trimmed = a1.trim();
-    const a2Trimmed = a2.trim();
-    const b1Trimmed = b1.trim();
-    const b2Trimmed = b2.trim();
+    const aFirstNameTrimmed = aFirstName.trim();
+    const aSurNameTrimmed = aSurname.trim();
+    const bFirstnameTrimmed = bFirstName.trim();
+    const bSurnameTrimmed = bSurname.trim();
 
-    const a = `${a1Trimmed} ${a2Trimmed}`.toLowerCase();
-    const b = `${b1Trimmed} ${b2Trimmed}`.toLowerCase();
+    const aFullname = `${aFirstNameTrimmed} ${aSurNameTrimmed}`.toLowerCase();
+    const bFullname = `${bFirstnameTrimmed} ${bSurnameTrimmed}`.toLowerCase();
 
-    if (a === b) {
-        return {match: true, a: true, b: true};
+    const firstNameMatch = canTransformString(aFirstNameTrimmed.toLowerCase(), bFirstnameTrimmed.toLowerCase(), allowedSubstitutions) || 
+                        canTransformString(bFirstnameTrimmed.toLowerCase(), aFirstNameTrimmed.toLowerCase(), allowedSubstitutions);
+    const lastNameMatch = canTransformString(aSurNameTrimmed.toLowerCase(), bSurnameTrimmed.toLowerCase(), allowedSubstitutions) || 
+                        canTransformString(bSurnameTrimmed.toLowerCase(), aSurNameTrimmed.toLowerCase(), allowedSubstitutions);
+
+    if (aFullname === bFullname) {
+        return {fullNameMatch: true, firstNameMatch, lastNameMatch};
     }
 
-    const transformable =
-        canTransformString(a, b, allowedSubstitutions) ||
-        canTransformString(b, a, allowedSubstitutions);
+    const fullNameMatch =
+        canTransformString(aFullname, bFullname, allowedSubstitutions) ||
+        canTransformString(bFullname, aFullname, allowedSubstitutions);
 
     return {
-      match: transformable,
-      a: canTransformString(a, b, allowedSubstitutions),
-      b: canTransformString(b, a, allowedSubstitutions),      
+      fullNameMatch,
+      firstNameMatch,
+      lastNameMatch,
     };
 }
 

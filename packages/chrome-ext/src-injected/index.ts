@@ -1,6 +1,6 @@
 console.log("Installing MySoMeId Injected.");
 
-type MessageTypes = 'show-popup' | 'create-tour' | 'create-badge' | 'get-state' | 'set-state' | 'update-registration' | 'create-popup' | 'widget-create' | 'get-url';
+type MessageTypes = 'show-popup' | 'create-tour' | 'reload-tabs' | 'create-badge' | 'get-state' | 'set-state' | 'update-registration' | 'create-popup' | 'widget-create' | 'get-url';
 type ToTypes = 'content' | 'popup' | 'background' | 'injected-widget';
 const widgets: Record<string, any> = {};
 const messageContexts: Record<number, any> = {};
@@ -155,6 +155,10 @@ const createTour = () => {
   messageHandler.sendMessage("content", "create-tour", {}); 
 };
 
+const reloadTabs = async (args?: any) : Promise<any> => {
+  return await messageHandler.sendMessageWResponse("background", "reload-tabs", {...(args ?? {})}); 
+};
+
 const updateRegistration = async (state: any) => {
   if (!state || typeof state !== 'object' ) {
     throw new Error('Invalid state for registration');
@@ -227,6 +231,7 @@ class MySoMeAPI {
   getStateValue = getStateValue;
   setStateValue = setStateValue;
   getState = getState;
+  reloadTabs = reloadTabs;
 }
 
 (window as any).mysome = new MySoMeAPI();

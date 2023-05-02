@@ -11,8 +11,8 @@ import {
 	base64ToBlob,
 	objToUrlParms,
 	utf8_to_b64,
-	getUserNameOnProfile,
-	getUserNameOnFeed,
+	getUsersNameOnProfile,
+	getUsersNameOnFeed,
 	registrations,
 } from '../utils';
 import {
@@ -24,6 +24,7 @@ import {
 	showMessagePopup,
 	showLoadingPopup,
 	showFinalizePopup,
+	countPopupsWithClassName,
 } from '../popup';
 import {
 	mysome,
@@ -231,7 +232,7 @@ const verifyProfile = async (profileUserId: string, backgroundUrl: string | null
 };
 
 const ensureWidget = () => {
-	logger.info("Adding MySoMe Widget");
+	logger.info("Adding mysome.id Widget");
 
 	const nameElement = (document.querySelectorAll("h1")[0]) as any as HTMLElement;
 
@@ -319,6 +320,7 @@ const trackVerifyStatus = createTracker<string | null>({
 const trackProfilePictureUrl = createTracker<string | null>({
 	name: 'profilePictureUrl',
 });
+const trackPathname = createTracker<string | null>({name: 'route'});
 
 const createHeartbeat = () => {
 	// let updatePageStatus = false;
@@ -330,6 +332,14 @@ const createHeartbeat = () => {
 			value: url,
 			// dirty: urlChanged,
 		} = trackUrl.update();
+
+		const {
+			value: pathname
+		} = trackPathname.update({
+			query: () => {
+				return window.location.pathname ?? '';
+			},
+		});
 
 		const {
 			value: onProfileUrl,
@@ -363,9 +373,9 @@ const createHeartbeat = () => {
 					return null;
 				}
 				if ( onProfileUrl ) {
-					return getUserNameOnProfile();
+					return getUsersNameOnProfile();
 				}
-				return getUserNameOnFeed() ?? null;
+				return getUsersNameOnFeed() ?? null;
 			}
 		});
 
@@ -454,7 +464,7 @@ const createHeartbeat = () => {
 				if ( !header ) {
 					return null;
 				}
-				return getUserNameOnProfile() ?? null;
+				return getUsersNameOnProfile() ?? null;
 			},
 		});
 
@@ -885,19 +895,19 @@ const getCreateLink = () => {
 	const template = 'template=' + encodeURIComponent(utf8_to_b64(JSON.stringify({
 		userId: trackOwnProfileUserId.get(),
 		platform: mysome.platform,
-		skipFirstPage: true,
 		name: trackOwnProfileName.get(),
 		profilePicUrl: trackProfilePictureUrl.get(),
 		backgroundPicUrl: trackBackgroundUrl.get(),
 	})));
 	const base = WEBSITE_BASE_URL();
-	return `${base}/create/1?${template}`;
+	return `${base}/create/2?${template}`;
 };
 
 function showWelcomePopup() {
 	showMessagePopup({
-		title: 'Thank you for installing MYSOME',
-		message: 'To get started you must link a proof of account ownership to your profile<br/><br/>Tip: If you need additional assistance, you can always click on the MYSOME shield or badge',
+		title: 'Thank you for installing mysome.id',
+		message: 'To get started you must link a proof of account ownership to your profile<br/><br/>Tip: If you need additional assistance, you can always click on the mysome.id shield or badge',
+		className: 'badge-popup',
 		primary: 'Create Proof',
 		secondary: 'CANCEL',
 		primary_link: getCreateLink(),
@@ -990,6 +1000,14 @@ const install = async () => {
 			return;
 		}
 
+		const popups = countPopupsWithClassName('badge-popup');
+		console.log('popups ', popups);
+		
+		if ( popups > 0 ) {
+			console.log("ignored showing popup as one other popup is already shown.");
+			return;
+		}
+
 		// Resolve the params that we want to open the popup
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
 
@@ -1001,13 +1019,8 @@ const install = async () => {
 			proofUrl = state.proofUrl;
 		}
 
-		if (!proofUrl) {
-			console.error('No proof url');
-			return;
-		}
-
-		const proofId = proofUrl.split('/')[4];
-		const proofKey = proofUrl.split('/')[5];
+		const proofId = proofUrl?.split('/')?.[4] ?? '';
+		const proofKey = proofUrl?.split('/')?.[5] ?? '';
 		proofUrl = proofId && proofKey ? ['https://app.testnet.mysome.id', trackOnOwnProfileOrFeed.get() ? 'my-proof' : 'v', proofId, proofKey ].join('/') : proofUrl;
 
 		const onProfilePage = trackOnProfileUrl.get();
@@ -1028,11 +1041,11 @@ const install = async () => {
 			if ( profileStatus.get() !== null ) {
 				const status = profileStatus?.get()?.status ?? null;
 				const statusMessage = status === 'no-connection' ?
-											'No connection to the MYSOME service' :
+											'No connection to the mysome.id service' :
 										status === 'not-registered' ?
-											'This persons profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using MYSOME.' :
+											'This persons profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.' :
 										status === 'registered' ?
-											'This persons profile is verified by MYSOME' :
+											'This persons profile is verified by mysome.id' :
 										status === 'suspecious' ?
 											'This persons profile is not verified or suspecious' :
 										'This profile status is unknown';
@@ -1046,6 +1059,7 @@ const install = async () => {
 				showMessagePopup({
 					title: 'Profile Status',
 					message: statusMessage,
+					className: 'badge-popup',
 					primary: (status !== 'registered' ? 'Okay' : ''),
 					...goto,
 				});
@@ -1074,6 +1088,7 @@ const install = async () => {
 						showMessagePopup({
 							title: 'Your Profile Status',
 							message: "It seems that your profile is no longer verified.<br/><br/>To resolve this, you need to provide a new verification proof and attach it to your LinkedIn profile.",
+							className: 'badge-popup',
 							primary: 'Create Proof',
 							secondary: 'CANCEL',
 							primary_link: createLink,
@@ -1095,13 +1110,13 @@ const install = async () => {
 				} : {};
 
 				const statusMessage = status === 'no-connection' ?
-											'No connection to MYSOME service' :
+											'No connection to the mysome.id service' :
 										status === 'not-registered' ?
 											'Your profile is not yet verified.' :
 										status === 'registered' ?
 											'Your profile is verified' :
 										status === 'suspecious' ?
-											'Your profile is invalid.<br/><br/>You will appear suspecious to other users on LinkedIn using MYSOME.<br/>To fix this you need to make sure your first name and last name matches the proof.' :
+											'Your profile is invalid.<br/><br/>You will appear suspecious to other users on LinkedIn using mysome.id.<br/>To fix this you need to make sure your first name and last name matches the proof.' :
 										'Your profile status is unknown';
 
 				if ( !welcomeShown && status === 'not-registered' ) {
@@ -1111,6 +1126,7 @@ const install = async () => {
 					showMessagePopup({
 						title: 'Your Profile Status',
 						message: statusMessage,
+						className: 'badge-popup',
 						primary: 'Okay',
 						...goto,
 					});
@@ -1216,6 +1232,31 @@ const install = async () => {
 			badge.hide();
 		}		
 	});	
+
+	tracking.on(trackPathname.changeEventName, (pathName: string) => {
+		// If we are on the homescreen with the login form visibile then
+		// we find an open registration created less than 30 seconds ago
+		// and show a message to tell the user to login to continue their
+		// registration.
+		if ( (pathName === '/home' || pathName === '/') && !!document.querySelector('form[data-id="sign-in-form"]') ) {
+			platformRequests.fetch().then(requests => {
+				console.log("requests", requests);
+				const foundReq = requests.find(x => {
+					const deltaTime = ((new Date().getTime() - x.created) / 1000);
+					return x.platform === 'li' &&
+							x.status === 'created' &&
+							deltaTime < 30; 
+				} );
+				if ( foundReq ) {
+					showMessagePopup({
+						title: 'Secure Your Profile',
+						message: 'Log in to secure your profile with mysome.id',
+						primary: 'Okay'
+					});
+				}
+			});
+		}
+	});
 
 	tracking.on(trackHeader.changeEventName, (header: HTMLHeadingElement | null) => {
 		verbose("Header: updated");

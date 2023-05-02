@@ -46,7 +46,7 @@ export function MobileOpenAppOrAppStore ({device, id}: {device: 'Android' | 'iOS
     }}>
       <Box sx={{minHeight: '300px'}}>
           <Typography>
-              Opening MYSOME App
+              Opening the mysome.id app
           </Typography>
       </Box>
     </Box>

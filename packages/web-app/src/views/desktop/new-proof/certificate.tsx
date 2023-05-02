@@ -29,12 +29,14 @@ type ProofWidgetArgs = {
   widgetBgColor?: string;
   loading?: boolean;
   sx?: any;
+  blurQRCode?: boolean;
 };
 
 export const ProofWidget = ({
   uri,
   widgetBgColor: widgetBgColor = defaultProofColor,
   loading: loading = false,
+  blurQRCode,
   sx: sx = {},
 }: ProofWidgetArgs) => {
   return (
@@ -61,6 +63,7 @@ export const ProofWidget = ({
               width: `${200 - 16}px`,
               padding: `${Math.round(6)}px`,
               background: 'white',
+              filter: blurQRCode ? 'blur(5px)' : undefined,
             }}
           /> :
           loading ? <Skeleton animation="wave" variant="rectangular" width={200 - 16} height={200 - 16} /> : undefined
@@ -75,7 +78,7 @@ export const ProofWidget = ({
           backgroundSize: 'contain',
           marginRight: '8px',
         }} />
-        <Typography sx={{ fontSize: '16px', textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOMEID</Typography>
+        <Typography sx={{ fontSize: '16px', textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
       </Box>
     </Box>
   );
@@ -99,6 +102,7 @@ type CertificateArgs = {
   urlMatch?: string;
   activeValid?: string;
   showConnectWithLinkedIn?: boolean;
+  blurQRCode?: boolean;
 };
 
 export const Certificate = ({
@@ -117,6 +121,7 @@ export const Certificate = ({
   profileSurname,
   issueDate,
   urlMatch,
+  blurQRCode,
   activeValid,
   showConnectWithLinkedIn,
 }: CertificateArgs) => {
@@ -177,6 +182,7 @@ export const Certificate = ({
                       borderRadius: '1111px',
                       border: '1px solid',
                       marginTop: '16px',
+                      filter: blurQRCode ? 'blur(5px)' : undefined,
                       ...helpSx,
                     }} >
                       {loading && !profileImageUrl ? <Skeleton animation="wave" variant="circular" width={130} height={130} sx={{ marginLeft: '4px', marginTop: '4px' }} /> : undefined}
@@ -227,7 +233,7 @@ export const Certificate = ({
                   {!isMob && !hideQR ? <Box id="line" sx={{ ...helpSx, width: '1px', background: `${certBorderC}`, minHeight: '30px', height: 'calc(100% - 50px)', margin: '25px' }} /> : undefined}
                   {isMob && !hideQR ? <Box id="line" sx={{ ...helpSx, width: '75%', height: '1px', background: `${certBorderC}`, margin: '42px' }} /> : undefined}
 
-                  {!hideQR ? <ProofWidget {...{uri}}/> : undefined}
+                  {!hideQR ? <ProofWidget {...{uri, blurQRCode}}/> : undefined}
                 </Box>
               </Box>
               <Box id="explanation-content" sx={{
@@ -250,7 +256,7 @@ export const Certificate = ({
                     <Typography sx={{ maxWidth: '100%', fontSize: '16px' }}>
                       Finalize the verification of your profile by connecting your Proof to LinkedIn.
                       <br /><br />
-                      This step is necessary to allow others to see that your profile is verified. They can do this by either scanning the proof with their mobile phone or using the MYSOME extension.
+                      This step is necessary to allow others to see that your profile is verified. They can do this by either scanning the proof with their mobile phone or using the mysome.id extension.
                       <br /><br />
                       {'To do this you need to download the background picture and upload it to your LinkedIn profile.'}
                     </Typography>

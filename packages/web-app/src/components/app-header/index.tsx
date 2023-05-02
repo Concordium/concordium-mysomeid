@@ -25,6 +25,7 @@ import TitleWhitePng from 'src/images/title-white.png';
 import TitleBlackPng from 'src/images/title-black.png';
 import PoweredByWhitePng from 'src/images/powered-by-white.png'
 import PoweredByBlackPng from 'src/images/powered-by-black.png'
+import { HtmlTooltip } from '../wizard/wizard-row';
 
 const len = '0.2s';
 const curve = 'cubic-bezier(0, 0, 0.2, 1)';
@@ -119,15 +120,21 @@ const ConnectedStatusBadge = ({}) => {
       paddingTop: '8px',
       paddingBottom: '8px',
     }}>
-      <Box sx={{display: 'flex', flexDirection: 'row'}}>
-        <Box component="img" src={CCDLogo} sx={{width: "32px", height: "32px", marginRight: '16px'}}/>
-        <Box sx={{display: 'flex', flexDirection: 'column', marginTop: '1px'}}>
-          {isConnected ? <Typography sx={{textAlign: 'center'}}>{shortWalletDesc}</Typography> : undefined}
-          <Typography sx={{marginTop: '1px', textAlign: 'center'}}>
-            {isConnected ? 'Wallet Connected' : 'Not Connected'}
-          </Typography>
+      <HtmlTooltip
+        title={account}
+      >
+        <Box sx={{display: 'flex', flexDirection: 'row'}}>
+          <Box component="img" src={CCDLogo} sx={{width: "32px", height: "32px", marginRight: '16px'}}/>
+          <Box sx={{display: 'flex', flexDirection: 'column', marginTop: '1px'}}>
+            {isConnected ?
+              <Typography sx={{textAlign: 'center'}}>{shortWalletDesc}</Typography>
+            : undefined}
+            <Typography sx={{marginTop: '1px', textAlign: 'center'}}>
+              {isConnected ? 'Wallet Connected' : 'Not Connected'}
+            </Typography>
+          </Box>
         </Box>
-      </Box>
+      </HtmlTooltip>
     </Box>
   );
 };

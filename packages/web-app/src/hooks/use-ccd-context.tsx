@@ -13,7 +13,7 @@ import {
   detectConcordiumProvider,
   WalletApi
 } from '@concordium/browser-wallet-api-helpers';
-import createContractInterface, {ContractFacade} from 'src/contract/mysomeid-contract';
+import createContractInterface, { ContractFacade } from 'src/contract/mysomeid-contract';
 import { AttributesKeys, IdProofOutput /*, TransactionEvent*/ } from "@concordium/common-sdk";
 import {
   serviceUrl
@@ -22,7 +22,7 @@ import {
   useInterval
 } from 'use-interval';
 import { useExtension } from "./use-extension";
-import {isNil, sleep} from '../utils';
+import { isNil, sleep } from '../utils';
 
 export type ProofData = {
   id?: string;
@@ -47,7 +47,7 @@ export type ProofData = {
 type CreateProofSBNFTArgs = {
   firstName: string;
   surName: string;
-  userData: string;
+  userId: string;
   proof: IdProofOutput;
   platform: "li";
   statementInfo: any;
@@ -64,6 +64,7 @@ type CreateProofSBNFTResult = {
 type CreateProofStatementResult = {
   challenge: string;
   proof: IdProofOutput | null;
+  statement: any;
 };
 
 type CreateProofStatementArgs = {
@@ -151,6 +152,7 @@ export type CCDContextData = {
   installed: boolean | null;
   isConnected: boolean;
   connect: () => void;
+  connectAsync: () => Promise<string>;
   disconnect: () => void;
   account: string | undefined;
   provider: WalletApi | null;
@@ -168,10 +170,12 @@ export type CCDContextData = {
   proofData: ProofData | null;
   myProofs: ProofData[] | null;
   proofDataProofStatement: null | IdProofOutput;
-  loadMyProofs: () => Promise<ProofData[]>;
+  loadMyProofs: (addr: string) => Promise<ProofData[]>;
   revokeProof: (args: {id: string}) => Promise<void>;
 
   loadProof: (id: string, decryptionKey: string) => Promise<any>;
+
+  loadProofMetadata: (id: string) => Promise<any>;
 } | null;
 
 const CCDContext = React.createContext<CCDContextData>(null);
@@ -193,10 +197,10 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
   const [myProofs, setMyProofs] = useState<ProofData[]>(null);
   const [proofCreated, setProofCreated] = useState(false);
   const [creatingProof, setCreatingProof] = useState(false);
-  const [proofData, setProodData] = useState<ProofData|null>(null);
+  const [proofData, setProodData] = useState<ProofData | null>(null);
   const [proofDataProofStatement, setProofDataProofStatement] = useState<IdProofOutput | null>(null);
   const [revokingProof, setRevokingProof] = useState(false);
-  const [{creatingProofStatement, proofStatementCreated}, setProofStateInfo] = useState({
+  const [{ creatingProofStatement, proofStatementCreated }, setProofStateInfo] = useState({
     creatingProofStatement: false,
     proofStatementCreated: false,
   });
@@ -207,12 +211,12 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
   // Detect when the Concordium wallet is installed.
   useInterval(() => {
-    if ( installed !== null ) {
+    if (installed !== null) {
       return;
     }
 
     // Give Concordium 1,5 second to initialise the API.
-    if ( (window as any).concordium === undefined && new Date().getTime() - tsCreated < 1500 ) {
+    if ((window as any).concordium === undefined && new Date().getTime() - tsCreated < 1500) {
       return;
     }
 
@@ -224,37 +228,37 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       serviceUrl(`/wallet/txs/${accountAddress}`, ''),
       {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },  
+        headers: { 'Content-Type': 'application/json' },
       }
     );
 
     if ( responseTxs.status !== 200 ) {
-      throw new Error('Failed to store proof (1)');
+      throw new Error(`Failed to get transactions (${responseTxs.status})`);
     }
 
     const responseTxsJson = await responseTxs.json();
 
     return responseTxsJson?.events ?? [];
   }, [isConnected, account]);
-  
-  useEffect(() => {    
-    if ( !mintTxs || !myProofs ) {
+
+  useEffect(() => {
+    if (!mintTxs || !myProofs) {
       return;
     }
-    setMyProofs(myProofs.map( p => {
-      if ( !p || p.id === undefined ) {
+    setMyProofs(myProofs.map(p => {
+      if (!p || p.id === undefined) {
         return p;
       }
-      const mintTx = mintTxs.find( x => x.tokenId === p.id );
-      if ( mintTx ) {
+      const mintTx = mintTxs.find(x => x.tokenId === p.id);
+      if (mintTx) {
         p.created = Math.round(mintTx.tx.timestamp ?? 0);
         p.tx = mintTx.tx.txHash;
       } else {
-        console.log(" no mint tx with id ", p.id );
+        console.log(" no mint tx with id ", p.id);
       }
       return p;
     }).sort((a, b) => {
-      if ( a.created && b.created ) {
+      if (a.created && b.created) {
         return b.created - a.created;
       }
       return 0;
@@ -265,18 +269,21 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     console.log("Connected with wallet address : " + accountAddress);
     setAccount(accountAddress);
     setIsConnected(!!accountAddress);
+
     if ( accountAddress ) {
-      (async () => {
+      (async () => {;
+        setLoadingMyProofs(true);
+        loadMyProofs(accountAddress).then();
+
         const txs = await _getTransactions(accountAddress);
         const mintTxs = txs.filter(x => x.eventType === 'mint')
-          .map( tx => {
+          .map(tx => {
             const ret: MintTx = {
               tokenId: tx.tokenId.toString(),
               tx,
             };
             return ret;
           }).filter( x => !!x );
-        // console.log("Adding tx ", mintTxs.map(x => x.tokenId));
         setMintTxs(mintTxs);
       })().then().catch(err => {
         console.error(err);
@@ -284,15 +291,14 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     } else {
       setMyProofs(null);
       setMintTxs(null);
+      setLoadingMyProofs(false);
     }
   }, [account]);
 
   const connect = useCallback(
     () => {
-      // debugger;
       detectConcordiumProvider()
         .then((provider) => {
-          // debugger;
           provider.connect().then(handleSetAccountAndConnected);
           return provider;
         });
@@ -300,12 +306,54 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     []
   );
 
+  const [connecting, setConnecting] = useState(false);
+
+  const connectAsync = useCallback(async () => {
+    if ( isConnected ) {
+      return account;
+    }
+
+    if (connecting) {
+      throw new Error('Already conencting');
+    }
+
+    setConnecting(true);
+    let timeout = 0;
+    while (connecting) {
+      await (new Promise<void>(resolve => setTimeout(resolve, 1000)));
+      if (timeout++ >= 60) {
+        setConnecting(false);
+        throw new Error('Timeod out awaiting connecting');
+      }
+    }
+
+    const addr = await new Promise<string>((resolve, reject) => {
+      detectConcordiumProvider().then((provider) => {
+        provider.connect().then(addr => {
+          resolve(addr);
+        }).catch(e => {
+          setConnecting(false);
+          reject(e);
+        });
+      }).catch(e => {
+        setConnecting(false);
+        reject(e);
+      });
+    });
+
+    handleSetAccountAndConnected(addr);
+    setConnecting(false);
+
+    return addr;
+    
+  }, [connecting, isConnected, account]);
+
   const disconnect = useCallback(() => {
     detectConcordiumProvider()
-        .then((provider) => {
-          // debugger;
-          return provider;
-        });
+      .then((provider) => {
+        // debugger;
+        return provider;
+      });
     // TODO: Implment disconnection here.
   }, []);
 
@@ -316,57 +364,54 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       account,
     } = args ?? {};
 
-    if ( !account ) {
+    if (!account) {
       throw new Error('Not connected to wallet');
     }
 
     const provider = (await detectConcordiumProvider()) as any;
 
-    // createProofStatement
-    // debugger;
-
     const {
       statement
     } = await fetch(
-        serviceUrl(`/proof/statement`, ''),
-        {method: 'GET', headers: { 'Content-Type': 'application/json' }}
-      )
+      serviceUrl(`/proof/statement`, ''),
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+    )
       .then(res => res.json());
 
     const {
       challenge,
     } = await fetch(serviceUrl(`/proof/challenge`, {
-                                                  platform,
-                                                  userData,
-                                                }),
-                                                {
-                                                  method: 'GET',
-                                                  headers: {
-                                                    'Content-Type': 'application/json'
-                                                  }
-                                                })
+      platform,
+      userData,
+    }),
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       .then(res => res.json());
 
     let proof: IdProofOutput | null = null;
 
-    try { 
+    try {
       proof = await provider.requestIdProof(account, statement, challenge);
       // debugger;
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       throw e;
     }
 
-    if ( proof ) {
+    if (proof) {
       // Verify that the proof is OK.
       const response = await fetch(serviceUrl(`/proof/verify`), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ challenge, proof, account }),
       });
-      
-      if ( response.status !== 200 ) {
-        throw new Error("Internal server error : " + response.status );
+
+      if (response.status !== 200) {
+        throw new Error("Internal server error : " + response.status);
       }
 
       const body = await response.json();
@@ -374,41 +419,50 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
       if (!body.result) {
         console.error("Proof deemed invalid", { challenge, proof, account });
-        return null; 
+        return null;
       }
 
       console.log("Proof created!", body);
     }
 
-    if ( proof ) {
+    if (proof) {
       setProofDataProofStatement(proof);
     }
 
     return {
-      challenge, 
+      challenge,
       proof,
+      statement,
     };
   }, [account]);
 
   const createProofSBNFT = useCallback(async ({
     firstName,
     surName,
-    userData,
+    userId,
     challenge,
     platform,
     proof,
     profileImageUrl,
     profileBackgroundUrl
   }: CreateProofSBNFTArgs): Promise<CreateProofSBNFTResult> => {
-    if ( creatingProof ) {
+    if (creatingProof) {
       throw new Error('Already creating proof');
+    }
+
+    if ( !firstName ) {
+      throw new Error('No first name given');
+    }
+
+    if ( !surName ) {
+      throw new Error('No surname given');
     }
 
     if ( proof.credential.length !== 96 ) {
       throw new Error('Invalid length of credential');
     }
 
-    if ( proof.proof.value.proofs.length !== 2 ) {
+    if (proof.proof.value.proofs.length !== 2) {
       throw new Error('Invalid proof.');
     }
 
@@ -423,7 +477,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
           platform,
           firstName,
           surName, 
-          userData,
+          userData: userId,
           challenge,
           proof,
         }),
@@ -431,18 +485,18 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     );
 
     if ( response.status !== 200 ) {
-      throw new Error('Failed to store proof (1)');
+      throw new Error(`Failed to store proof (${response.status})`);
     }
 
-    const {decryptionKey, transactionHash} = await response.json();
+    const { decryptionKey, transactionHash } = await response.json();
 
     await contract.waitForTX(transactionHash);
 
     // Get the event data
     let event: any;
     let cnt = 0;
-    while( cnt++ < 10 ) {
-      if ( cnt > 1 ) {
+    while (cnt++ < 10) {
+      if (cnt > 1) {
         await sleep(1000);
       }
 
@@ -450,23 +504,23 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         serviceUrl(`/wallet/txs/${account}`, ''),
         {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },  
+          headers: { 'Content-Type': 'application/json' },
         }
       );
-  
-      if ( responseTxs.status !== 200 ) {
+
+      if (responseTxs.status !== 200) {
         continue;
       }
 
       const responseTxsJson = await responseTxs.json();
-      event = responseTxsJson.events.find ( x => x.txHash === transactionHash && x.eventType === 'mint' );
-      if ( event?.tokenId ) {
+      event = responseTxsJson.events.find(x => x.txHash === transactionHash && x.eventType === 'mint');
+      if (event?.tokenId) {
         break;
       }
     }
 
     // Return the tokenId.
-    if ( event?.tokenId === undefined ) {
+    if (event?.tokenId === undefined) {
       throw new Error('Failed to get event : ' + transactionHash);
     }
 
@@ -476,7 +530,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       platform,
       firstName,
       lastName: surName,
-      userData,
+      userData: userId,
       proof,
       decryptionKey,
       tx: transactionHash,
@@ -487,7 +541,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         credential: proof.credential,
         challenge: challenge,
         proofs: [
-          [AttributesKeys.firstName, proof.proof.value.proofs[0].proof], 
+          [AttributesKeys.firstName, proof.proof.value.proofs[0].proof],
           [AttributesKeys.lastName, proof.proof.value.proofs[1].proof],
         ],
       }
@@ -509,19 +563,21 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     };
   }, [account, myProofs, contract, creatingProof]);
 
-  const revokeProof = useCallback(async ({id: tokenId}: {id: string}) => {
-    if ( !contract ) {
+  const revokeProof = useCallback(async ({ id: tokenId }: { id: string }) => {
+    if (!contract) {
       throw new Error('No contract');
     }
 
-    if ( !account ) {
-      throw new Error('No account');
+    const address = account ? account : await connectAsync();
+
+    if (!address) {
+      throw new Error('Not connected to wallet / No account');
     }
 
     const dt = new Date().getTime();
 
     const tx = await contract.burn(
-      account,
+      address,
       tokenId
     );
 
@@ -529,19 +585,25 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     // we cannot "load" for less than 2 seconds;
     const diff = 2000 - (new Date().getTime() - dt);
-    if( diff > 0 ) {
+    if (diff > 0) {
       await new Promise<void>(cb => setTimeout(cb, diff));
     }
 
-    setMyProofs((myProofs ?? []).filter(({id}) => id !== tokenId));
+    setMyProofs((myProofs ?? []).filter(({ id }) => id !== tokenId));
   }, [contract, account]);
 
-  const loadMyProofs = useCallback(async () => {
+  const loadMyProofs = useCallback(async (addr: string) => {
+    while( loadingMyProofs ) {
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+    }
+
     if ( myProofs !== null && myProofs.length > 0 ) {
       return myProofs; // ignoring loading them again when they have first been loaded.
     }
 
-    const tokens = await contract.listOwnedTokens(account);
+    setLoadingMyProofs(true);
+
+    const tokens = await contract.listOwnedTokens(addr);
 
     const newList = tokens.map(id => {
       const proof: ProofData = {
@@ -549,7 +611,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         revoked: null,
         meta: null
       };
-      return proof; 
+      return proof;
     });
 
     // Fetch the list of stored proofs and if there is stored data that is not undefined
@@ -559,10 +621,10 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     console.log("Stored proofs ", proofs);
     Object.entries(proofs).forEach(([id, storedProof]) => {
       const index = newList.findIndex(x => x.id !== undefined && x.id === id);
-      if ( index >= 0 ) {
+      if (index >= 0) {
         const existing = newList[index];
-        Object.keys(storedProof).forEach( key => {
-          if ( !isNil(storedProof[key]) && isNil(existing[key]) ) {
+        Object.keys(storedProof).forEach(key => {
+          if (!isNil(storedProof[key]) && isNil(existing[key])) {
             existing[key] = storedProof[key];
           }
         });
@@ -571,15 +633,29 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     });
 
     setMyProofs(newList);
+    setLoadingMyProofs(false);
   }, [account, contract, myProofs]);
 
   const loadProof = useCallback(async (id: string, decryptionKey: string) => {
-    if ( !id ) {
+    if (!id) {
       throw new Error('No id');
     }
-    if ( !decryptionKey ) {
+
+    if (!decryptionKey) {
       throw new Error('No decryptionKey given');
     }
+
+    const storedData: any = {
+    };
+
+    const storedProof = await extension.getStoredProof(id);
+    if (storedProof) {
+      storedData.profileImageUrl = storedProof.profileImageUrl;
+      storedData.profileBackgroundUrl = storedProof.profileBackgroundUrl;
+    } else {
+      console.log('Cannot find stored proof ', storedProof );
+    }
+
     const response = await fetch(
       serviceUrl(`/proof/nft/${id}/${encodeURIComponent(decryptionKey)}`, ''),
       {
@@ -590,19 +666,40 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       }
     );
 
-    if ( response.status !== 200 ) {
+    if (response.status !== 200) {
       throw new Error(`Failed loading proof (${response.status})`);
     }
 
     const proofData = await response.json();
 
-    const storedProof = await extension.getStoredProof(id);
-    if ( storedProof ) {
-      proofData.profileImageUrl = storedProof.profileImageUrl;
-      proofData.profileBackgroundUrl = storedProof.profileBackgroundUrl;
+    return {
+      ...storedData,
+      proofData,
+    }
+  }, []);
+
+  const loadProofMetadata = useCallback(async (id: string) => {
+    if (!id) {
+      throw new Error('No id');
     }
 
-    return proofData;
+    const response = await fetch(
+      serviceUrl(`/proof/nft/${id}`, ''),
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.status !== 200) {
+      throw new Error(`Failed loading proof (${response.status})`);
+    }
+
+    const proofMetaData = await response.json();
+
+    return proofMetaData;
   }, []);
 
   useEffect(() => {
@@ -633,6 +730,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     account,
     provider: _provider,
     connect,
+    connectAsync,
     disconnect,
     chain,
     contract,
@@ -650,12 +748,14 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     proofDataProofStatement,
     loadingMyProofs,
     loadProof,
+    loadProofMetadata,
     installed,
   }), [
     isConnected,
     account,
     _provider,
     connect,
+    connectAsync,
     disconnect,
     chain,
     contract,
@@ -673,10 +773,11 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     proofDataProofStatement,
     loadingMyProofs,
     loadProof,
+    loadProofMetadata,
     installed,
   ]);
 
-  return <CCDContext.Provider {...{value}}>{children}</CCDContext.Provider>;
+  return <CCDContext.Provider {...{ value }}>{children}</CCDContext.Provider>;
 };
 
 export const useCCDContext = () => {

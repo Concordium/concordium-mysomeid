@@ -47,12 +47,13 @@ import concordiumLogoSvg from 'src/images/concordium-white-logo.svg';
 import formName, { selector } from './form-props';
 
 import { TrackBox } from './track-box';
-import { parseNameAndCountry } from './page-2';
+import { parseNameFromNameString } from './page-2';
 import { error } from 'src/slices';
 import { fuzzyMatchNames } from 'src/utils';
 import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader } from './page-4';
+import { useTemplateStore } from './template-store';
 
 type PlatformProfileRepresentationArgs = {
   userData: string;
@@ -104,9 +105,8 @@ export const PlatformProfileRepresentation = ({
 export default connect(state => ({
   ...(selector(state,
     'platform',
-    'userData',
+    'userId',
     'statementInfo',
-    'profileInfo',
     'proof',
     'proofData',
     'challenge'
@@ -120,18 +120,22 @@ export default connect(state => ({
   const {
     previousPage,
     nextPage,
-    userData,
+  } = props;
+  
+  const {
+    updateProps: templateUpdateProps,
+    userId,
     platform,
-    profileInfo,
+    name,
     statementInfo,
     proofData,
     proof,
     challenge,
-  } = props;
-
+    profilePicUrl,
+    backgroundPicUrl,
+  } = useTemplateStore(props, ['name', 'userId', 'platform', 'statementInfo', 'proof', 'proofData', 'challenge', 'profilePicUrl', 'backgroundPicUrl']);
+  
   const [creating, setCreating] = useState(false);
-
-  // const params = useSearchParams();
 
   const dispatch = useDispatch();
 
@@ -147,50 +151,44 @@ export default connect(state => ({
   const [proofCreated, setProofCreated] = useState(!!proofData);
 
   useEffect(() => {
-    if (!userData || !platform || !profileInfo || !statementInfo || !proof) {
+    if (!userId || !platform || !name || !statementInfo || !proof) {
       navigate('/create/1?previousFailed');
       return;
     }
-  }, [userData, platform, profileInfo, statementInfo, proof]);
-
-  console.log("statementInfo ", statementInfo, ' proof ', proof);
+  }, [userId, platform, name, statementInfo, proof]);
 
   let state = !creatingProof ?
-                !isConnected ?
-                  'show-connect'
-                    :
-                  'create-proof'
-                :
-                'create-proof';
-
-  useEffect(() => {
-    console.log("mouted");
-  }, [statementInfo])
+    !isConnected ?
+      'show-connect'
+      :
+      'create-proof'
+    :
+    'create-proof';
 
   let proofFirstName = "";
   try {
-    proofFirstName = statementInfo?.proof?.value.proofs[0]?.attribute;
+    proofFirstName = proof?.proof?.value.proofs[0]?.attribute;
   } catch (e) {
     console.error(e);
   }
 
   let proofSurname = "";
   try {
-    proofSurname = statementInfo?.proof?.value.proofs[1]?.attribute;
+    proofSurname = proof?.proof?.value.proofs[1]?.attribute;
   } catch (e) {
     console.error(e);
   }
 
   let profileImageUrl: string;
   try {
-    profileImageUrl = profileInfo?.profileInfo?.profileImage;
+    profileImageUrl = profilePicUrl;
   } catch (e) {
     console.error(e);
   }
 
   let profileBackgroundUrl: string;
   try {
-    profileBackgroundUrl = profileInfo?.profileInfo?.backgroundImage;
+    profileBackgroundUrl = backgroundPicUrl;
   } catch (e) {
     console.error(e);
   }
@@ -199,25 +197,24 @@ export default connect(state => ({
     profileFirstName,
     profileSurname,
     // country: profileCountry,
-  } = parseNameAndCountry(profileInfo?.profileInfo);
+  } = parseNameFromNameString(name);
 
   const {
-    match: nameMatch,
+    fullNameMatch: nameMatch,
+    firstNameMatch,
+    lastNameMatch,
   } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
-
-  const firstNameMatch = nameMatch;
-  const lastNameMatch = nameMatch;
 
   const theme = useTheme();
 
-  const lt620 = useMediaQuery(theme.breakpoints.down(620));
-  const lt800 = useMediaQuery(theme.breakpoints.down(800));
   const lt900 = useMediaQuery(theme.breakpoints.down(900));
 
   const nextDisabled = state === 'show-connect' || creating || !nameMatch;
 
+  const prevDisabled = creatingProof;
+
   const onNext = useCallback(() => {
-    if (proofCreated) {
+    if (proofData) {
       console.log('Proof is already created!');
       nextPage();
       return;
@@ -235,7 +232,7 @@ export default connect(state => ({
     createProofSBNFT({
       firstName: proofFirstName,
       surName: proofSurname,
-      userData,
+      userId: userId,
       challenge,
       platform,
       proof,
@@ -246,7 +243,13 @@ export default connect(state => ({
       setProofCreated(false);
       setCreatingProof(false);
       setCreating(false);
-      props.change('proofData', newProof);
+      templateUpdateProps(props, {
+        proofData: {
+          id: newProof.id,
+          decryptionKey: newProof.decryptionKey,
+          tx: newProof.tx,
+        }
+      });
       nextPage();
     }).catch(e => {
       setCreatingProof(false);
@@ -254,7 +257,7 @@ export default connect(state => ({
       setCreating(false);
       dispatch(error(e?.message ?? 'Error storing proof on Concordium'));
     });
-  }, [proofFirstName, proofSurname, userData, challenge, platform, proof, statementInfo]);
+  }, [proofFirstName, proofSurname, proofData, userId, challenge, platform, proof, statementInfo]);
 
   const showLoading = creatingProof;
 
@@ -285,7 +288,7 @@ export default connect(state => ({
                     </Typography>
                     <PrimaryButton sx={{ marginTop: '24px' }} variant="understated" onClick={connect} >Connect</PrimaryButton>
                   </Box>
-                ) : state === 'create-proof'  ? (
+                ) : state === 'create-proof' ? (
                   <Box id="create-proof" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                     <Box sx={{ display: 'flex', marginTop: '24px', justifyContent: 'space-evenly' }}>
                       {statementInfo && proof ?
@@ -298,7 +301,7 @@ export default connect(state => ({
                           transform: lt900 ? `scale(${window.innerWidth / 900})` : undefined,
                         }}>
                           <PlatformProfileRepresentation {...{
-                            userData,
+                            userData: userId,
                             platform,
                             profileImageUrl,
                             firstName: profileFirstName,
@@ -316,7 +319,6 @@ export default connect(state => ({
                               backgroundRepeat: 'no-repeat',
                               backgroundSize: 'cover',
                               borderRadius: '1111px',
-                              // border: '1px solid',
                               backgroundPositionX: '3px',
                               backgroundPositionY: '3px',
                               marginTop: '16px'
@@ -335,6 +337,25 @@ export default connect(state => ({
                         </Box>
                         : undefined}
                     </Box>
+
+                    {statementInfo && proof ?
+                    <Box sx={{
+                      width: '100%',
+                      maxWidth: '728px',
+                      background: 'red',
+                      display: 'flex',
+                      marginTop: '28px',
+                      padding: '16px',
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      alignCenter: 'auto',
+                      borderRadius: '16px',
+                    }}>
+                      <Typography sx={{width: '100%', fontSize: '16px', lineHeight: '18px', textAlign: 'center', color: 'white'}}>
+                        <strong>Your name doesn't match the name in your Concordium ID.  Consider renaming your LinkedIn profile name in to match your Concordium ID name.</strong>
+                      </Typography>
+                    </Box> : undefined }
+
                   </Box>
                 ) :
                   undefined
@@ -358,6 +379,7 @@ export default connect(state => ({
         sx: { marginTop: '32px', },
         prev: "Back",
         next: nextLabel,
+        prevDisabled,
         nextDisabled,
         onPrev: previousPage,
         onNext,

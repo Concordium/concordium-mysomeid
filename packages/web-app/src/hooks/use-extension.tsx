@@ -44,6 +44,8 @@ export type ExtensionData = {
   getStoredProof: (id: string) => Promise<ProofData>;
   storeProof: (proofData: ProofData) => Promise<void>;
   updateProofProperty: (id: string, key: string, value: any) => Promise<void>;
+
+  reloadTabs: (args: {contains: string}) => Promise<any>;
 } | null;
 
 type MySoMeAPI = {
@@ -56,6 +58,7 @@ type MySoMeAPI = {
   createPlatformRequest: (platform: string, request: 'fetch-profile') => Promise<any>;
   getStateValue: (store: string, key: string) => Promise<any | null>;
   setStateValue: (store: string, key: string, value: any) => Promise<any | null>;
+  reloadTabs: (args: {contains: string}) => Promise<any>;
 };
 
 const ExtensionContext = createContext<ExtensionData>(null);
@@ -91,13 +94,6 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     });
   }, [mysome] );
 
-  /*{
-    platform: 'li',
-    step: 5,
-    username: userData,
-    url: profileImageUrl,
-    image: dataUrl,
-  }*/
   const updateRegistration = useCallback(async (reg: Registration): Promise<boolean> => {
     console.log("Updated registration ", reg);
 
@@ -109,7 +105,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     }
 
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return false;
     }
 
@@ -120,7 +116,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
 
   const getRegistrations = async (): Promise<any> => {
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return null;
     }
 
@@ -128,9 +124,19 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     return result;
   };
 
-  const sendMessage = (to: string, type: string, payload: any) => {
+  const reloadTabs = useCallback(async (args: {contains: string}): Promise<any> => {
     if ( !mysome ) {
       console.error("Cannot find mysome extension.");
+      return null;
+    }
+
+    const result = await mysome.reloadTabs(args);
+    return result;
+  }, [mysome]);
+
+  const sendMessage = (to: string, type: string, payload: any) => {
+    if ( !mysome ) {
+      console.error("Cannot find mysome.id extension.");
       return;
     }
     mysome.sendMessage(to, type, payload);
@@ -138,7 +144,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
  
   const sendMessageWResponse = async (to: string, type: string, payload: any): Promise<any> => {
     if ( !mysome ) {
-      console.error("Cannot find mysome extension.");
+      console.error("Cannot find mysome.id extension.");
       return;
     }
     return mysome.sendMessage(to, type, payload);
@@ -241,6 +247,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     getStoredProof,
     storeProof,
     updateProofProperty,
+    reloadTabs,
   }), [
     installed,
     mysome,
@@ -255,6 +262,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     getStoredProof,
     storeProof,
     updateProofProperty,
+    reloadTabs,
   ]);
 
   return <ExtensionContext.Provider {...{value}}>{children}</ExtensionContext.Provider>;

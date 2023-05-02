@@ -44,15 +44,18 @@ import {
   useExtension
 } from 'src/hooks/use-extension';
 import { error } from 'src/slices/messages-slice';
-import useFetch from '@bloodyaugust/use-fetch';
 import { TrackBox } from './track-box';
 import {
   InstallExtensions
 } from './install-extensions';
+import {
+  useTemplateStore
+} from './template-store';
 
 export default connect(state => ({
+  name: selector(state, 'name'),
   platform: selector(state, 'platform'),
-  userData: selector(state, 'userData'),
+  userId: selector(state, 'userId'),
   profileInfo: selector(state, 'profileInfo'),
 }))(reduxForm({
   form: formName,
@@ -61,7 +64,7 @@ export default connect(state => ({
   validate,
   initialValues: {
     platform: "0",
-    userData: '',
+    userId: '',
     profileInfo: {},
     authorised: false,
     statementInfo: null,
@@ -73,30 +76,26 @@ export default connect(state => ({
     nextPage,
     pristine,
     submitting,
-    platform,
-    userData,
-    template,
   } = props;
-
-  const { installed: browserExtInstalled, startRegistration } = useExtension();
-
+  const {installed: browserExtInstalled, startRegistration} = useExtension();
   const [hasSetValuesFromTemplate, setHasSetValuesFromTemplate] = useState(false);
-
   const [fetchingProfileInfo, setFetchingProfileInfo] = useState<{ platform: string } | null>(null);
-
   const [mounted, setMounted] = useState(false);
-
-  const [userError, setUserError] = useState(null);
-
   const dispatch = useDispatch();
-
   const navigate = useNavigate();
-
   const [searchParams] = useSearchParams();
-
-  const { lastLocation } = useLastLocation();
-
+  const {lastLocation} = useLastLocation();
   const previousFailed = searchParams.get('previousFailed');
+
+  const {
+    platform,
+    userId,
+    name,
+  } = useTemplateStore(props, [ // copy from props.
+    'platform',
+    'name',
+    'userId',
+  ]);
 
   useEffect(() => {
     if (previousFailed !== null && previousFailed !== undefined) {
@@ -107,6 +106,7 @@ export default connect(state => ({
 
   useEffect(() => {
     if (!mounted) {
+      console.log('lastLocation?.pathname ', lastLocation?.pathname);
       if (['/', '/home'].indexOf(lastLocation?.pathname) >= 0) {
         console.log("Resetting form");
         dispatch(reset(formName));
@@ -121,48 +121,15 @@ export default connect(state => ({
     };
   }, [mounted]);
 
-  useEffect(() => {
-    if (template && !hasSetValuesFromTemplate) {
-      if (!template.userId) {
-        console.error("Error template contained no userId");
-      }
-      if (!template.platform) {
-        console.error("Error template contained no platoform");
-      }
-      props.change('userData', template.userId);
-      props.change('platform', template.platform);
-      props.change('profilePicUrl', template.profilePicUrl);
-      props.change('backgroundPicUrl', template.backgroundPicUrl);
-      setHasSetValuesFromTemplate(true);
-      onNext();
-    }
-  }, [template, hasSetValuesFromTemplate]);
-
   const handleBack = useCallback(() => {
     dispatch(reset(formName));
     navigate('/home');
   }, []);
 
-  useEffect(() => {
-    // Hack if user adds the whole linked in url by copy paste.
-    if (userData && userData.match(new RegExp(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi))) {
-      let tmp = userData.toLowerCase();
-      if (tmp.indexOf('linkedin.com/in/') >= 0) {
-        tmp = tmp.split('linkedin.com/in/');
-        if (tmp[1]) {
-          const newValue = tmp[1].split('/')[0];
-          if (newValue[0]) {
-            props.change('userData', newValue);
-          }
-        }
-      }
-    }
-  }, [userData]);
-
-  const nextDisabled = pristine || submitting || !platform || platform == '0' || fetchingProfileInfo;
+  const nextDisabled = pristine || submitting || !platform || (platform as string) == '0' || fetchingProfileInfo;
+  const prevDisabled = submitting || !!fetchingProfileInfo;
 
   const onNextPage = useCallback(() => {
-    console.log("mounted ", mounted);
     if (!mounted) {
       return;
     }
@@ -175,47 +142,30 @@ export default connect(state => ({
       return;
     }
 
-    if (!platform || platform === '0') {
+    if (!platform || (platform as string) === '0') {
       console.error("Invalid platform.");
       return;
     }
 
-    setFetchingProfileInfo({
-      platform,
-    });
+    // If the userid and name is not set, we scrape it from LinkedIn.
+    if ( !userId || !name ) {
+      startRegistration({ platform });
 
-    if ( !template ) {
-      startRegistration({platform});
-    }
-
-    // With the template we dont need to fetch the data.
-    if (template) {
-      console.log("Using template from extension. ", template);
-      props.change('authorised', false);
-      props.change('statementInfo', null);
-      props.change('proof', null);
-      props.change('proofData', null);
-      props.change('profileInfo', {
-        profileExists: true,
-        profileInfo: {
-          onlyUrl: false,
-          name: template.name,
-          profileImage: ['default', null].indexOf(template?.profilePicUrl ?? null) === -1 ? template?.profilePicUrl : 'https://static.licdn.com/sc/h/13m4dq9c31s1sl7p7h82gh1vh',
-          backgroundImage: ['default', null].indexOf(template?.backgroundPicUrl ?? null) === -1 ? template?.backgroundPicUrl : 'https://static.licdn.com/sc/h/lortj0v1h4bx9wlwbdx6zs3f',
-          country: null,
-        },
+      setFetchingProfileInfo({
+        platform,
       });
-      
-      // Click next since we have a template.
+
       (new Promise<void>(resolve => setTimeout(resolve, 1000))).then(() => {
-        setFetchingProfileInfo(null);
-        onNextPage();
+        window.setTimeout(() => {
+          window.location.href = `https://linkedin.com`;
+        });
       }).catch(console.error);
 
-      return;
-    }
+    } else {
+      onNextPage();
 
-  }, [mounted, fetchingProfileInfo, platform, userData, props, template]);
+    }
+  }, [mounted, fetchingProfileInfo, platform, userId, name, props]);
 
   useEffect(() => {
     if (hasSetValuesFromTemplate) {
@@ -238,7 +188,6 @@ export default connect(state => ({
                   },
                   labelText: 'Platform',
                   name: 'platform',
-                  disabled: hasSetValuesFromTemplate,
                   component: renderSelect,
                   placeholder: 'platform',
                   children: [
@@ -277,7 +226,7 @@ export default connect(state => ({
         </TrackBox>
       </InstallExtensions>
 
-      <WizardNav sx={{ marginTop: '32px', }} onPrev={handleBack} nextDisabled={nextDisabled} prev="Back" next="Next" onNext={onNext} />
+      <WizardNav sx={{ marginTop: '32px', }} onPrev={handleBack} prevDisabled={prevDisabled} nextDisabled={nextDisabled} prev="Back" next="Next" onNext={onNext} />
     </form>
   );
 }));

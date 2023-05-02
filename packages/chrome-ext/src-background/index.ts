@@ -9,7 +9,7 @@ const stores: Record<string, any> = {};
 
 const initStore = async (storeName: string): Promise<void> => {
 	storeName = storeName ?? 'state';
-	console.log("initStore ", {storeName});
+	console.log("initStore ", { storeName });
 	return new Promise<void>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
 			console.log(`Init ${storeName} store`, result?.[storeName]);
@@ -18,15 +18,15 @@ const initStore = async (storeName: string): Promise<void> => {
 			}
 			stores[storeName] = result?.[storeName] ?? {};
 			resolve();
-		});	
+		});
 	});
 };
 
 const fetchStore = async (storeName: string, allowCached = false) => {
 	storeName = storeName ?? 'state';
-	console.log("fetchStore ", {storeName, allowCached});
-	if ( allowCached && stores[storeName] !== undefined ) {
-		return stores[storeName]; 
+	console.log("fetchStore ", { storeName, allowCached });
+	if (allowCached && stores[storeName] !== undefined) {
+		return stores[storeName];
 	}
 	return new Promise<any>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
@@ -44,7 +44,7 @@ const fetchStore = async (storeName: string, allowCached = false) => {
 
 const saveStore = async (storeName: string, value: any) => {
 	storeName = storeName ?? 'state';
-	console.log("saveStore ", {storeName, value});
+	console.log("saveStore ", { storeName, value });
 	return new Promise<void>(resolve => {
 		// console.log("setting registration");
 		chrome.storage.local.set({ [storeName]: value }, () => {
@@ -61,7 +61,7 @@ const getCachedStore = (storeName: string) => {
 
 const upsertStore = async (storeName: string, data: any) => {
 	storeName = storeName ?? 'state';
-	console.log("upsertStore ", {storeName, data});
+	console.log("upsertStore ", { storeName, data });
 	return new Promise<any>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
 			const store = {
@@ -169,8 +169,20 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 			}
 		});
 		return true;
-	}
-	else if (type === 'update-registration') {
+	} else if (type === 'reload-tabs') {
+		const {
+			contains
+		} = request?.payload ?? {};
+		chrome.tabs.query({}, (tabs: any) => {
+			tabs.map((tab: any) => ({ tabId: tab.id, tabUrl: tab.url }))
+				.forEach(({ tabId, tabUrl }: any) => {
+					if (tabUrl.toLowerCase().indexOf(contains?.toLowerCase())) {
+						chrome.tabs.reload(tabId);
+					}
+				});
+		});
+
+	} else if (type === 'update-registration') {
 		(async () => {
 			const {
 				state: registrationState,
@@ -211,7 +223,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 
 			// update the state object with the update info.
 			state.regs[platform][username] = updated;
-		
+
 			await saveStore('state', state);
 
 			sendResponse({
@@ -293,7 +305,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 			key,
 			value,
 			store: storeName
-		} = payload ??  {};
+		} = payload ?? {};
 		upsertStore(storeName, {
 			[key]: value,
 		}).then(store => {
