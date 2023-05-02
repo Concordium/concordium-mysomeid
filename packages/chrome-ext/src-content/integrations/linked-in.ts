@@ -11,8 +11,8 @@ import {
 	base64ToBlob,
 	objToUrlParms,
 	utf8_to_b64,
-	getUserNameOnProfile,
-	getUserNameOnFeed,
+	getUsersNameOnProfile,
+	getUsersNameOnFeed,
 	registrations,
 } from '../utils';
 import {
@@ -363,9 +363,9 @@ const createHeartbeat = () => {
 					return null;
 				}
 				if ( onProfileUrl ) {
-					return getUserNameOnProfile();
+					return getUsersNameOnProfile();
 				}
-				return getUserNameOnFeed() ?? null;
+				return getUsersNameOnFeed() ?? null;
 			}
 		});
 
@@ -454,7 +454,7 @@ const createHeartbeat = () => {
 				if ( !header ) {
 					return null;
 				}
-				return getUserNameOnProfile() ?? null;
+				return getUsersNameOnProfile() ?? null;
 			},
 		});
 
