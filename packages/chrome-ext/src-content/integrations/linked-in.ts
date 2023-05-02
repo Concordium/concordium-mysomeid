@@ -1226,7 +1226,7 @@ const install = async () => {
 	});	
 
 	tracking.on(trackPathname.changeEventName, (pathName: string) => {
-		// If we are on the hoescreen with th elogin form 
+		// If we are on the homescreen with the login form visibile then
 		// we find an open registration created less than 30 seconds ago
 		// and show a message to tell the user to login to continue their
 		// registration.
