@@ -319,6 +319,7 @@ const trackVerifyStatus = createTracker<string | null>({
 const trackProfilePictureUrl = createTracker<string | null>({
 	name: 'profilePictureUrl',
 });
+const trackPathname = createTracker<string | null>({name: 'route'});
 
 const createHeartbeat = () => {
 	// let updatePageStatus = false;
@@ -330,6 +331,14 @@ const createHeartbeat = () => {
 			value: url,
 			// dirty: urlChanged,
 		} = trackUrl.update();
+
+		const {
+			value: pathname
+		} = trackPathname.update({
+			query: () => {
+				return window.location.pathname ?? '';
+			},
+		});
 
 		const {
 			value: onProfileUrl,
@@ -1215,6 +1224,31 @@ const install = async () => {
 			badge.hide();
 		}		
 	});	
+
+	tracking.on(trackPathname.changeEventName, (pathName: string) => {
+		// If we are on the hoescreen with th elogin form 
+		// we find an open registration created less than 30 seconds ago
+		// and show a message to tell the user to login to continue their
+		// registration.
+		if ( (pathName === '/home' || pathName === '/') && !!document.querySelector('form[data-id="sign-in-form"]') ) {
+			platformRequests.fetch().then(requests => {
+				console.log("requests", requests);
+				const foundReq = requests.find(x => {
+					const deltaTime = ((new Date().getTime() - x.created) / 1000);
+					return x.platform === 'li' &&
+							x.status === 'created' &&
+							deltaTime < 30; 
+				} );
+				if ( foundReq ) {
+					showMessagePopup({
+						title: 'Secure Your Profile',
+						message: 'Log in to secure your profile with mysome.id',
+						primary: 'Okay'
+					});
+				}
+			});
+		}
+	});
 
 	tracking.on(trackHeader.changeEventName, (header: HTMLHeadingElement | null) => {
 		verbose("Header: updated");
