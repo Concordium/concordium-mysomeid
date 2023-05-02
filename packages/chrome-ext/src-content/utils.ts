@@ -161,7 +161,7 @@ export const $ = (s: string): HTMLElement | null => {
 };
 
 export const $array = (nodeList: NodeListOf<HTMLElement> | undefined) => {
-	return Array.prototype.slice.call(nodeList) ?? [];
+	return nodeList ? Array.prototype.slice.call(nodeList) : [];
 };
 
 // TODO: Move to linked in file. ( this is a linkedin only tool )
