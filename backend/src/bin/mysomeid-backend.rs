@@ -519,7 +519,7 @@ async fn get_metadata(
 ) -> axum::Json<serde_json::Value> {
     let base_url: Url = (*base_url).clone();
     serde_json::json!({
-        "name": "MYSOME.ID",
+        "name": "mysome.id",
         "decimals": 0,
         "description": "Soulbound NFT used to prove that a profile on a social media account is valid.",
         "unique": true,

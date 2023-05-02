@@ -170,8 +170,8 @@ export type CCDContextData = {
   proofData: ProofData | null;
   myProofs: ProofData[] | null;
   proofDataProofStatement: null | IdProofOutput;
-  loadMyProofs: () => Promise<ProofData[]>;
-  revokeProof: (args: { id: string }) => Promise<void>;
+  loadMyProofs: (addr: string) => Promise<ProofData[]>;
+  revokeProof: (args: {id: string}) => Promise<void>;
 
   loadProof: (id: string, decryptionKey: string) => Promise<any>;
 
@@ -269,8 +269,12 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     console.log("Connected with wallet address : " + accountAddress);
     setAccount(accountAddress);
     setIsConnected(!!accountAddress);
-    if (accountAddress) {
-      (async () => {
+
+    if ( accountAddress ) {
+      (async () => {;
+        setLoadingMyProofs(true);
+        loadMyProofs(accountAddress).then();
+
         const txs = await _getTransactions(accountAddress);
         const mintTxs = txs.filter(x => x.eventType === 'mint')
           .map(tx => {
@@ -279,8 +283,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
               tx,
             };
             return ret;
-          }).filter(x => !!x);
-        // console.log("Adding tx ", mintTxs.map(x => x.tokenId));
+          }).filter( x => !!x );
         setMintTxs(mintTxs);
       })().then().catch(err => {
         console.error(err);
@@ -288,6 +291,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     } else {
       setMyProofs(null);
       setMintTxs(null);
+      setLoadingMyProofs(false);
     }
   }, [account]);
 
@@ -588,12 +592,18 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     setMyProofs((myProofs ?? []).filter(({ id }) => id !== tokenId));
   }, [contract, account]);
 
-  const loadMyProofs = useCallback(async () => {
-    if (myProofs !== null && myProofs.length > 0) {
+  const loadMyProofs = useCallback(async (addr: string) => {
+    while( loadingMyProofs ) {
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+    }
+
+    if ( myProofs !== null && myProofs.length > 0 ) {
       return myProofs; // ignoring loading them again when they have first been loaded.
     }
 
-    const tokens = await contract.listOwnedTokens(account);
+    setLoadingMyProofs(true);
+
+    const tokens = await contract.listOwnedTokens(addr);
 
     const newList = tokens.map(id => {
       const proof: ProofData = {
@@ -623,6 +633,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     });
 
     setMyProofs(newList);
+    setLoadingMyProofs(false);
   }, [account, contract, myProofs]);
 
   const loadProof = useCallback(async (id: string, decryptionKey: string) => {
