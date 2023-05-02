@@ -55,6 +55,8 @@ import {
 } from './form-consts'
 import { InstallExtensions } from './install-extensions';
 import { PlatformProfileRepresentation } from './page-3';
+import { useTemplateStore } from './template-store';
+import { parseNameFromNameString } from './page-2';
 
 export { BackgroundEditor };
 
@@ -101,7 +103,7 @@ export const ProofCreatedConfirmation = ({
 
 export default connect(state => ({
   ...(selector(state,
-    'userData',
+    'userId',
     'platform',
     'profileInfo',
     'statementInfo',
@@ -116,31 +118,29 @@ export default connect(state => ({
 })(props => {
   const {
     previousPage,
-    userData,
+  } = props;
+
+  const {
+    updateProps: templateUpdateProps,
+    name,
+    userId,
     platform,
-    profileInfo,
     statementInfo,
+    proof,
     proofData,
     confirmationSeen,
-  } = props;
+    profilePicUrl,
+    backgroundPicUrl,
+  } = useTemplateStore(props, ['name', 'userId', 'platform', 'statementInfo', 'proof', 'proofData', 'confirmationSeen', 'profilePicUrl', 'backgroundPicUrl']);
 
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
 
   const [
-    downloaded,
-    setDownloaded
-  ] = useState(false);
-
-  const [
     urlSet,
     setUrlSet,
   ] = useState(false);
-
-  const {
-    isConnected,
-  } = useCCDContext();
 
   const ext = useExtension();
 
@@ -150,18 +150,19 @@ export default connect(state => ({
   const [editorContentElement, setEditorContentElement] = useState(null);
 
   useEffect(() => {
-    if (!userData || !platform || !profileInfo || !statementInfo) {
+    if (!userId || !platform || !name|| !statementInfo) {
+      debugger;
       navigate('/create/1?previousFailed');
       return;
     }
-  }, [userData, platform, profileInfo, statementInfo]);
+  }, [userId, platform, name, statementInfo]);
 
   useEffect(() => {
-    if (uri && proofData?.id && userData && !urlSet) {
+    if (uri && proofData?.id && userId && !urlSet) {
       setUrlSet(true);
-      ext.setQRUrl(platform, userData, uri);
+      ext.setQRUrl(platform, userId, uri);
     }
-  }, [uri, proofData, userData, urlSet]);
+  }, [uri, proofData, userId, urlSet]);
 
   let uriPresetable = uri;
   const n = 12;
@@ -171,76 +172,51 @@ export default connect(state => ({
 
   let profileImageUrl: string;
   try {
-    profileImageUrl = profileInfo?.profileInfo?.profileImage;
+    profileImageUrl = profilePicUrl;
   } catch (e) {
     console.error(e);
   }
 
-  let profileFirstName = '';
-  let profileSurname = '';
-  try {
-    const profileNameComponents = (profileInfo?.profileInfo?.name?.split(' ') ?? []).filter(x => !!x.trim());
-    profileFirstName = profileNameComponents[0] ?? '';
-    profileSurname = profileNameComponents[profileNameComponents.length - 1] ?? '';
-  } catch (e) {
-    console.error(e);
-  }
-
-  let firstName = "";
-  try {
-    firstName = statementInfo?.proof?.value.proofs[0]?.attribute;
-  } catch (e) {
-    console.error(e);
-  }
-
-  let lastName = "";
-  try {
-    lastName = statementInfo?.proof?.value.proofs[1]?.attribute;
-  } catch (e) {
-    console.error(e);
-  }
-
-  let country = "";
-  try {
-    country = statementInfo?.proof?.value.proofs[2]?.attribute;
-  } catch (e) {
-    console.error(e);
-  }
+  const {
+    profileFirstName,
+    profileSurname,
+  } = parseNameFromNameString(name);
 
   let proofFirstName = "";
   try {
-    proofFirstName = statementInfo?.proof?.value.proofs[0]?.attribute;
+    proofFirstName = proof?.proof?.value.proofs[0]?.attribute;
   } catch (e) {
     console.error(e);
   }
 
   let proofSurname = "";
   try {
-    proofSurname = statementInfo?.proof?.value.proofs[1]?.attribute;
+    proofSurname = proof?.proof?.value.proofs[1]?.attribute;
   } catch (e) {
     console.error(e);
   }
 
-  const profilePageUrl = `https://linkedin.com/in/${userData}/`;
+  const profilePageUrl = `https://linkedin.com/in/${userId}/`;
 
   const [getPic] = useState<Command>(createCommand());
 
   const [showLoading, setShowLoading] = useState(false);
 
   const prevDisabled = showLoading;
-
   const nextDisabled = showLoading;
 
   const onNext = useCallback(() => {
     if (state === 'confirmation' ) {
-      props.change('confirmationSeen', true);
+      templateUpdateProps(props, {
+        confirmationSeen: true,
+      });
       setState('editor');
       return;
     }
     
     if (state === 'editor') {
-      if (!userData) {
-        throw new Error('Invalid linked in username' + userData);
+      if (!userId) {
+        throw new Error('Invalid linked in username ' + userId);
       }
 
       setShowLoading(true);
@@ -255,9 +231,9 @@ export default connect(state => ({
           platform: 'li',
           proofId: proofData?.id ?? '',
           step: 5, // Last step.
-          username: userData,
-          userData,
-          backgroundImage: profileInfo?.profileInfo?.backgroundImage,
+          username: userId,
+          userData: userId,
+          backgroundImage: backgroundPicUrl,
           url: profileImageUrl,
           image: dataUrl, // this is the image url.
         }).then(forward => {
@@ -281,14 +257,12 @@ export default connect(state => ({
   const [bgImg, setBgImg] = useState(null);
 
   useEffect(() => {
-    if ([null, 'default', ''].indexOf(profileInfo?.profileInfo?.backgroundImage ?? null) === -1) {
-      setBgImg(profileInfo?.profileInfo?.backgroundImage);
+    if ([null, 'default', ''].indexOf(backgroundPicUrl ?? null) === -1) {
+      setBgImg(backgroundPicUrl);
     } else {
       setBgImg(defaultBackground)
     }
-  }, [defaultBackground, profileInfo?.profileInfo?.backgroundImage]);
-
-  console.log("profileInfo?.profileInfo?.backgroundImage ", profileInfo?.profileInfo?.backgroundImage);
+  }, [defaultBackground, backgroundPicUrl]);
 
   return (
     <form>
@@ -315,7 +289,7 @@ export default connect(state => ({
                     }}>
                       <ProofCreatedConfirmation {...{
                         profileImageUrl,
-                        userData,
+                        userData: userId,
                         profileFirstName: proofFirstName,
                         profileSurname: proofSurname,
                       }} />

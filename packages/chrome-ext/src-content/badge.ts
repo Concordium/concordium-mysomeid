@@ -18,7 +18,7 @@ export const createBadge = ({showAttention: showAttention = false}: {showAttenti
 	const z = '9998';
 	e.innerHTML = `
 	  <div id="mysome-access-badge" style="position: fixed; left: 16px; ${top}; ${bottom}; z-index: ${z}; display: flex; cursor: pointer; filter: drop-shadow(1px 0px 4px #2b2b2b61);">
-		<a id="mysome-access-badge-link" style="display: flex;" onclick="window.mysome.badge.onClick()">
+		<a id="mysome-access-badge-link" style="display: flex;">
 		  <img src="${logoSvg}" width="60" height="60">
 		  <span id="mysome-access-badge-attention" style="position: absolute; top: -1px; right: 5px; color: white; width: 18px; text-align: center; height: 18px;">
 			<img src="${attentionSvg}" width="18px" height="18px"></img>
