@@ -202,7 +202,7 @@ export default connect(state => ({
   } = parseNameAndCountry(profileInfo?.profileInfo);
 
   const {
-    match: nameMatch,
+    fullNameMatch: nameMatch,
     firstNameMatch,
     lastNameMatch,
   } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
