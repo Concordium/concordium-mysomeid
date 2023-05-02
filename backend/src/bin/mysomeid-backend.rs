@@ -953,7 +953,7 @@ async fn get_proof(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn get_proof_state(
-    Path((token_id)): Path<(ProofId)>,
+    Path(token_id): Path<ProofId>,
     State(ServiceState {
         concordium_client,
         contract_address,
@@ -1117,10 +1117,10 @@ async fn get_proof_state_worker(
     };
 
     Ok(GetProofStateResponse {
-        id: token_id,
+        id:       token_id,
         platform: view_data.platform,
-        revoked: view_data.revoked,
-        owner: view_data.owner,
+        revoked:  view_data.revoked,
+        owner:    view_data.owner,
     })
 }
 
@@ -1569,8 +1569,8 @@ async fn listen_concordium_worker(
                 // Also check for any other transactions from the sender account.
                 // So we can mark transactions we have sent as failed.
                 if let Some(acc) = summary.sender_account() {
-                    if acc.is_alias(&sender_account) {
-                        if sender
+                    if acc.is_alias(&sender_account)
+                        && sender
                             .send(db::DatabaseOperation::MarkConcordiumTransaction {
                                 tx_hash: summary.hash,
                                 status:  if summary.is_rejected_account_transaction().is_some() {
@@ -1581,17 +1581,16 @@ async fn listen_concordium_worker(
                             })
                             .await
                             .is_err()
-                        {
-                            log::info!("The channel to the database writer has been closed.");
-                            return Ok(());
-                        }
+                    {
+                        log::info!("The channel to the database writer has been closed.");
+                        return Ok(());
                     }
                 }
             }
             if sender
                 .send(db::DatabaseOperation::InsertBlock {
-                    block,
-                    txs: transaction_events,
+                    block: Box::new(block),
+                    txs:   transaction_events,
                 })
                 .await
                 .is_err()

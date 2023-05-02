@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
         wallet,
         identity_provider_index: data.ip_info.ip_identity,
         identity_index: data.identity_index,
-        credential_index: app.cred_idx.into(),
+        credential_index: app.cred_idx,
     };
 
     let cred_id_exponent = cc.get_cred_id_exponent()?.context("Unlucky")?;
