@@ -24,6 +24,7 @@ import {
 	showMessagePopup,
 	showLoadingPopup,
 	showFinalizePopup,
+	countPopupsWithClassName,
 } from '../popup';
 import {
 	mysome,
@@ -897,6 +898,7 @@ function showWelcomePopup() {
 	showMessagePopup({
 		title: 'Thank you for installing mysome.id',
 		message: 'To get started you must link a proof of account ownership to your profile<br/><br/>Tip: If you need additional assistance, you can always click on the mysome.id shield or badge',
+		className: 'badge-popup',
 		primary: 'Create Proof',
 		secondary: 'CANCEL',
 		primary_link: getCreateLink(),
@@ -989,6 +991,14 @@ const install = async () => {
 			return;
 		}
 
+		const popups = countPopupsWithClassName('badge-popup');
+		console.log('popups ', popups);
+		
+		if ( popups > 0 ) {
+			console.log("ignored showing popup as one other popup is already shown.");
+			return;
+		}
+
 		// Resolve the params that we want to open the popup
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
 
@@ -1040,6 +1050,7 @@ const install = async () => {
 				showMessagePopup({
 					title: 'Profile Status',
 					message: statusMessage,
+					className: 'badge-popup',
 					primary: (status !== 'registered' ? 'Okay' : ''),
 					...goto,
 				});
@@ -1068,6 +1079,7 @@ const install = async () => {
 						showMessagePopup({
 							title: 'Your Profile Status',
 							message: "It seems that your profile is no longer verified.<br/><br/>To resolve this, you need to provide a new verification proof and attach it to your LinkedIn profile.",
+							className: 'badge-popup',
 							primary: 'Create Proof',
 							secondary: 'CANCEL',
 							primary_link: createLink,
@@ -1105,6 +1117,7 @@ const install = async () => {
 					showMessagePopup({
 						title: 'Your Profile Status',
 						message: statusMessage,
+						className: 'badge-popup',
 						primary: 'Okay',
 						...goto,
 					});
