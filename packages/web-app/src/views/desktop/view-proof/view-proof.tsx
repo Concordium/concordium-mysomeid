@@ -103,6 +103,8 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
 
     const {
         revokeProof,
+        account,
+        isConnected,
         loadProof,
         loadProofMetadata,
     } = useCCDContext();
@@ -111,10 +113,29 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
     const [loadingProof, setLoadingProof] = useState(false);
     const [metaDataLoaded, setMetaDataLoaded] = useState(false);
     const [revoked, setRevoked] = useState<boolean | null>(null);
+    const [owner, setOwner] = useState<string | null>(null);
 
     const [failedLoadingProof, setFailedLoadingProof] = useState(false);
 
-    const nextDisabled = revoked === true || doneRevoking || revokingProof || revokingProof || (failedLoadingProof && !decryptionKey) || loadingProof;
+    const isRevoked = revoked === true;
+    const ownerIsNotConnectedAccount = (account && owner && account.trim().toLowerCase() !== owner.trim().toLowerCase());
+
+    let revokeDisabled = 
+        !isConnected || // Revoke disabled when not connected to wallet
+        ownerIsNotConnectedAccount || // Disabled when account is diffirent than the owned account
+        isRevoked || // Disabled when already revoked
+        doneRevoking || // Disabled when done revoking ( also if failed revoking )
+        revokingProof || // Dissabled while revoking proof / loading
+        (failedLoadingProof && !decryptionKey) || // Disabled if failed to load metadata ( it shoudl be enabled when encruption key is enabled and failed to load)
+        loadingProof; // Disabled while loading proof
+
+    
+    let nextDisabledReason = revokeDisabled ?
+            isConnected ? 'Your Concordium Wallet is not connected and you cannot revoke the proof.' :
+            ownerIsNotConnectedAccount ? 'Only the Concordium account that owns the proof can revoke it.':
+            null:
+        null;
+
     const [showEditor, setShowEditor] = useState(false);
     const doShowEditor = useCallback(() => {
         setShowEditor(true);
@@ -127,13 +148,9 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
             return;
         }
 
-        if (decryptionKey) {
-            setMetaDataLoaded(true);
-            return;
-        }
-
         setLoadingProof(true);
         loadProofMetadata(id).then(metaData => {
+            setOwner(metaData.owner);
             setRevoked(metaData.revoked === true);
             setMetaDataLoaded(true);
         }).catch(err => {
@@ -171,7 +188,6 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
         }
 
         loadProof(id, decryptionKey).then(({ proofData: data }) => {
-            debugger;
             setFirstName(data.firstName);
             setSurname(data.surName);
             setPlatform(data.platform);
@@ -227,6 +243,7 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                         <>
                             <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column', marginBottom: '48px', opacity: revoked || doneRevoking || failedLoadingProof || revokingProof ? 0.15 : undefined }}>
                                 <Certificate {...{
+                                    owner,
                                     loading: loadingProof,
                                     profilePageUrl: profilePageUrl,
                                     profileImageUrl: profileImageUrl,
@@ -337,11 +354,12 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                 prev: 'Back',
                 onPrev,
                 next: !noRevoke && !showEditor ? 'Revoke' : undefined,
+                nextDisabledReason,
                 onNext: onRevoke,
                 extraButton: !noRevoke && !showEditor ? 'Download Proof Again' : undefined,
                 extraButtonDisabled: profileFirstName === encryptedPlaceholder || revoked || doneRevoking || revokingProof,
                 onExtraButton: doShowEditor,
-                nextDisabled,
+                nextDisabled: revokeDisabled,
             }} />
         </Box>
     );
