@@ -54,7 +54,6 @@ jobs:
           profile: minimal
           toolchain: ${{ env.RUST_CLIPPY }}
           override: true
-          target: ${{ env.TARGET }}
           components: rustfmt, clippy
       - name: Install zbar
         run:
