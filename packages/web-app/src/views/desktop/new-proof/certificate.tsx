@@ -6,12 +6,16 @@ import {
   Typography,
   Box,
   Skeleton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 
 import logoSvg from 'src/images/logo-white.svg';
 import QRCode from 'react-qr-code';
 import { TrackBox } from './track-box';
 import { defaultProofColor } from 'src/themes/theme';
+import { isNil } from 'src/utils/is-nil';
+import { transformCCDAddress } from 'src/components';
 
 let template: HTMLElement | null = null;
 
@@ -94,6 +98,7 @@ type CertificateArgs = {
   profilePageUrl: string;
   profileImageUrl: string;
   uri: string;
+  owner?: string;
   userData: string;
   profileFirstName: string;
   profileSurname: string;
@@ -116,16 +121,18 @@ export const Certificate = ({
   profilePageUrl,
   profileImageUrl,
   uri,
+  owner,
   userData,
   profileFirstName,
   profileSurname,
   issueDate,
-  urlMatch,
   blurQRCode,
   activeValid,
   showConnectWithLinkedIn,
 }: CertificateArgs) => {
   // const certBorderC = !showConnectWithLinkedIn ? '#717171' : 'rgba(113, 113, 113, 0.05)';
+  const theme = useTheme();
+  const lt560 = useMediaQuery(theme.breakpoints.down(560));
   const certBorderC = '#717171';
   const notMob = !isMob;
   header = header ?? 'PROOF';
@@ -145,20 +152,27 @@ export const Certificate = ({
 
                 <Box sx={{
                   ...helpSx,
-                  height: '32px',
                   width: notMobVal('77%', undefined),
                   border: !hideBorder ? `1px solid ${certBorderC}` : undefined,
                   margin: notMobVal('24px', '8px'),
                   marginTop: notMobVal(undefined, '16px'),
-                  paddingLeft: notMobVal(undefined, '16px'),
-                  paddingRight: notMobVal(undefined, '16px'),
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   placeContent: 'center',
+                  padding: '16px',
                 }} >
                   {profilePageUrl}
                   {loading && !profilePageUrl ?
                     <Skeleton animation="wave" variant="text" width={120} /> : undefined}
+                  {!isNil(owner) ? <Box sx={{
+                    marginTop: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    placeContent: 'center',
+                  }} >
+                    <Typography>{transformCCDAddress(owner ?? '', lt560)}</Typography>
+                  </Box> : undefined}
                 </Box>
 
                 <Box id="cert-content" display="flex" width="100%" sx={{
@@ -180,7 +194,6 @@ export const Certificate = ({
                       backgroundRepeat: 'no-repeat',
                       backgroundSize: 'cover',
                       borderRadius: '1111px',
-                      border: '1px solid',
                       marginTop: '16px',
                       filter: blurQRCode ? 'blur(5px)' : undefined,
                       ...helpSx,

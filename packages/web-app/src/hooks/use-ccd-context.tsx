@@ -151,6 +151,7 @@ type MintTx = {
 export type CCDContextData = {
   installed: boolean | null;
   isConnected: boolean;
+  isConnecting: boolean;
   connect: () => void;
   connectAsync: () => Promise<string>;
   disconnect: () => void;
@@ -314,19 +315,10 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     }
 
     if (connecting) {
-      throw new Error('Already conencting');
+      console.warn('Already connecting');
     }
 
     setConnecting(true);
-    let timeout = 0;
-    while (connecting) {
-      await (new Promise<void>(resolve => setTimeout(resolve, 1000)));
-      if (timeout++ >= 60) {
-        setConnecting(false);
-        throw new Error('Timeod out awaiting connecting');
-      }
-    }
-
     const addr = await new Promise<string>((resolve, reject) => {
       detectConcordiumProvider().then((provider) => {
         provider.connect().then(addr => {
@@ -345,7 +337,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     setConnecting(false);
 
     return addr;
-    
   }, [connecting, isConnected, account]);
 
   const disconnect = useCallback(() => {
@@ -727,6 +718,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
   const value: CCDContextData = useMemo(() => ({
     isConnected,
+    isConnecting: connecting,
     account,
     provider: _provider,
     connect,
@@ -752,6 +744,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     installed,
   }), [
     isConnected,
+    connecting,
     account,
     _provider,
     connect,

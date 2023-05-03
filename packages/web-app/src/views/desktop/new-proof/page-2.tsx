@@ -29,6 +29,7 @@ import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader, ProofCreatedConfirmation } from './page-4';
 import { useTemplateStore } from './template-store';
+import { ErrorAlert } from 'src/components';
 
 function capitalize(s: string) {
   if (!s?.length) {
@@ -66,6 +67,16 @@ export function parseNameFromNameString(name: string) {
     // country: country ?? 'N/A',
   };
 }
+
+const connectError = (<>
+  You must Connect your Concordium ID to continue.<br />
+  <br />
+  Ensure you have completed the set up of your Concordium Account by completing the Concordium wallet set up.
+</>);
+
+const noAccountInWallet = (<>
+  To continue please open the Concordium wallet extension and set up your Concordium Account.<br/>
+</>);
 
 export default connect(state => ({
   userId: selector(state, 'userId'),
@@ -117,10 +128,14 @@ export default connect(state => ({
     }
   }, [userId, platform, name]);
 
+  const [showError, setShowError] = useState<any>(null);
+
   const {
     createProofStatement,
+    installed,
     isConnected,
-    connect,
+    isConnecting,
+    connectAsync,
     account,
   } = useCCDContext();
 
@@ -153,7 +168,17 @@ export default connect(state => ({
     }
 
     if (!isConnected) {
-      connect();
+      connectAsync().then(() => {
+        onNext(); // continue
+      }).catch((err => {
+        if ( err?.message === 'No account in the wallet' ) {
+          setShowError(noAccountInWallet);
+          return;
+        } else {
+          setShowError(connectError);
+        }
+        console.error(err);
+      }));
       return;
     }
 
@@ -227,10 +252,21 @@ export default connect(state => ({
                 </Box>
               </Box>
 
+              {!!showError ?
+                <ErrorAlert sx={{
+                  maxWidth: '728px',
+                  marginTop: '28px',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                }} >
+                  {showError}
+                </ErrorAlert>
+              : undefined}
+
               {
-                connectWithIDLoading ?
+                isConnecting || connectWithIDLoading ?
                   <Box id="loader-container" sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                    <WizardLoading title="Getting Identity" subtitle="" />
+                    <WizardLoading title={isConnecting ? 'Connecting wallet' : "Getting Identity"} subtitle="" />
                   </Box>
                   :
                   undefined

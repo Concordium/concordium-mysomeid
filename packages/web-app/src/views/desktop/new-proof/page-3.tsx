@@ -54,6 +54,7 @@ import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader } from './page-4';
 import { useTemplateStore } from './template-store';
+import { ErrorAlert } from 'src/components';
 
 type PlatformProfileRepresentationArgs = {
   userData: string;
@@ -85,7 +86,6 @@ export const PlatformProfileRepresentation = ({
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',
         borderRadius: '1111px',
-        border: '1px solid',
         marginTop: '24px'
       }} />
       <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
@@ -338,23 +338,15 @@ export default connect(state => ({
                         : undefined}
                     </Box>
 
-                    {statementInfo && proof ?
-                    <Box sx={{
-                      width: '100%',
+                    {statementInfo && proof && (!firstNameMatch || !lastNameMatch) ?
+                    <ErrorAlert sx={{
                       maxWidth: '728px',
-                      background: 'red',
-                      display: 'flex',
                       marginTop: '28px',
-                      padding: '16px',
                       marginLeft: 'auto',
                       marginRight: 'auto',
-                      alignCenter: 'auto',
-                      borderRadius: '16px',
-                    }}>
-                      <Typography sx={{width: '100%', fontSize: '16px', lineHeight: '18px', textAlign: 'center', color: 'white'}}>
-                        <strong>Your name doesn't match the name in your Concordium ID.  Consider renaming your LinkedIn profile name in to match your Concordium ID name.</strong>
-                      </Typography>
-                    </Box> : undefined }
+                    }} >
+                      Your name doesn't match the name in your Concordium ID.  Consider renaming your LinkedIn profile name in to match your Concordium ID name.
+                    </ErrorAlert> : undefined}
 
                   </Box>
                 ) :
