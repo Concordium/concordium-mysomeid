@@ -668,7 +668,7 @@ fn contract_list_owned_tokens<S: HasStateApi>(
     let mut ret = Vec::new();
     if let Some(tokens) = tokens {
         for token in tokens.owned_tokens.iter() {
-            ret.push(token.clone());
+            ret.push(*token);
         }
     }
     Ok(ListTokens { tokens: ret })
@@ -1227,7 +1227,7 @@ mod tests {
     const MINTER_ADDRESS: Address = Address::Account(MINTER_ACCOUNT);
     const TOKEN_0: ContractTokenId = TokenIdU64(0);
 
-    const PLATFORM: Platform = Platform([01, 01]);
+    const PLATFORM: Platform = Platform([0x01, 0x01]);
 
     // The metadata url for this nft contract.
     const TOKEN_METADATA_BASE_URL: &str = "https://api.mysomeid.dev/v1/proof/meta/";
@@ -1436,10 +1436,10 @@ mod tests {
 
         let mut state_builder = TestStateBuilder::new();
         let state = initial_state(&mut state_builder);
-        let mut host = TestHost::new(state, state_builder);
+        let host = TestHost::new(state, state_builder);
 
         // Call the contract function.
-        let err: ContractResult<()> = contract_transfer(&ctx, &mut host);
+        let err: ContractResult<()> = contract_transfer(&ctx, &host);
 
         // Check that invoke failed.
         claim_eq!(
@@ -1467,10 +1467,10 @@ mod tests {
 
         let mut state_builder = TestStateBuilder::new();
         let state = initial_state(&mut state_builder);
-        let mut host = TestHost::new(state, state_builder);
+        let host = TestHost::new(state, state_builder);
 
         // Call the contract function.
-        let err: ContractResult<()> = contract_update_operator(&ctx, &mut host);
+        let err: ContractResult<()> = contract_update_operator(&ctx, &host);
 
         // Check that invoke failed.
         claim_eq!(
@@ -1518,7 +1518,7 @@ mod tests {
 
         // and parameter.
         let init_params = SetMetadataUrlParams {
-            url: TOKEN_METADATA_BASE_URL.to_string().to_string(),
+            url: TOKEN_METADATA_BASE_URL.to_string(),
         };
         let parameter_bytes = to_bytes(&init_params);
         ctx.set_parameter(&parameter_bytes);
