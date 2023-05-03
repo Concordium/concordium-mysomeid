@@ -131,7 +131,7 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
 
     
     let nextDisabledReason = revokeDisabled ?
-            isConnected ? 'Your Concordium Wallet is not connected and you cannot revoke the proof.' :
+            !isConnected ? 'Your Concordium Wallet is not connected and you cannot revoke the proof.' :
             ownerIsNotConnectedAccount ? 'Only the Concordium account that owns the proof can revoke it.':
             null:
         null;
