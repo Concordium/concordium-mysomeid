@@ -4,4 +4,6 @@ declare module "*.svg" {
   export default SVG;
 }
 
+declare module '*.png';
+
 declare module '*.ttf';
