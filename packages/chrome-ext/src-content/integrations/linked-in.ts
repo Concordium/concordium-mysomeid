@@ -261,7 +261,7 @@ const ensureWidget = () => {
 
 
 (async () => {
-	const staging = (await storage.get("staging", true)) ?? {};
+	const staging = (await storage.get("staging", true)) ?? false;
 	TEST = !!staging;
 	console.log("test ", TEST);
 })().then().catch(console.error);
