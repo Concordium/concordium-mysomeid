@@ -16,7 +16,7 @@ export const extensionUrl = process.env.REACT_APP_EXTENTION_URL ?? "https://chro
 
 export const ccdExtensionUrl = process.env.REACT_APP_CCD_EXTENTION_URL ?? "https://chrome.google.com/webstore/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
 
-export const proofBaseUri = process.env.REACT_APP_BASE_URL ?? "https://app.mysomeid.dev";
+export const proofBaseUri = process.env.REACT_APP_BASE_URL ?? "https://app.testnet.mysome.id";
 
 export const proofViewUrlBase = [proofBaseUri, 'v'].join('/');
 

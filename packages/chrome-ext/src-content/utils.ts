@@ -243,10 +243,10 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 		})));
 
 		if (platform === 'test') {
-			return `http://localhost:3000/create/1?template=${data}`;
+			return `http://localhost:3000/create/2?template=${data}`;
 		}
 
-		return `https://app.testnet.mysomeid.dev/create/1?template=${data}`;
+		return `https://app.testnet.mysomeid.dev/create/2?template=${data}`;
 	}
 
 	throw new Error('Invalid platform : ' + platform);
