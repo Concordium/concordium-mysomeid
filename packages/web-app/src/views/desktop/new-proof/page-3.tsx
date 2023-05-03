@@ -345,7 +345,7 @@ export default connect(state => ({
                       marginLeft: 'auto',
                       marginRight: 'auto',
                     }} >
-                      Your name doesn't match the name in your Concordium ID.  Consider renaming your LinkedIn profile name in to match your Concordium ID name.
+                      Your name doesn't match the name in your Concordium ID.  Consider renaming your LinkedIn profile name to match your Concordium ID name.
                     </ErrorAlert> : undefined}
 
                   </Box>
