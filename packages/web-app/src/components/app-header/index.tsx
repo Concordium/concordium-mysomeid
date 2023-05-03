@@ -85,12 +85,16 @@ const useStyles = makeStyles((theme: Theme) => {
   })
 });
 
+export const transformCCDAddress = (addr: string, shorten: boolean): string => (
+  shorten ? ('#' + [addr.slice(0, 4), addr.slice(-4)].join('...')) : addr
+);
+
 const ConnectedStatusBadge = ({}) => {
   const {
     account,
     isConnected
   } = useCCDContext();
-  const shortWalletDesc = isConnected ? '#' + [account.slice(0, 4), account.slice(-4)].join('...') : '';
+  const shortWalletDesc = isConnected ? transformCCDAddress(account, true) : '';
   return (
     <Box sx={{
       p: '6px 8px',
