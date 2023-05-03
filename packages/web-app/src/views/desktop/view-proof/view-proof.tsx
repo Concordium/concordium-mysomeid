@@ -129,24 +129,12 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
         (failedLoadingProof && !decryptionKey) || // Disabled if failed to load metadata ( it shoudl be enabled when encruption key is enabled and failed to load)
         loadingProof; // Disabled while loading proof
 
-    console.log('revokeDisabled', revokeDisabled, {
-        disSinceNotConnected: !isConnected,
-        diffAccount: ownerIsNotConnectedAccount,
-        revoked: revoked === true,
-        doneRevoking,
-        revokingProof,
-        failedLoading: (failedLoadingProof && !decryptionKey),
-        loadingProof,
-    });
-
-    let nextDisabledReason = null;
-    if( !isConnected ) {
-        nextDisabledReason = 'Your Concordium Wallet is not connected and you cannot revoke the proof.';
-    }
-
-    if (account && owner && account.trim().toLowerCase() !== owner.trim().toLowerCase()) {
-        nextDisabledReason = 'Only the Concordium account that owns the proof can revoke it.';
-    }
+    
+    let nextDisabledReason = revokeDisabled ?
+            isConnected ? 'Your Concordium Wallet is not connected and you cannot revoke the proof.' :
+            ownerIsNotConnectedAccount ? 'Only the Concordium account that owns the proof can revoke it.':
+            null:
+        null;
 
     const [showEditor, setShowEditor] = useState(false);
     const doShowEditor = useCallback(() => {

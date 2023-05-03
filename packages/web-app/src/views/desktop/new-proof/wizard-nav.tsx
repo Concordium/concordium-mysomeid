@@ -107,7 +107,6 @@ const ButtonWithTooltip = ({ children, tooltip: title, type, disabled, onClick, 
       },
     }}>
       {children}
-      dsiabled {disabled ? 'true': 'false'}
     </Button>
   );
 };
