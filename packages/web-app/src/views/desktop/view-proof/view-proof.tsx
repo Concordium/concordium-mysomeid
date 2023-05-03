@@ -8,7 +8,7 @@ import {
 import {
     WizardNav
 } from 'src/views/desktop/new-proof/wizard-nav';
-import { LoadingIndicator } from "src/components";
+import { LoadingIndicator, MessageAlert } from "src/components";
 import { useNavigate } from "react-router-dom";
 import { useCCDContext } from "src/hooks/use-ccd-context";
 import { Certificate } from "../new-proof/certificate";
@@ -234,6 +234,8 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
     const theme = useTheme();
     const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
     const ltmd = useMediaQuery(theme.breakpoints.down('md'));
+    const isEncrypted = profileFirstName === encryptedPlaceholder;
+    const ownerSelf = isConnected && owner && account && owner === account;
 
     return (
         <Box sx={{ backgroundColor: 'white', paddingTop: !ltmd ? '24px' : undefined }}>
@@ -254,6 +256,11 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                                     mobileVersion: ltmd,
                                     blurQRCode: profileFirstName === encryptedPlaceholder
                                 }} />
+                                {isEncrypted ?
+                                    <MessageAlert>
+                                        {ownerSelf ? 'Your' : 'The'} Proof is encrypted and you cannot see or access the information or QR code from the web site.  To retrieve the information open the LinkedIn profile with the proof embedded, click the mysome.id shield and click 'See Proof'.
+                                    </MessageAlert>
+                                : undefined}
                             </Box>
 
                             {failedLoadingProof || revoked || doneRevoking || revokingProof ?
@@ -357,7 +364,7 @@ export function ViewProof({ id, noRevoke, decryptionKey }: { id: string, noRevok
                 nextDisabledReason,
                 onNext: onRevoke,
                 extraButton: !noRevoke && !showEditor ? 'Download Proof Again' : undefined,
-                extraButtonDisabled: profileFirstName === encryptedPlaceholder || revoked || doneRevoking || revokingProof,
+                extraButtonDisabled: isEncrypted || revoked || doneRevoking || revokingProof,
                 onExtraButton: doShowEditor,
                 nextDisabled: revokeDisabled,
             }} />
