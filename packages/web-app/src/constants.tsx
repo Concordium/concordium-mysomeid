@@ -12,7 +12,7 @@ export function serviceUrl(route: string, params?: Record<string, string | numbe
     return  baseUrl + route + (params ? '?' + params : '');
 }
 
-export const extensionUrl = process.env.REACT_APP_EXTENTION_URL ?? "https://chrome.google.com/webstore/detail/mozbar/eakacpaijcpapndcfffdgphdiccmpknp";
+export const extensionUrl = process.env.REACT_APP_EXTENTION_URL ?? "https://chrome.google.com/webstore/detail/gllcllmlkeafcfapnanlmjkefaonljcm";
 
 export const ccdExtensionUrl = process.env.REACT_APP_CCD_EXTENTION_URL ?? "https://chrome.google.com/webstore/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
 
