@@ -194,7 +194,6 @@ export const Certificate = ({
                       backgroundRepeat: 'no-repeat',
                       backgroundSize: 'cover',
                       borderRadius: '1111px',
-                      border: '1px solid',
                       marginTop: '16px',
                       filter: blurQRCode ? 'blur(5px)' : undefined,
                       ...helpSx,

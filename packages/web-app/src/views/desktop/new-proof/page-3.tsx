@@ -86,7 +86,6 @@ export const PlatformProfileRepresentation = ({
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',
         borderRadius: '1111px',
-        border: '1px solid',
         marginTop: '24px'
       }} />
       <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
