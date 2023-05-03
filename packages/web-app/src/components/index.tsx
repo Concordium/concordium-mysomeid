@@ -8,3 +8,4 @@ export * from './ui';
 export * from './view-container';
 export * from './wizard';
 export * from './app-header/index';
+export * from './alert';
