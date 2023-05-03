@@ -46,7 +46,7 @@ export const MobileViewProofView = ({ }) => {
             return;
         }
         setLoadingProof(true);
-        loadProof(id, decryptionKey).then((data) => {
+        loadProof(id, decryptionKey).then(({proofData: data}) => {
             setFirstName(data.firstName);
             setSurname(data.surName);
             setPlatform(data.platform);

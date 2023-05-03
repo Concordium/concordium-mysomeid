@@ -69,6 +69,8 @@ export const MobileCertificate = ({
   const background = 'linear-gradient(130deg, rgba(23,87,222,1) 0%, rgba(31,164,254,1) 31%, rgba(43,173,255,1) 70%, rgba(119,208,255,1) 100%)';
   const boxShadow = '0px -2px 60px -1px rgba(0,0,0,0.43)';
   const onChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
     setValue(e.target.value);
   }, []);
   const verifyEnabled = !!value && value.length > 0;
@@ -80,8 +82,24 @@ export const MobileCertificate = ({
       return;
     }
 
+    // if user adds the whole linked in url by copy paste.
+    let userDataToVerify = value;
+    if ( value && value.match(new RegExp(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi)) ) {
+      const lowerCaseValue = userDataToVerify.toLowerCase();
+      if ( lowerCaseValue.indexOf('linkedin.com/in/') >= 0 ) {
+        const components = lowerCaseValue.split('linkedin.com/in/');
+        if ( components[1] ) {
+          const newValue = components[1].split('/')[0];
+          if ( newValue?.[0] ) {
+            setValue(newValue);
+            userDataToVerify = newValue;
+          }
+        }
+      }
+    }
+
     setVerifyingProof(true);
-    verifyProof({ url: uri, userData: value }).then((result: VerifyProofResult) => {
+    verifyProof({ url: uri, userData: userDataToVerify }).then((result: VerifyProofResult) => {
       setVerifyingProofResult( result === 'valid' ? 'valid' : 'invalid');
     }).catch(e => {
       setVerifyingProofResult('no-connection');
