@@ -48,7 +48,7 @@ export const WizardNav = ({ sx, prev, next, onPrev, onNext, prevDisabled, nextDi
         {extraButton}
       </Button> : undefined}
 
-    <ButtonWithTooltip {...{
+    {next ? <ButtonWithTooltip {...{
       tooltip: nextDisabledReason,
       type: !onNext ? "submit" : undefined,
       onClick: onNext ?? undefined,
@@ -60,7 +60,7 @@ export const WizardNav = ({ sx, prev, next, onPrev, onNext, prevDisabled, nextDi
       }
     }}>
       {next}
-    </ButtonWithTooltip>
+    </ButtonWithTooltip> : undefined}
   </Box>
 );
 

@@ -52,7 +52,7 @@ export const MobileViewProofView = ({ }) => {
             setPlatform(data.platform);
             setUserData(data.userData);
             setProfileImageUrl(data.profileImageUrl);
-            setUri([proofBaseUri, 'v', id, decryptionKeyEncoded].join('/'));
+            setUri([proofBaseUri, 'v', id, encodeURIComponent(decryptionKey)].join('/'));
             setProfilePageUrl(`${linkedInProfileBaseUrl}${data.userData}`);
             setFailedLoadingProof(false);
             setLoadingProof(false);
@@ -81,15 +81,12 @@ export const MobileViewProofView = ({ }) => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: '-24px' }}>
 
                     <MobileCertificate {...{
-                        sx: {
-                            minWidth: '800px',
-                        },
-                        profilePageUrl,
-                        profileImageUrl,
                         uri,
                         userData,
                         profileFirstName,
                         profileSurname,
+                        id,
+                        decryptionKey
                     }} />
 
                     <Box display="flex" flexDirection="column" sx={{ textAlign: 'center', margin: '0px 32px 32px 32px', padding: '0px 16px 0px 16px' }} >

@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.0.4
+
+- Ensure the full name matches modulo allowed substitutions.
+
 ## 1.0.3
 
 - GET request to return revoked state of on-chain proof added.
