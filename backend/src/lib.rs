@@ -423,5 +423,12 @@ mod tests {
         let b1 = "oo";
         let b2 = "Bar";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test that the full name must match modulo substitutions
+        let a1 = "Foo";
+        let a2 = "Bar";
+        let b1 = "";
+        let b2 = "";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 }
