@@ -6,13 +6,14 @@ import React, {
 } from "react";
 import {
   serviceUrl,
-  proofViewUrlBase
+  proofViewUrlBase,
+  proofBaseUri
 } from "src/constants";
 import { useExtension } from "./use-extension";
 
-type VerifyProofArgs = {url: string, userData: string} | {id: string, decryptionKey: string, userData: string};
+type VerifyProofArgs = {id: string, decryptionKey: string, userData: string};
 
-export type VerifyProofResult = 'valid' | 'revoked' | 'invalid' | 'user-data-not-matching';
+export type VerifyProofResult = 'valid' | 'revoked' | 'invalid' | 'user-data-not-matching' | 'no-connection';
 
 export type APIContextData = {
   verifyProof: (args: VerifyProofArgs) => Promise<VerifyProofResult>;
@@ -23,17 +24,10 @@ const APIContext = React.createContext<APIContextData>(null);
 export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
   const extension = useExtension();
 
-  const verifyProof = useCallback(async (args: VerifyProofArgs): Promise<VerifyProofResult> => {
-    const {
-      id,
-      decryptionKey,
-    } = 'url' in args ? {id: args.url.split('/')[4], decryptionKey: args.url.split('/')[5]} : args;
-
-    if (!id || !decryptionKey) {
+  const verifyProof = useCallback(async ({id, decryptionKey, userData}: VerifyProofArgs): Promise<VerifyProofResult> => {
+    if (!id || !decryptionKey || !userData) {
       return 'invalid';
     }
-
-    const uri = 'url' in args ? args.url : [proofViewUrlBase,id, decryptionKey].join('/');
 
     const responseData = await fetch(
       serviceUrl(`/proof/nft/${id}/${encodeURIComponent(decryptionKey)}`, ''),
@@ -51,23 +45,23 @@ export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     const proofData = await responseData.json();
 
+    // use the user data case insensitive.
+    if (userData?.trim()?.toLowerCase() !== proofData.userData?.trim()?.toLowerCase() ) {
+      return 'user-data-not-matching';
+    }
+
     if (proofData.revoked) {
       return 'revoked';
     }
 
-    // use the user data case insensitive.
-    if (args.userData?.trim()?.toLowerCase() !== proofData.userData?.trim()?.toLowerCase() ) {
-      return 'user-data-not-matching';
-    }
-
-    const proofUrl = encodeURIComponent(uri);
-    const firstName = encodeURIComponent(proofData.firstName);
-    const surName = encodeURIComponent(proofData.surName);
-    const platform = encodeURIComponent(proofData.platform);
-    const userData = encodeURIComponent(proofData.userData);
+    const proofUrlEnc = encodeURIComponent([proofBaseUri, 'v', id, encodeURIComponent(decryptionKey)].join('/'));
+    const firstNameEnc = encodeURIComponent(proofData.firstName);
+    const surNameEnc = encodeURIComponent(proofData.surName);
+    const platformEnc = encodeURIComponent(proofData.platform);
+    const userDataEnc = encodeURIComponent(proofData.userData);
 
     const responseVerify = await fetch(
-      serviceUrl(`/proof/validate-proof-url?url=${proofUrl}&firstName=${firstName}&lastName=${surName}&platform=${platform}&userData=${userData}`),
+      serviceUrl(`/proof/validate-proof-url?url=${proofUrlEnc}&firstName=${firstNameEnc}&lastName=${surNameEnc}&platform=${platformEnc}&userData=${userDataEnc}`),
       {
         method: 'GET',  
         headers: {
