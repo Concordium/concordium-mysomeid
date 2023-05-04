@@ -11,7 +11,8 @@ import {
   createMessage,
 } from './messaging';
 
-import logo from './logo.svg';
+// import logo from './logo.svg';
+import logo from './title-logo.png';
 
 import {
   themeSX
@@ -169,23 +170,10 @@ const Header = ({logoClick}: any) => {
       }}>
         <Box sx={{display: 'flex'}} onClick={logoClick}>
           <img src={logo} alt="logo" style={{
-            height: '20vmin',
+            height: '22vmin',
+            marginTop: '-4px',
             pointerEvents: 'none',
           }}/>
-        </Box>
-
-        <Box sx={{display: 'flex', flexDirection: 'column', marginLeft: themeSX.size.s1}}>
-          <Typography component="h1" sx={{...themeSX.text.h1, color: 'white'}}>
-            mysome.id
-          </Typography>
-          <Typography sx={{
-            ...themeSX.text.medium,
-            lineHeight: '6px',
-            color: 'white',
-            marginBottom: '13px',
-          }}>
-            Browser Extension
-          </Typography>
         </Box>
       </Box>
     </Box>
@@ -271,7 +259,7 @@ const App = () => {
         setHasInitUrl(true);
         setUrl(url ?? '');
         setIsOnLinkedIn((url ?? '').indexOf('linkedin.com') >= 0);
-        setIsOnMySOMEUrl((url ?? '').indexOf('mysomeid.dev') >= 0 || (url ?? '').indexOf('mysome.id') >= 0 || ( isStaging && (url ?? '').indexOf('http://localhost:3000') >= 0));
+        setIsOnMySOMEUrl((url ?? '').indexOf('app.mysomeid.dev') >= 0 || (url ?? '').indexOf('app.testnet.mysome.id') >= 0 || (url ?? '').indexOf('app.mysome.id') >= 0 || ( isStaging && (url ?? '').indexOf('http://localhost:3000') >= 0));
       }, 1);
     };
     chrome.tabs.query({ active: true, currentWindow: true }, callback);

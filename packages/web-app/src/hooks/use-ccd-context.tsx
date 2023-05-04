@@ -647,8 +647,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       console.log('Cannot find stored proof ', storedProof );
     }
 
-    const response = await fetch(
-      serviceUrl(`/proof/nft/${id}/${encodeURIComponent(decryptionKey)}`, ''),
+    const response = await fetch(serviceUrl(`/proof/nft/${id}/${encodeURIComponent(decryptionKey)}`, ''),
       {
         method: 'GET',
         headers: {
