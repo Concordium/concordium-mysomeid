@@ -232,7 +232,7 @@ fn can_transform_string(
 ) -> Result<bool, regex::Error> {
     // construct regular expression from `a` replacing all characters that can be
     // substituted by `s1` or `s2` or ... or `sn` by `(s1|...|sn)`
-    let mut a_regex_string = "".to_string();
+    let mut a_regex_string = "^".to_string();
     for c in a.chars() {
         // escape all regular expression characters
         let c_escaped = regex::escape(&format!("{c}"));
@@ -254,6 +254,7 @@ fn can_transform_string(
             None => a_regex_string += &c_escaped,
         }
     }
+    a_regex_string += "$";
     // test whether b matches the constructed regular expression
     let a_regex = Regex::new(&a_regex_string)?;
     // note: it is fine for `b` to be untrusted according to regex documentation
@@ -414,6 +415,20 @@ mod tests {
         let a2 = "Doe";
         let b1 = "J***hn";
         let b2 = "Doe";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test that the full name must match modulo substitutions
+        let a1 = "Foo";
+        let a2 = "Bar";
+        let b1 = "oo";
+        let b2 = "Bar";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test that the full name must match modulo substitutions
+        let a1 = "Foo";
+        let a2 = "Bar";
+        let b1 = "";
+        let b2 = "";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 }
