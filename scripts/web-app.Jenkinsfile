@@ -21,6 +21,7 @@ pipeline {
                         docker build \
                             -f Dockerfile \
                             -t "${image_name}" \
+                            --build-arg environment \
                             --no-cache \
                             .
                         docker push "${image_name}"
