@@ -3,7 +3,7 @@ pub mod db;
 use concordium::{
     base as concordium_base,
     base::{
-        contracts_common::{AccountAddress, Amount},
+        contracts_common::{self as concordium_std, AccountAddress, Amount},
         smart_contracts::{OwnedParameter, OwnedReceiveName},
     },
     common::{self, Versioned},
@@ -81,7 +81,7 @@ impl TryFrom<String> for Challenge {
 }
 
 /// The return type for the contract function `viewData`.
-#[derive(smart_contracts::common::Deserial)]
+#[derive(concordium_std::Deserial)]
 pub struct ViewData {
     /// Owner of the token.
     pub owner:    AccountAddress,

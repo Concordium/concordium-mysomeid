@@ -27,9 +27,6 @@ rustls-native-certs = "0.6"
 postgres-types = { version = "0.2", features = ["derive"]}
 tonic = {version = "0.8", features = ["tls", "tls-roots"]} # Use system trust roots.
 reqwest = { version = "0.11", features = ["json"] } # JSON is for the test client
-aws-config = "0.54"
-aws-sdk-secretsmanager = "0.24"
-prometheus = {version = "0.13", features = ["process"]}
 axum = {version = "0.6", features = ["headers"]}
 axum-prometheus = { version = "0.3" }
 tracing-subscriber = { version = "0.3" }
