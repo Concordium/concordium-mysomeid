@@ -234,4 +234,14 @@ class MySoMeAPI {
   reloadTabs = reloadTabs;
 }
 
+let TEST: boolean | null = null;
+let webAppBaseUrl = 'https://app.mysome.id';
+
+getState('state').then(state => {
+  TEST = !!(state?.['staging']);
+  webAppBaseUrl = TEST ? 'https://app.testnet.mysome.id' : 'https://app.mysome.id';
+});
+
+export const getWebAppBaseUrl = () => webAppBaseUrl;
+
 (window as any).mysome = new MySoMeAPI();

@@ -42,8 +42,8 @@ let state = {
 	pageHasBeenVerified: false,
 };
 let TEST = false;
-const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.testnet.mysome.id`;
-const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.testnet.mysome.id/v1`;
+export const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.mysome.id`;
+const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.mysome.id/v1`;
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
@@ -1021,7 +1021,8 @@ const install = async () => {
 
 		const proofId = proofUrl?.split('/')?.[4] ?? '';
 		const proofKey = proofUrl?.split('/')?.[5] ?? '';
-		proofUrl = proofId && proofKey ? ['https://app.testnet.mysome.id', trackOnOwnProfileOrFeed.get() ? 'my-proof' : 'v', proofId, proofKey ].join('/') : proofUrl;
+		const base = WEBSITE_BASE_URL();
+		proofUrl = proofId && proofKey ? [base, trackOnOwnProfileOrFeed.get() ? 'my-proof' : 'v', proofId, proofKey ].join('/') : proofUrl;
 
 		const onProfilePage = trackOnProfileUrl.get();
 		const onOwnProfileOrFeed = trackOnOwnProfileOrFeed.get();

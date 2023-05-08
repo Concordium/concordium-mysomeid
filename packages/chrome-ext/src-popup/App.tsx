@@ -233,7 +233,7 @@ const App = () => {
   }, [hasInitStorage, linkedInRegistered]);
   
   const gettingStarted = useCallback(() => {
-    chrome.tabs.create({url: isStaging ? 'http://localhost:3000' : 'https://app.testnet.mysome.id/home'});
+    chrome.tabs.create({url: isStaging ? 'https://app.testnet.mysome.id/home' : 'https://app.mysome.id/home'});
   }, [isStaging]);
 
   const logoClick = useCallback(event => {
