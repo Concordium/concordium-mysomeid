@@ -13,7 +13,7 @@ pipeline {
         stage('build') {
             environment {
                 image_repo = "${ecr_repo_domain}/concordium/mysomeid-dapp"
-                image_name = "${image_repo}:${image_tag}"
+                image_name = "${image_repo}:${environment}-${image_tag}"
             }
             steps {
                 dir('packages/web-app') {
@@ -21,6 +21,7 @@ pipeline {
                         docker build \
                             -f Dockerfile \
                             -t "${image_name}" \
+                            --build-arg environment \
                             --no-cache \
                             .
                         docker push "${image_name}"
