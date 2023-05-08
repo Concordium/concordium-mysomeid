@@ -1049,7 +1049,7 @@ fn contract_upgrade<S: HasStateApi>(
 
     // Check that only and address with Roles::Upgrader is authorized to upgrade the smart contract.
     ensure!(
-        state.has_role(&sender, Roles::Admin),
+        state.has_role(&sender, Roles::Upgrader),
         ContractError::Unauthorized
     );
     // Parse the parameter.
