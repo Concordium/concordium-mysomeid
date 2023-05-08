@@ -115,7 +115,7 @@ export default ({CONTRACT_NAME, CONTRACT_INDEX, CONTRACT_SUB_INDEX: CONTRACT_SUB
         subindex: CONTRACT_SUB_INDEX,
       },
       receiveName: `${CONTRACT_NAME}.burn`,
-      maxContractExecutionEnergy: 30000n,
+      maxContractExecutionEnergy: 5000n,
     };
     
     let asNumber = Number.parseInt(`${tokenId}`); // integer to be formatted
