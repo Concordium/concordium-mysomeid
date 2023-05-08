@@ -26,7 +26,7 @@ use concordium::{
         id_proof_types::Statement,
         types::AccountCredentialWithoutProofs,
     },
-    smart_contracts::{self, common::AccountAddress},
+    smart_contracts::{common as concordium_std, common::AccountAddress},
     types::{
         queries::BlockInfo, AbsoluteBlockHeight, AccountIndex, BlockItemSummary, ContractAddress,
         CryptographicParameters, Energy, WalletAccount,
@@ -1381,7 +1381,7 @@ async fn tx_sender(
 
 /// The parameter for the contract function `mint` which mints a number of
 /// tokens to a given address.
-#[derive(smart_contracts::common::Serial, smart_contracts::common::Deserial)]
+#[derive(concordium_std::Serial, concordium_std::Deserial)]
 struct ContractMintParams {
     /// Owner of the newly minted token.
     owner:    AccountAddress,
