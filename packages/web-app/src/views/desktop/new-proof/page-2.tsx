@@ -124,6 +124,11 @@ export default connect(state => ({
     setConnectWithIDLoading
   ] = useState(false);
 
+  const [
+    connecting,
+    setConnecting
+  ] = useState(false);
+
   useEffect(() => {
     if (!userId || !platform || !name) {
       console.log("no user data or platform or profileInfo");
@@ -143,7 +148,8 @@ export default connect(state => ({
     account,
   } = useCCDContext();
 
-  const nextDisabled = !userId || !platform || !valid || connectWithIDLoading;
+  const nextDisabled = !userId || !platform || !valid || isConnecting || connectWithIDLoading;
+  const opacity = isConnecting || connectWithIDLoading ? 0.1 : 1;
 
   const nextLabel = !statementInfo ?
     !isConnected ?
@@ -165,6 +171,11 @@ export default connect(state => ({
       console.error("Already loading - ignored");
       return;
     }
+   
+    if ( connecting ) {
+      console.error("Already connecting - ignored");
+      return;
+    }
     
     if (proof) {
       nextPage();
@@ -172,17 +183,24 @@ export default connect(state => ({
     }
 
     if (!isConnected) {
-      connectAsync().then(() => {
-        onNext(); // continue
+      setConnecting(true);
+      connectAsync().then((addr) => {
+        if (addr) {
+          setShowError(null);
+          setTimeout(() => {
+            onNext();
+          }, 1000);
+        }
       }).catch((err => {
+        console.error(err);
         if ( err?.message === 'No account in the wallet' ) {
           setShowError(noAccountInWallet);
-          return;
         } else {
           setShowError(connectError);
         }
-        console.error(err);
-      }));
+      })).finally(() => {
+        setConnecting(false);
+      });
       return;
     }
 
@@ -227,7 +245,7 @@ export default connect(state => ({
       console.log('Authorise is done done');
       setConnectWithIDLoading(false);
     });
-  }, [props, userId, proof, profileFirstName, profileSurname, platform, account, connectWithIDLoading]);
+  }, [props, userId, proof, profileFirstName, profileSurname, platform, account, connectWithIDLoading, isConnected]);
 
   return (
     <form>
@@ -236,9 +254,9 @@ export default connect(state => ({
           {({ width, height }: { width: number, height: number }) => (
             <>
               <Box id="layout-column" sx={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: minLayoutBoxHeight }}>
-                <FormSubstepHeader header="Your Profile to Secure" desc={userId ?? ' '} sx={{ opacity: connectWithIDLoading ? 0.1 : 1 }} />
+                <FormSubstepHeader header="Your Profile to Secure" desc={userId ?? ' '} sx={{ opacity }} />
 
-                <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', opacity: connectWithIDLoading ? 0.1 : 1 }}>
+                <Box id="layout-centered" sx={{ display: 'flex', justifyContent: 'center', marginTop: '24px', width: '100%', opacity }}>
 
                   <ProofCreatedConfirmation {...{
                     profileImageUrl: profilePicUrl,
@@ -262,6 +280,7 @@ export default connect(state => ({
                   marginTop: '28px',
                   marginLeft: 'auto',
                   marginRight: 'auto',
+                  opacity,
                 }} >
                   {showError}
                 </ErrorAlert>

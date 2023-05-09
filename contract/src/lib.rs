@@ -202,7 +202,7 @@ impl<S: HasStateApi> State<S> {
     /// Check that the token ID currently exists in this contract (which means it has not been revoked/burned).
     #[inline(always)]
     fn contains_token(&self, token_id: &ContractTokenId) -> bool {
-        self.all_tokens.get(token_id).map_or(false, |t| !t.revoked)
+        self.all_tokens.get(token_id).is_some()
     }
 
     /// Get the current balance of a given token ID for a given address.
@@ -1049,7 +1049,7 @@ fn contract_upgrade<S: HasStateApi>(
 
     // Check that only and address with Roles::Upgrader is authorized to upgrade the smart contract.
     ensure!(
-        state.has_role(&sender, Roles::Admin),
+        state.has_role(&sender, Roles::Upgrader),
         ContractError::Unauthorized
     );
     // Parse the parameter.

@@ -23,6 +23,9 @@ import {
 } from 'use-interval';
 import { useExtension } from "./use-extension";
 import { isNil, sleep } from '../utils';
+import {
+  error
+} from 'src/slices/messages-slice';
 
 export type ProofData = {
   id?: string;
@@ -300,7 +303,9 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     () => {
       detectConcordiumProvider()
         .then((provider) => {
-          provider.connect().then(handleSetAccountAndConnected);
+          provider.connect().then(handleSetAccountAndConnected).catch(err => {
+            dispatch(error(err.message ?? 'Unknown error connecting to wallet'));
+          });
           return provider;
         });
     },
@@ -319,22 +324,25 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     }
 
     setConnecting(true);
+    const unknownWalletConnectErrorMessage = 'Unknown error connecting wallet';
     const addr = await new Promise<string>((resolve, reject) => {
       detectConcordiumProvider().then((provider) => {
         provider.connect().then(addr => {
           resolve(addr);
         }).catch(e => {
+          dispatch(error(e?.message ?? unknownWalletConnectErrorMessage));
           setConnecting(false);
           reject(e);
         });
       }).catch(e => {
+        dispatch(error(e?.message ?? unknownWalletConnectErrorMessage));
         setConnecting(false);
         reject(e);
       });
     });
 
-    handleSetAccountAndConnected(addr);
     setConnecting(false);
+    handleSetAccountAndConnected(addr);
 
     return addr;
   }, [connecting, isConnected, account]);
