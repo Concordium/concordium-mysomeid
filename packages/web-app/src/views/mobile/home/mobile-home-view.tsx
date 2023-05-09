@@ -3,6 +3,9 @@ import { Box, Typography } from "@mui/material";
 import { MobileHeader } from "../view-proof/mobile-header";
 import { AspectBox } from "src/views/desktop/new-proof/aspect-box";
 import HomeShieldPng from './home-shield.png';
+import {
+  Button
+} from 'src/components';
 
 export const MobileHomeView = ({ }) => {
   const [w, setWidth] = useState(0);
@@ -39,12 +42,42 @@ export const MobileHomeView = ({ }) => {
             }} />
 
             <Typography display="block" sx={{ fontSize: '18px', color: 'black', margin: '24px 16px 0px 16px', fontWeight: 400, lineHeight: '1.3', float: 'left' }}>
-            Sorry, as of right now, it is only possible to use mysome.id for verifying profiles on a PC with a Chromium browser installed.<br/>
-(ie. Chrome, Opera, Brave or Edge)
+              Sorry, as of right now, it is only possible to use mysome.id for verifying profiles on a PC with a Chromium browser installed.<br />
+              (ie. Chrome, Opera, Brave or Edge)
             </Typography>
           </Box>
 
 
+          <Box sx={{
+            display: 'flex',
+            position: 'fixed',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            height: '85px',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            textAlign: 'center',
+          }}>
+            <Typography display="block" sx={{ fontSize: '12px', color: 'black', margin: '24px 16px 0px 16px', fontWeight: 400, lineHeight: '1.3', float: 'left' }}>
+              What is mysome.id?
+            </Typography>
+
+            <Box sx={{
+              display: 'flex',
+              width: '100%',
+              justifyContent: 'center',
+            }}>
+              <Button onClick={() => {
+                window.open('https://mysome.id', '_blank');
+              }} variant="primary" sx={{
+                marginTop: '16px',
+                fontSize: '14px !important',
+              }}>
+                Learn More
+              </Button>
+            </Box>
+          </Box>
 
         </Box>
       </Box>
