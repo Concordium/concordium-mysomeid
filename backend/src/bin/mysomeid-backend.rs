@@ -538,7 +538,7 @@ fn make_img_url(
     params: &MetadataQueryParams,
     thumbnail: bool,
 ) -> Url {
-    base.set_path(&format!("v1/proof/{proof_id}/img"));
+    base.set_path(&format!("v1/proof/img/{proof_id}"));
     base.set_query(Some(&format!(
         "t={}&p={}&r={}",
         if thumbnail { "thumb" } else { "display" },
