@@ -17,6 +17,8 @@ import { defaultProofColor } from 'src/themes/theme';
 import { isNil } from 'src/utils/is-nil';
 import { transformCCDAddress } from 'src/components';
 
+import VerifiedBy from 'src/assets/verified-by.png';
+
 let template: HTMLElement | null = null;
 
 function s_styles(style: string) {
@@ -75,14 +77,14 @@ export const ProofWidget = ({
       </Box>
       <Box display="flex" sx={{ marginTop: '8px', placeItems: "center", justifyContent: "center" }}>
         <Box sx={{
-          background: `url(${logoSvg})`,
-          width: "51px",
-          height: "44px",
+          background: `url(${VerifiedBy})`,
+          width: "148px",
+          height: "39px",
           backgroundRepeat: 'no-repeat',
           backgroundSize: 'contain',
-          marginRight: '8px',
+          marginTop: '6px',
+          marginLeft: '2px',
         }} />
-        <Typography sx={{ fontSize: '16px', textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
       </Box>
     </Box>
   );
