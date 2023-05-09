@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.0.5
+
+- Fix metadata URL in returned metadata file.
+
 ## 1.0.4
 
 - Ensure the full name matches modulo allowed substitutions.
