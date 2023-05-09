@@ -47,7 +47,7 @@ function canTransformString(
     b: string,
     allowedSubstitutions: AllowedSubstitutions
 ): boolean {
-    let aRegexString = "";
+    let aRegexString = "^";
 
     for (const c of a) {
         const cEscaped = escapeRegExp(c);
@@ -67,6 +67,7 @@ function canTransformString(
             aRegexString += cEscaped;
         }
     }
+    aRegexString += "$";
 
     const aRegex = new RegExp(aRegexString);
     return aRegex.test(b);
