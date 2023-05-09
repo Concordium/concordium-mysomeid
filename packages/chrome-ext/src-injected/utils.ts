@@ -1,5 +1,9 @@
 // declare var chrome: any;
 
+import {
+	getWebAppBaseUrl 
+} from './index';
+
 export async function traverseDomWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
 	let e: any = null;
 	const ts = new Date().getTime();
@@ -111,7 +115,8 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			return `http://localhost:3000/create/1?template=${data}`;
 		}
 
-		return `https://app.testnet.mysome.id/create/1?template=${data}`;
+		const webAppBaseUrl = getWebAppBaseUrl();
+		return `${webAppBaseUrl}/create/1?template=${data}`;
 	} 
 
 	throw new Error('Invalid platform : ' + platform);
