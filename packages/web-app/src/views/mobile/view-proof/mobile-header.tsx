@@ -2,7 +2,8 @@ import {
     Box,
     Typography
 } from '@mui/material';
-import MySoMeIDLogo1 from 'src/images/logo-white.svg';
+// import MySoMeIDLogo1 from 'src/images/logo-white.svg';
+import MobileLogo from './mobile-logo.png';
 
 export const MobileHeader = ({ }) => {
 
@@ -18,39 +19,16 @@ export const MobileHeader = ({ }) => {
             <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
-                marginTop: '134px',
+                marginTop: '72px',
             }}>
                 <Box id="logo" sx={{
-                    width: '48px',
-                    height: '48px',
+                    width: '173px',
+                    height: '58px',
                     backgroundSize: 'contain !important',
                     backgroundRepeat: 'no-repeat !important',
-                    background: `url(${MySoMeIDLogo1})`,
-                    letterSpacing: '2.1px',
+                    background: `url(${MobileLogo})`,
                     marginRight: '4px',
                 }} />
-                <Box sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    marginLeft: '4px',
-                }}>
-                    <Typography component="h2" sx={{
-                        color: 'white',
-                        fontSize: '28px',
-                        fontWeight: 400,
-                        textAlign: 'center',
-                    }}>
-                        mysome.id
-                    </Typography>
-                    <Typography component="p" sx={{
-                        color: 'white',
-                        fontSize: '12px',
-                        fontWeight: 400,
-                        textAlign: 'center',
-                    }}>
-                        Powered by Concordium
-                    </Typography>
-                </Box>
             </Box>
         </Box>
     );

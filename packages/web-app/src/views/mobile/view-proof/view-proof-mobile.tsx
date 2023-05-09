@@ -89,21 +89,6 @@ export const MobileViewProofView = ({ }) => {
                         decryptionKey
                     }} />
 
-                    <Box display="flex" flexDirection="column" sx={{ textAlign: 'center', margin: '0px 32px 32px 32px', padding: '0px 16px 0px 16px' }} >
-                        <Typography sx={{fontSize: '14px', fontWeight: 400}}>
-                            To verify the proof for yourself go to the linkedin profile you came from. Locate the URL of the profile, the user-id is the last part of the URL <i>(linkedin.com/ln/xxxxxx).</i> Paste it above and press "Verify Profile".
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: '16px', paddingLeft: '32px', paddingRight: '32px', marginBottom: '16px' }}>
-                            <Typography sx={{fontSize: '12px', fontWeight: 400, marginTop: '8px'}}>
-                                Interested in verifying yourself and protecting your social media accounts? 
-                            </Typography>
-                            <Button variant="primary" sx={{marginTop: '16px !important', fontSize: '14px !important',}} onClick={() => {
-                                window.open('https://mysome.id', '_blank');
-                            }}>
-                                Learn More
-                            </Button>
-                        </Box>
-                    </Box>
                 </Box>
             </Box>
         </Box>
