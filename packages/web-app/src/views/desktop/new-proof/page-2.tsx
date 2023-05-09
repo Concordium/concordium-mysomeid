@@ -71,11 +71,15 @@ export function parseNameFromNameString(name: string) {
 const connectError = (<>
   You must Connect your Concordium ID to continue.<br />
   <br />
-  Please ensure you have completed the set up of your Concordium Account by opening Concordium extension and completing the process.
+  Ensure you have completed the set up of your Concordium Account by completing the Concordium wallet set up.<br/>
+  <br/>
+  (If you have already created an account please refresh the browser and click continue)
 </>);
 
 const noAccountInWallet = (<>
   To continue please open the Concordium wallet extension and set up your Concordium Account.<br/>
+  <br/>
+  (If you have already created an account please refresh the browser and click continue)
 </>);
 
 export default connect(state => ({
