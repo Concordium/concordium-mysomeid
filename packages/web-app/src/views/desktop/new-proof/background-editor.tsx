@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  Typography,
   Box,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import logoSvg from 'src/images/logo-white.svg';
+import VerifiedBy from 'src/assets/verified-by.png';
 import QRCode from "react-qr-code";
 import * as htmlToImage from 'html-to-image';
 import { Button } from 'src/components/ui/button';
@@ -222,16 +221,16 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
 
           <Box display="flex" sx={{ zIndex: 1, marginTop: 'auto', marginBottom: 'auto', width: '100%', placeItems: "center", justifyContent: "center", pointerEvents: 'none' }}>
             <Box sx={{
-              background: `url(${logoSvg})`,
-              width: `${Math.round(27 * factor * scale)}px`,
-              height: `${Math.round(23 * factor * scale)}px`,
+              background: `url(${VerifiedBy})`,
+              width: `${Math.round(75 * factor * scale)}px`,
+              height: `${Math.round((75 / 3) * factor * scale)}px`,
               backgroundRepeat: 'no-repeat',
               backgroundSize: 'contain',
-              // marginRight: `${Math.round(8 * factor * scale)}px`,
-              marginLeft: `${Math.round(-2 * factor * scale)}px`,
+              marginTop: `${Math.round(2 * factor * scale)}px`,
+              marginLeft: `${Math.round(1 * factor * scale)}px`,
             }} />
-            <Typography sx={{ fontSize: `${Math.round(8 * factor * scale)}px`, textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
           </Box>
+
           <Box sx={{
             width: `100%`,
             height: `0px`,
@@ -305,17 +304,16 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
 
           <Box display="flex" sx={{ zIndex: 1, marginTop: 'auto', marginBottom: 'auto', width: '100%', placeItems: "center", justifyContent: "center", pointerEvents: 'none' }}>
             <Box sx={{
-              background: `url(${logoSvg})`,
-              width: `${Math.round(27 * factor * shadowScale)}px`,
-              height: `${Math.round(23 * factor * shadowScale)}px`,
+              background: `url(${VerifiedBy})`,
+              width: `${Math.round(75 * factor * shadowScale)}px`,
+              height: `${Math.round((75/3) * factor * shadowScale)}px`,
               backgroundRepeat: 'no-repeat',
               backgroundSize: 'contain',
-              // marginRight: `${Math.round(8 * factor * shadowScale)}px`,
-              marginLeft: `${Math.round(-2 * factor * shadowScale)}px`,
+              marginTop: `${Math.round(2 * factor * shadowScale)}px`,
+              marginLeft: `${Math.round(1 * factor * shadowScale)}px`,
               pointerEvents: 'none',
               userSelect: 'none',
             }} />
-            <Typography sx={{ fontSize: `${Math.round(8 * factor * shadowScale)}px`, textAlign: 'center', color: 'white' }}>VERIFIED BY<br />MYSOME.ID</Typography>
           </Box>
 
           <Box sx={{
