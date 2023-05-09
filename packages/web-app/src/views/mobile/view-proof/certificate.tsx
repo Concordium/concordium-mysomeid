@@ -89,11 +89,13 @@ export const MobileCertificate = ({
     setShowProofResult(false);
   }, []);
 
+  const profileName = [profileFirstName, profileSurname].join(' ').trim();
+
   const showMessage = (
     verifyingProofStatus === 'no-connection' ?
       'NO CONNECTION' :
     verifyingProofStatus === 'valid' ?
-      'THIS PROOF IS VALID' :
+      <>THIS PROOF IS ACTIVE<br/><br/>NAME IN PROOF:<br/>{profileName}</> :
     (verifyingProofStatus === 'invalid' || verifyingProofStatus === 'user-data-not-matching') ?
       'THIS PROOF IS INVALID' :
     verifyingProofStatus === 'revoked' ?
@@ -102,13 +104,10 @@ export const MobileCertificate = ({
   );
 
   return (
-    <Box display="flex" flexDirection="column" sx={{ color: 'white', background, boxShadow, borderRadius: '32px', textAlign: 'center', margin: '32px', marginTop: '56px', padding: '16px' }} >
+  <>
+    <Box display="flex" flexDirection="column" sx={{ color: 'white', background, boxShadow, borderRadius: '32px', textAlign: 'center', margin: '32px', marginTop: '0px', padding: '16px' }} >
       <Typography component="h3" display="block" sx={{ marginTop: '8px', display: 'flex', alignSelf: 'center', fontSize: '16px', fontWeight: 400, lineHeight: '1.3', float: 'left' }}>
         LinkedIn <LinkedInIcon sx={{ width: '21px', height: '21px' }} />
-      </Typography>
-
-      <Typography component="h3" display="block" sx={{ marginTop: '8px', fontSize: '16px', fontWeight: 600, lineHeight: '1.3', float: 'left' }}>
-        {profileFirstName} {profileSurname}
       </Typography>
 
       <TrackBox id="certificate-client-area" sx={{ display: 'flex', margin: '24px 16px 0px 16px', justifyContent: 'space-evenly' }}>
@@ -184,6 +183,7 @@ export const MobileCertificate = ({
                   {userData}
                 </Typography>
               </Box>
+
               {
                 ['valid', 'revoked', 'no-connection'].indexOf(verifyingProofStatus) === -1 ?
                   <>
@@ -196,7 +196,6 @@ export const MobileCertificate = ({
                   </> : null
               }
               
-
               {showMessage ?
                 <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center',  marginTop: '8px', background: verifyingProofStatus === 'valid' ? successText : errorText, minHeight: '62px', borderRadius: '8px', padding: '16px',}}>
                   <Typography component="h3" display="block" sx={{ color: 'white', marginTop: '0px', fontSize: '16px', fontWeight: 600, lineHeight: '1.3', float: 'left' }}>
@@ -205,16 +204,49 @@ export const MobileCertificate = ({
                 </Box>
               : undefined}
             </Box>
-            <Button onClick={onBack} variant="primary" sx={{
-              marginTop: '16px',
-              fontSize: '14px !important',
-            }}>
-              Back
-            </Button>
+
+            {verifyingProofStatus !== 'valid' ?
+              <Button onClick={onBack} variant="primary" sx={{
+                marginTop: '16px',
+                fontSize: '14px !important',
+              }}>
+                Back
+              </Button>
+              :
+              <Button onClick={() => {
+                window.open('https://mysome.id', '_blank');
+              }} variant="primary" sx={{
+                marginTop: '16px',
+                fontSize: '14px !important',
+              }}>
+                Learn More
+              </Button>
+            }
           </>
         }
       </Box>
 
     </Box>
-  );
+
+    <Box display="flex" flexDirection="column" sx={{ textAlign: 'center', margin: '0px 32px 32px 32px', padding: '0px 16px 0px 16px' }} >
+        <Typography sx={{fontSize: '14px', fontWeight: 400}}>
+            {verifyingProofStatus !== 'valid' ?
+              <>To verify the proof for yourself go to the linkedin profile you came from. Locate the URL of the profile, the user-id is the last part of the URL <i>(linkedin.com/ln/xxxxxx).</i> Paste it above and press "Verify Profile".</>
+              :
+              <>To ensure an active proof is not being misused, you should always check if the name in the proof matches the name on the LinkedIn profile.</>
+            }
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: '32px', paddingLeft: '32px', paddingRight: '32px', marginBottom: '16px' }}>
+            <Typography sx={{fontSize: '12px', fontWeight: 400, marginTop: '8px'}}>
+                Interested in verifying yourself and protecting your social media accounts? 
+            </Typography>
+            <Button variant="primary" sx={{marginTop: '16px !important', fontSize: '14px !important',}} onClick={() => {
+                window.open('https://mysome.id', '_blank');
+            }}>
+                Learn More
+            </Button>
+        </Box>
+    </Box>
+
+  </>);
 };
