@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.0.6
+
+- Allow subset matching when comparing names.
+
 ## 1.0.5
 
 - Fix metadata URL in returned metadata file.
