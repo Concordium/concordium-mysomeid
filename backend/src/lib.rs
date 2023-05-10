@@ -217,7 +217,10 @@ pub fn fuzzy_match_names(
     if a == b {
         return Ok(true);
     }
-    find_inclusion(a.as_str(), b.as_str(), allowed_substitutions)
+    Ok(
+        find_inclusion(a.as_str(), b.as_str(), allowed_substitutions)?
+            || find_inclusion(b.as_str(), a.as_str(), allowed_substitutions)?,
+    )
 }
 
 fn find_inclusion(
