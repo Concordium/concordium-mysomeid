@@ -217,11 +217,7 @@ pub fn fuzzy_match_names(
     if a == b {
         return Ok(true);
     }
-    Ok(find_inclusion(
-        a.as_str(),
-        b.as_str(),
-        allowed_substitutions,
-    )?)
+    find_inclusion(a.as_str(), b.as_str(), allowed_substitutions)
 }
 
 fn find_inclusion(
@@ -229,20 +225,22 @@ fn find_inclusion(
     b: &str,
     allowed_substitutions: &HashMap<char, Vec<String>>,
 ) -> Result<bool, regex::Error> {
-    let mut wa = a.split(' ');
+    let wa = a.split(' ');
     let mut wb = b.split(' ');
     let mut count = 0;
-    while let Some(a_word) = wa.next() {
-        count += 1;
-        let mut found = false;
-        while let Some(b_word) = wb.next() {
-            if can_transform_string(a_word, b_word, allowed_substitutions)? {
-                found = true;
-                break;
+    for a_word in wa {
+        if !a_word.trim().is_empty() {
+            count += 1;
+            let mut found = false;
+            for b_word in wb.by_ref() {
+                if can_transform_string(a_word, b_word, allowed_substitutions)? {
+                    found = true;
+                    break;
+                }
             }
-        }
-        if !found {
-            return Ok(false);
+            if !found {
+                return Ok(false);
+            }
         }
     }
     Ok(count >= 2)
@@ -360,13 +358,6 @@ mod tests {
 
         // test subset match with order and no duplicates.
         let a1 = "John";
-        let a2 = "";
-        let b1 = "John";
-        let b2 = "Doe Fitzgerald";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
-
-        // test subset match with order and no duplicates.
-        let a1 = "John";
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Fitzgerald Adams Doe The Third";
@@ -477,6 +468,13 @@ mod tests {
         let a2 = "Doe";
         let b1 = "James";
         let b2 = "Doe";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // at least two words must match
+        let a1 = "John";
+        let a2 = "";
+        let b1 = "John";
+        let b2 = "Doe Fitzgerald";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // duplicate names don't match
