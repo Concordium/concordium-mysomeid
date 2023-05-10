@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-const {escapeRegExp} = _;
+const { escapeRegExp } = _;
 
 type AllowedSubstitutions = Map<string, string[]>;
 
@@ -9,11 +9,7 @@ export function fuzzyMatchNames(
     bFirstName: string,
     bSurname: string,
     allowedSubstitutions: AllowedSubstitutions = getAllowedSubstitutions()
-): {fullNameMatch: boolean, firstNameMatch: boolean, lastNameMatch: boolean} {
-    if (aFirstName === bFirstName && aSurname === bSurname) {
-        return {fullNameMatch: true, firstNameMatch: true, lastNameMatch: true};
-    }
-
+): boolean {
     const aFirstNameTrimmed = aFirstName.trim();
     const aSurNameTrimmed = aSurname.trim();
     const bFirstnameTrimmed = bFirstName.trim();
@@ -22,24 +18,46 @@ export function fuzzyMatchNames(
     const aFullname = `${aFirstNameTrimmed} ${aSurNameTrimmed}`.toLowerCase();
     const bFullname = `${bFirstnameTrimmed} ${bSurnameTrimmed}`.toLowerCase();
 
-    const firstNameMatch = canTransformString(aFirstNameTrimmed.toLowerCase(), bFirstnameTrimmed.toLowerCase(), allowedSubstitutions) || 
-                        canTransformString(bFirstnameTrimmed.toLowerCase(), aFirstNameTrimmed.toLowerCase(), allowedSubstitutions);
-    const lastNameMatch = canTransformString(aSurNameTrimmed.toLowerCase(), bSurnameTrimmed.toLowerCase(), allowedSubstitutions) || 
-                        canTransformString(bSurnameTrimmed.toLowerCase(), aSurNameTrimmed.toLowerCase(), allowedSubstitutions);
-
-    if (aFullname === bFullname) {
-        return {fullNameMatch: true, firstNameMatch, lastNameMatch};
+    if (aFullname === bFullname && aFullname.split(' ').length >= 2) {
+        return true;
     }
 
-    const fullNameMatch =
-        canTransformString(aFullname, bFullname, allowedSubstitutions) ||
-        canTransformString(bFullname, aFullname, allowedSubstitutions);
+    return findInclusion(aFullname, bFullname, allowedSubstitutions);
+}
 
-    return {
-      fullNameMatch,
-      firstNameMatch,
-      lastNameMatch,
-    };
+function findInclusion(a: string, b: string, allowedSubstitutions: AllowedSubstitutions): boolean {
+    let wa = a.split(' ');
+    let words = new Map<string, number>();
+    for (let word of b.split(' ')) {
+        if (word.trim() !== '') {
+            let entry = words.get(word) || 0;
+            words.set(word, entry + 1);
+        }
+    }
+    if (words.size > 50) {
+        return false;
+    }
+    let count = 0;
+    for (let aWord of wa) {
+        if (count > 50) {
+            return false;
+        }
+        if (aWord.trim() !== '') {
+            count += 1;
+            let found = false;
+            for (let [bWord, mult] of words.entries()) {
+                if (canTransformString(aWord, bWord, allowedSubstitutions) && mult > 0) {
+                    words.set(bWord, mult - 1);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+    }
+    return count >= 2;
 }
 
 function canTransformString(

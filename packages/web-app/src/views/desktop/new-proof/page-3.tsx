@@ -199,11 +199,7 @@ export default connect(state => ({
     // country: profileCountry,
   } = parseNameFromNameString(name);
 
-  const {
-    fullNameMatch: nameMatch,
-    firstNameMatch,
-    lastNameMatch,
-  } = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
+  const nameMatch = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
 
   const theme = useTheme();
 
@@ -306,8 +302,8 @@ export default connect(state => ({
                             profileImageUrl,
                             firstName: profileFirstName,
                             surname: profileSurname,
-                            firstNameMatch: firstNameMatch,
-                            surnameMatch: lastNameMatch
+                            firstNameMatch: nameMatch,
+                            surnameMatch: nameMatch
                           }} />
 
                           <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
@@ -338,7 +334,7 @@ export default connect(state => ({
                         : undefined}
                     </Box>
 
-                    {statementInfo && proof && (!firstNameMatch || !lastNameMatch) ?
+                    {statementInfo && proof && (!nameMatch) ?
                     <ErrorAlert sx={{
                       maxWidth: '728px',
                       marginTop: '28px',
