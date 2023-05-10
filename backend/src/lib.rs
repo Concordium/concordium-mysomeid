@@ -217,10 +217,35 @@ pub fn fuzzy_match_names(
     if a == b {
         return Ok(true);
     }
-    // finally test allowed substitutions in both directions
-    let transformable = can_transform_string(&a, &b, allowed_substitutions)?
-        || can_transform_string(&b, &a, allowed_substitutions)?;
-    Ok(transformable)
+    Ok(find_inclusion(
+        a.as_str(),
+        b.as_str(),
+        allowed_substitutions,
+    )?)
+}
+
+fn find_inclusion(
+    a: &str,
+    b: &str,
+    allowed_substitutions: &HashMap<char, Vec<String>>,
+) -> Result<bool, regex::Error> {
+    let mut wa = a.split(' ');
+    let mut wb = b.split(' ');
+    let mut count = 0;
+    while let Some(a_word) = wa.next() {
+        count += 1;
+        let mut found = false;
+        while let Some(b_word) = wb.next() {
+            if can_transform_string(a_word, b_word, allowed_substitutions)? {
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            return Ok(false);
+        }
+    }
+    Ok(count >= 2)
 }
 
 /// Test whether the string `a` can be transformed into `b` using
@@ -319,6 +344,34 @@ mod tests {
         let b2 = "Doe";
         assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
+        // test subset match with order and no duplicates.
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "John Fitzgerald";
+        let b2 = "Doe";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test subset match with order and no duplicates.
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe Fitzgerald";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test subset match with order and no duplicates.
+        let a1 = "John";
+        let a2 = "";
+        let b1 = "John";
+        let b2 = "Doe Fitzgerald";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test subset match with order and no duplicates.
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Fitzgerald Adams Doe The Third";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
         // test different cases
         let a1 = "John";
         let a2 = "Doe";
@@ -372,6 +425,50 @@ mod tests {
 
     #[test]
     /// Test whether non matching names are rejected
+    fn test_inclusion() -> anyhow::Result<()> {
+        let allowed_substitutions = get_test_allowed_substitutions();
+        assert!(find_inclusion(
+            "foo bar",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        assert!(find_inclusion(
+            "foo bar baz",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        assert!(find_inclusion(
+            "foo bar baz",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        assert!(find_inclusion(
+            "foo bar baz",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        assert!(find_inclusion(
+            "foo bar baz",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        // Too short not allowed
+        assert!(!find_inclusion(
+            "foo",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        // Too short not allowed
+        assert!(!find_inclusion(
+            "",
+            "foo bar qux baz baz baz baz",
+            &allowed_substitutions
+        )?);
+        Ok(())
+    }
+
+    #[test]
+    /// Test whether non matching names are rejected
     fn test_non_matching_names() {
         let allowed_substitutions = get_test_allowed_substitutions();
 
@@ -379,6 +476,13 @@ mod tests {
         let a1 = "John";
         let a2 = "Doe";
         let b1 = "James";
+        let b2 = "Doe";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // duplicate names don't match
+        let a1 = "John";
+        let a2 = "John";
+        let b1 = "John";
         let b2 = "Doe";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
