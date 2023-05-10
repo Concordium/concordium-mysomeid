@@ -39,6 +39,7 @@ import {ReactComponent as QRSvg} from 'src/images/qr.svg';
 import { AppTheme } from "src/themes";
 import { makeStyles } from "@mui/styles";
 import { defaultFontFamily } from "src/themes/theme";
+import { formatHexStringToHexStringComponents, numberToLittleEndianHexString } from "src/utils";
 
 const useStyles = makeStyles((theme: AppTheme) => {
   return ({
@@ -112,11 +113,33 @@ export function MyProofs({}) {
       );
     } },
     { field: "name", headerName: "Name", hide: true, flex: 0.5, sortable: false, align: 'left', },
-    { field: "created", headerName: "Created At", hide: portraitFormat, flex: 0.25, headerAlign: 'center', sortable: false, align: 'center', },
-    { field: "id", headerName: "Id", cellClassName: styles.hashCell, flex: 1, sortable: false, align: 'left', },
+    { field: "created",
+      headerName: "Created At",
+      hide: portraitFormat,
+      flex: 0.25,
+      headerAlign: 'center',
+      sortable: false,
+      align: 'center',
+      renderCell: params => <Typography sx={{fontSize: '16px', fontWeight: 400}}>{params.value}</Typography>
+    },
+    { field: "id",
+      headerName: "Id",
+      cellClassName: styles.hashCell,
+      flex: 1,
+      sortable: false,
+      align: 'left',
+      renderCell: params =>
+        <Typography sx={{fontSize: '16px', fontWeight: 400}}>{
+          Number.isFinite(Number.parseInt(params?.value)) ?
+            formatHexStringToHexStringComponents(
+              numberToLittleEndianHexString(Number.parseInt(params.value))
+            ).map( (x, it) => <Box component="span" sx={{marginLeft: it > 0 ? '3px' : undefined, }}>{x}</Box>)
+          : 'Invalid Token ID'}
+        </Typography>
+    },
     {
       field: "action", headerName: "",
-      width: 180,
+      width: 174,
       sortable: false,
       align: 'right',
       renderCell: (params) => {
@@ -419,8 +442,3 @@ export function MyProofs({}) {
     </>
   );
 }
-
-
-
-
-
