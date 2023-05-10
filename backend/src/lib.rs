@@ -18,7 +18,7 @@ use concordium::{
 use concordium_rust_sdk as concordium;
 use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub struct ContractClient {
     pub address: ContractAddress,
@@ -217,26 +217,30 @@ pub fn fuzzy_match_names(
     if a == b {
         return Ok(true);
     }
-    Ok(find_inclusion(
-        a.as_str(),
-        b.as_str(),
-        allowed_substitutions,
-    )?)
+    find_inclusion(a.as_str(), b.as_str(), allowed_substitutions)
 }
 
+// Find inclusion ignoring the order but ensuring multiplicity is respected.
 fn find_inclusion(
     a: &str,
     b: &str,
     allowed_substitutions: &HashMap<char, Vec<String>>,
 ) -> Result<bool, regex::Error> {
-    let mut wa = a.split(' ');
-    let mut wb = b.split(' ');
+    let wa = a.split(' ');
+    let mut words = BTreeMap::new();
+    for word in b.split(' ') {
+        if !word.trim().is_empty() {
+            let entry = words.entry(word).or_insert(0);
+            *entry += 1;
+        }
+    }
     let mut count = 0;
-    while let Some(a_word) = wa.next() {
+    for a_word in wa {
         count += 1;
         let mut found = false;
-        while let Some(b_word) = wb.next() {
-            if can_transform_string(a_word, b_word, allowed_substitutions)? {
+        for (b_word, mult) in words.iter_mut() {
+            if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
+                *mult -= 1;
                 found = true;
                 break;
             }
@@ -363,7 +367,7 @@ mod tests {
         let a2 = "";
         let b1 = "John";
         let b2 = "Doe Fitzgerald";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test subset match with order and no duplicates.
         let a1 = "John";
@@ -420,6 +424,20 @@ mod tests {
         let a2 = "Doé";
         let b1 = "J**hn";
         let b2 = "Doe";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // interchanging first and last name matches
+        let a1 = "John";
+        let a2 = "Doe";
+        let b1 = "Doe";
+        let b2 = "John";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // Multiplicity
+        let a1 = "foo bar";
+        let a2 = "";
+        let b1 = "foo bar foo";
+        let b2 = "";
         assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 
@@ -479,6 +497,13 @@ mod tests {
         let b2 = "Doe";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
+        // Wrong multiplicity does not match
+        let a1 = "foo bar bar";
+        let a2 = "";
+        let b1 = "foo foo bar";
+        let b2 = "";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
         // duplicate names don't match
         let a1 = "John";
         let a2 = "John";
@@ -491,13 +516,6 @@ mod tests {
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Smith";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
-
-        // interchanging first and last name doesn't match
-        let a1 = "John";
-        let a2 = "Doe";
-        let b1 = "Doe";
-        let b2 = "John";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test that substitutions are only applied in one direction
