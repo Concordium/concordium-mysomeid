@@ -234,8 +234,18 @@ fn find_inclusion(
             *entry += 1;
         }
     }
+    // Prevent denial of service by silly strings. You should not have more than 50
+    // names.
+    if words.len() > 50 {
+        return Ok(false);
+    }
     let mut count = 0;
     for a_word in wa {
+        // Prevent denial of service by silly strings. You should not have more than 50
+        // names.
+        if count > 50 {
+            return Ok(false);
+        }
         if !a_word.trim().is_empty() {
             count += 1;
             let mut found = false;
