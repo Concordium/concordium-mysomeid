@@ -226,9 +226,7 @@ const App = () => {
   const [environment, setEnvironment] = useState<EnvironmentTypes | null>(null)
 
   useEffect(() => {
-    debugger;
     storage.get('environment').then((value) => {
-      debugger;
       setEnvironment(value);
     }).catch(console.error);
   }, []);
