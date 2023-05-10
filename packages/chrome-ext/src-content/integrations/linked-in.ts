@@ -47,7 +47,7 @@ const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `http
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
-type ProfileStatusCode = 'not-registered' | 'registered' | 'suspecious' | 'no-connection' | null;
+type ProfileStatusCode = 'not-registered' | 'registered' | 'suspecious' | 'no-connection' | 'failed-resolve' | null;
 type ProfileStatusPageTypes = 'feed' | 'profile' | 'other';
 type ProfileStatusUserType = 'own' | 'other';
 type ProfileStatus = {
@@ -55,6 +55,32 @@ type ProfileStatus = {
 	page: ProfileStatusPageTypes;
 	type: ProfileStatusUserType;
 };
+
+const defaultMessages = {
+	failedResolve: 'Unable to resolve the status of the profile',
+	noConnection: 'No connection to the mysome.id service',
+	notRegistered: 'This person's profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.',
+	registered: 'This person's profile is verified by mysome.id',
+	suspecious: 'This person's profile is not verified or suspicious',
+	statusUnknown: 'This profile status is unknown',
+};
+
+const messages = {
+	...defaultMessages,
+};
+
+const statusToStatusMessage = (status: ProfileStatusCode) =>
+		status === 'no-connection' ?
+			messages.noConnection :
+		status === 'failed-resolve' ?
+			messages.failedResolve :
+		status === 'not-registered' ?
+			messages.notRegistered :
+		status === 'registered' ?
+			messages.registered :
+		status === 'suspecious' ?
+			messages.suspecious :
+		messages.statusUnknown;
 
 const profileStatus = createTracker<ProfileStatus>({
 	name: 'profileStatus',
@@ -252,13 +278,13 @@ const ensureWidget = () => {
 			});
 		},
 	});
+
 	verbose("Widget created", widget);
 
 	widget.setInitialState();
 
 	return widget;
 };
-
 
 (async () => {
 	const staging = (await storage.get("staging", true)) ?? false;
@@ -1041,15 +1067,7 @@ const install = async () => {
 		if ( onProfilePage && !onOwnProfileOrFeed ) {
 			if ( profileStatus.get() !== null ) {
 				const status = profileStatus?.get()?.status ?? null;
-				const statusMessage = status === 'no-connection' ?
-											'No connection to the mysome.id service' :
-										status === 'not-registered' ?
-											'This persons profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.' :
-										status === 'registered' ?
-											'This persons profile is verified by mysome.id' :
-										status === 'suspecious' ?
-											'This persons profile is not verified or suspecious' :
-										'This profile status is unknown';
+				const statusMessage = statusToStatusMessage(status);
 
 				const goto = status === 'registered' ? {
 					goto_button: 'View Proof',
@@ -1110,15 +1128,7 @@ const install = async () => {
 					primary: '',
 				} : {};
 
-				const statusMessage = status === 'no-connection' ?
-											'No connection to the mysome.id service' :
-										status === 'not-registered' ?
-											'Your profile is not yet verified.' :
-										status === 'registered' ?
-											'Your profile is verified' :
-										status === 'suspecious' ?
-											'Your profile is invalid.<br/><br/>You will appear suspecious to other users on LinkedIn using mysome.id.<br/>To fix this you need to make sure your first name and last name matches the proof.' :
-										'Your profile status is unknown';
+				const statusMessage = statusToStatusMessage(status);
 
 				if ( !welcomeShown && status === 'not-registered' ) {
 					showWelcomePopup();
@@ -1181,7 +1191,7 @@ const install = async () => {
 			}).then(response => {
 				const {
 					status,
-				} = response;
+				} = response ?? {};
 				console.log("VERIFY Result ", response );
 				
 				if ( status === 'valid' ) {
@@ -1194,10 +1204,18 @@ const install = async () => {
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspecious');	
 				} else {
 					console.error("Failed to evaluate the status of the proof.");
+					messages.failedResolve = defaultMessages.failedResolve;
+					shield?.setFailedResolve(proof, messages.failedResolve);
+					badge.showAttention(true);
+					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'failed-resolve');	
 				}
 
 			}).catch(err => {
-				console.error(err);
+				console.error("exception while evaluting status of proof", err);
+				messages.failedResolve = err?.message ?? defaultMessages.failedResolve;
+				shield?.setFailedResolve(proof, messages.failedResolve);
+				badge.showAttention(true);
+				setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'failed-resolve');	
 
 			});
 

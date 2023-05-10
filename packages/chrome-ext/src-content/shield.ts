@@ -10,6 +10,7 @@ export type ShieldWidget = {
 	setOtherProfileNotVerified: () => void;
 	setVerified: (proofUrl: string, ownProfile: boolean) => void;
 	setSuspeciousProfile: (_url: string) => void;
+	setFailedResolve: (_url: string, errMsg?: string) => void;
 	setNoConnection: () => void;
 	hide: () => void;
 	show: () => void;
@@ -47,20 +48,22 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 	const shieldColorLoading = '#b9b9b9';
 	const shieldColorVerified = '#4da3f8';
 	// const shieldColorNotVerified = '#f8b24d';
-	const shieldColorYellow = 'rgb(171 127 0)';
+	const shieldColorYellow = 'rgb(171, 127, 0)';
 	const shieldColorRed = '#D5645D';
+	const shieldColorFailedResolve = shieldColorYellow;
 	const dotsLeftOffset = 6;
 	const dotsWH = 4;
 	const dotsRadius = 2;
 	const dotsColor = '#000000';
 	const dotsAnimColor = 'rgba(0, 0, 0, 0.2)';
 	const tooltipTextVerified = 'mysome.id:</br></br>Profile Verified';
-	const tooltipTextOwnProfileVerified = 'mysome.id</br></br>Your profile is secure'
-	const tooltipTextNotVerified = 'mysome.id</br></br>Profile NOT verified'
+	const tooltipTextOwnProfileVerified = 'mysome.id</br></br>Your profile is secure';
+	const tooltipTextNotVerified = 'mysome.id</br></br>Profile NOT verified';
+	const tooltipTextErrorMessage = (errMsg: string) => `mysome.id</br></br>${errMsg}`;
 	const tooltipTextOwnProfileNotVerified = 'mysome.id</br></br>You are not secured</br></br>Click to get started';
 	const tooltipTextOtherProfileNotVerified = 'mysome.id</br></br>This profile is not verified.</br>';
 	const tooltipTextNoConnection = 'mysome.id</br></br>No Connection</br>';
-	let state: 'none' | 'no-connection' | 'verified' | 'own-profile-not-verified' | 'other-profile-not-verified' | 'suspecious';
+	let state: 'none' | 'failed-resolve' | 'no-connection' | 'verified' | 'own-profile-not-verified' | 'other-profile-not-verified' | 'suspecious';
 	let created = false;
 	let proofUrl = '';
 
@@ -280,6 +283,20 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 
 			const el = document.getElementById('mysome-shield-tooltip-text');
 			if ( el ) el.innerHTML = tooltipTextNotVerified;
+		},
+		setFailedResolve: (_url: string, _errMsg?: string) => {
+			state = 'failed-resolve';
+			proofUrl = _url;
+			const errMsg = _errMsg ?? 'Unknown error';
+			shield.style.backgroundColor = shieldColorFailedResolve;
+			dots.style.display = 'none';
+			check.style.display = 'none';
+			exclaim.style.display = 'block';
+			tooltip.style.display = 'flex';
+			shield.style.cursor = 'pointer';
+
+			const el = document.getElementById('mysome-shield-tooltip-text');
+			if ( el ) el.innerHTML = tooltipTextErrorMessage(errMsg);
 		},
 		hide: () => {
 			container.style.display = 'none';
