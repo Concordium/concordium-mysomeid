@@ -236,17 +236,19 @@ fn find_inclusion(
     }
     let mut count = 0;
     for a_word in wa {
-        count += 1;
-        let mut found = false;
-        for (b_word, mult) in words.iter_mut() {
-            if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
-                *mult -= 1;
-                found = true;
-                break;
+        if !a_word.trim().is_empty() {
+            count += 1;
+            let mut found = false;
+            for (b_word, mult) in words.iter_mut() {
+                if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
+                    *mult -= 1;
+                    found = true;
+                    break;
+                }
             }
-        }
-        if !found {
-            return Ok(false);
+            if !found {
+                return Ok(false);
+            }
         }
     }
     Ok(count >= 2)
