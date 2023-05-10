@@ -39,7 +39,7 @@ import {ReactComponent as QRSvg} from 'src/images/qr.svg';
 import { AppTheme } from "src/themes";
 import { makeStyles } from "@mui/styles";
 import { defaultFontFamily } from "src/themes/theme";
-import { numberToLittleEndianHexString } from "src/utils";
+import { formatHexStringToHexStringReadable, numberToLittleEndianHexString } from "src/utils";
 
 const useStyles = makeStyles((theme: AppTheme) => {
   return ({
@@ -92,7 +92,6 @@ export function MyProofs({}) {
                                           platform,
                                           name: id,
                                           id,
-                                          idFormatted: Number.isFinite(Number.parseInt(id)) ? numberToLittleEndianHexString(Number.parseInt(id)) : 'Invalid Token ID',
                                           created: created && Number.isFinite(created) ? new Date((created ?? 0) * 1000).toLocaleDateString('en-US') : '',
                                           decryptionKey, 
                                         }));
@@ -114,8 +113,30 @@ export function MyProofs({}) {
       );
     } },
     { field: "name", headerName: "Name", hide: true, flex: 0.5, sortable: false, align: 'left', },
-    { field: "created", headerName: "Created At", hide: portraitFormat, flex: 0.25, headerAlign: 'center', sortable: false, align: 'center', },
-    { field: "idFormatted", headerName: "Id", cellClassName: styles.hashCell, flex: 1, sortable: false, align: 'left', },
+    { field: "created",
+      headerName: "Created At",
+      hide: portraitFormat,
+      flex: 0.25,
+      headerAlign: 'center',
+      sortable: false,
+      align: 'center',
+      renderCell: params => <Typography sx={{fontSize: '16px', fontWeight: 400}}>{params.value}</Typography>
+    },
+    { field: "id",
+      headerName: "Id",
+      cellClassName: styles.hashCell,
+      flex: 1,
+      sortable: false,
+      align: 'left',
+      renderCell: params =>
+        <Typography sx={{fontSize: '16px', fontWeight: 400}}>{
+          Number.isFinite(Number.parseInt(params?.value)) ?
+            formatHexStringToHexStringReadable(
+              numberToLittleEndianHexString(Number.parseInt(params.value))
+            )
+          : 'Invalid Token ID'}
+        </Typography>
+    },
     {
       field: "action", headerName: "",
       width: 180,
@@ -421,8 +442,3 @@ export function MyProofs({}) {
     </>
   );
 }
-
-
-
-
-

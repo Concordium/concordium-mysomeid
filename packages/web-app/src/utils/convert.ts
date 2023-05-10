@@ -29,3 +29,15 @@ export function numberToLittleEndianHexString(num: number): string {
 
     return hexStr;
 }
+
+// Format a string such as "0000000000000000" to "00 00 00 00 00 00 00 00"
+export function formatHexStringToHexStringReadable(inputStr: string): string {
+    let outputStr = '';
+    for (let i = 0; i < inputStr.length; i++) {
+        outputStr += inputStr[i];
+        if ((i + 1) % 2 === 0 && i !== inputStr.length - 1) {
+            outputStr += ' ';
+        }
+    }
+    return outputStr;
+}
