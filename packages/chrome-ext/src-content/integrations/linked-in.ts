@@ -60,7 +60,7 @@ const defaultMessages = {
 	failedResolve: 'Unable to resolve the status of the profile',
 	noConnection: 'No connection to the mysome.id service',
 	notRegistered: 'This persons profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.',
-	registered: 'This persons profile is verified by mysome.id',
+	registered: 'This person's profile is verified by mysome.id',
 	suspecious: 'This person's profile is not verified or suspicious',
 	statusUnknown: 'This profile status is unknown',
 };
