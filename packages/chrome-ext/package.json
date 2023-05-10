@@ -1,8 +1,9 @@
 {
-  "name": "mysomeid",
+  "name": "@mysomeid/chrome-ext",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@mysomeid/chrome-ext-shared": "0.1.0",
     "@emotion/react": "^11.10.4",
     "@emotion/styled": "^11.8.1",
     "@mui/icons-material": "^5.8.4",
@@ -41,7 +42,7 @@
     "build:popup": "INLINE_RUNTIME_CHUNK=false PUBLIC_URL=/popup/ react-app-rewired build",
     "build:content": "webpack --config webpack.content.config.js",
     "build:widget": "webpack --config webpack.widget.config.js",
-    "build:background": "tsc --project tsconfig-background.json",
+    "build:background": "webpack --config webpack.background.config.js",
     "build:injected": "webpack --config webpack.injected.config.js",
     "watch:widget": "nodemon --watch src-widget/**/* -e 'tsx,ts,js' --exec yarn build:widget",
     "test": "react-app-rewired test",

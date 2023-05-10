@@ -15,6 +15,13 @@ import {
 import logo from './title-logo.png';
 
 import {
+	EnvironmentTypes,
+  webAppBaseUrlFromEnvironment,
+  serviceBaseUrlFromEnvironment,
+  webAppHomeUrlFromEnvironment,
+} from '@mysomeid/chrome-ext-shared';
+
+import {
   themeSX
 } from './theme';
 
@@ -108,28 +115,40 @@ const Welcome = ({gettingStarted}: {gettingStarted: () => void}) => {
   </>;
 };
 
+const getNextEnvironment = (e: EnvironmentTypes) => {
+  const arr = ['dev', 'test-net', 'main-net'];
+  const i = arr.indexOf(e);
+  if ( i === -1 ) {
+    throw new Error('Invalid environment: ' + e);
+  }
+  const newIndex = (i + 1) % arr.length;
+  return arr[newIndex];
+};
+
 const DebugView = (args: any) => {
-  const [isStaging, setIsStaging] = useState<boolean | null>(null);
+  const [environment, setEnvironment] = useState<EnvironmentTypes | null>(null);
+  const [verbose, setVerbose] = useState<boolean | null>(null);
   useEffect(() => {
-    storage.get('staging').then((value) => {
-      setIsStaging(!!value);
+    storage.get('environment').then((value) => {
+      setEnvironment(value);
+    }).catch(console.error);
+    storage.get('verbose').then((value) => {
+      setVerbose(!!value);
     }).catch(console.error);
   }, []);
-  const toggleStaging = useCallback(() => {
-    if ( isStaging === null ) {
+
+  const cycleEnvironment = useCallback(() => {
+    if ( environment === null ) {
       console.error('Ignored so far.');
       return;
     }
-    storage.set('staging', !isStaging).then(() => {
-      storage.get('staging').then((value) => {
-        if ( value === true || value === false ) {
-          setIsStaging(value);
-        } else {
-          setIsStaging(false);
-        }
+    const nextEnv = getNextEnvironment(environment);
+    storage.set('environment', nextEnv).then(() => {
+      storage.get('environment').then((value) => {
+        setEnvironment(value);
       }).catch(console.error);
     }).catch(console.error);
-  }, [isStaging]);
+  }, [environment]);
 
   return (
     <Box padding={themeSX.size.s2} display="flex" flexDirection="column">
@@ -145,16 +164,30 @@ const DebugView = (args: any) => {
         lineHeight: '6px',
         marginBottom: '13px',
       }}>
-        Is Production: {isStaging === null  ? '?' : isStaging ? 'No' : 'Yes'}  
+        Verbose: {!!verbose ? 'Yes' : 'No'} 
       </Typography>
       <Typography sx={{
         ...themeSX.text.medium,
         lineHeight: '6px',
         marginBottom: '13px',
       }}>
-        Is Staging: {isStaging === null  ? '?' : !isStaging ? 'No' : 'Yes'}  
+        Environment: {environment ? environment : 'Unknown'}  
       </Typography>
-      <Button onClick={toggleStaging}>Toggle Staging|Production</Button>
+      <Typography sx={{
+        ...themeSX.text.medium,
+        lineHeight: '6px',
+        marginBottom: '13px',
+      }}>
+        Web App URL: {environment ? webAppBaseUrlFromEnvironment(environment) : 'Unknown'}  
+      </Typography>
+      <Typography sx={{
+        ...themeSX.text.medium,
+        lineHeight: '6px',
+        marginBottom: '13px',
+      }}>
+        API URL: {environment ? serviceBaseUrlFromEnvironment(environment) : 'Unknown'}  
+      </Typography>
+      <Button onClick={cycleEnvironment}>Change Environment</Button>
     </Box>
   );
 };
@@ -190,16 +223,15 @@ const App = () => {
   const [url, setUrl] = useState<string | null>(null);
   const [isOnLinkedIn, setIsOnLinkedIn] = useState<boolean | null>(null);
   const [isOnMySOMEUrl, setIsOnMySOMEUrl] = useState<boolean | null>(null);
-  const [isStaging, setIsStaging] = useState<boolean | null>(null)
+  const [environment, setEnvironment] = useState<EnvironmentTypes | null>(null)
 
   useEffect(() => {
-    if ( isStaging !== null ) {
-      return;
-    }
-    storage.get('staging').then((value) => {
-      setIsStaging(!!value);
+    debugger;
+    storage.get('environment').then((value) => {
+      debugger;
+      setEnvironment(value);
     }).catch(console.error);
-  }, [isStaging]);
+  }, []);
 
   useEffect(() => {
     if ( hasInitStorage ) {
@@ -231,10 +263,13 @@ const App = () => {
       setLinkedInRegistered(value);
     }).catch(console.error);
   }, [hasInitStorage, linkedInRegistered]);
-  
+
   const gettingStarted = useCallback(() => {
-    chrome.tabs.create({url: isStaging ? 'https://app.testnet.mysome.id/home' : 'https://app.mysome.id/home'});
-  }, [isStaging]);
+    if  (!environment ) {
+      throw new Error('Cannot open getting started as Environment is not initialised yet');
+    }
+    chrome.tabs.create({url: webAppHomeUrlFromEnvironment(environment)});
+  }, [environment]);
 
   const logoClick = useCallback(event => {
     if ( event.shiftKey && !settingDebug ) {
@@ -259,11 +294,11 @@ const App = () => {
         setHasInitUrl(true);
         setUrl(url ?? '');
         setIsOnLinkedIn((url ?? '').indexOf('linkedin.com') >= 0);
-        setIsOnMySOMEUrl((url ?? '').indexOf('app.mysomeid.dev') >= 0 || (url ?? '').indexOf('app.testnet.mysome.id') >= 0 || (url ?? '').indexOf('app.mysome.id') >= 0 || ( isStaging && (url ?? '').indexOf('http://localhost:3000') >= 0));
+        setIsOnMySOMEUrl((url ?? '').indexOf('app.mysomeid.dev') >= 0 || (url ?? '').indexOf('app.testnet.mysome.id') >= 0 || (url ?? '').indexOf('app.mysome.id') >= 0 || ( environment && (url ?? '').indexOf('http://localhost:3000') >= 0));
       }, 1);
     };
     chrome.tabs.query({ active: true, currentWindow: true }, callback);
-  }, [hasInitUrl, isStaging]);
+  }, [hasInitUrl, environment]);
 
   const loading = !hasInitStorage || !hasInitUrl;
   const isOnKnownUrl = isOnLinkedIn || isOnMySOMEUrl;

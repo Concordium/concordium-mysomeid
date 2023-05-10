@@ -34,16 +34,35 @@ import {
 import { createTourWidget } from '../tour';
 import {tracking, createTracker} from '../tracking';
 import { getMessageHandler } from '../content-messaging';
-import { request } from 'http';
+import {
+	EnvironmentTypes,
+	webAppBaseUrlFromEnvironment,
+	serviceBaseUrlFromEnvironment,
+	sharedConfig,
+} from '@mysomeid/chrome-ext-shared';
+// import { request } from 'http';
 let nvisit = 0;
 let root: RootWidget = null as any as RootWidget;
 let state = {
 	proofUrl: '',
 	pageHasBeenVerified: false,
 };
-let TEST = false;
-export const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.mysome.id`;
-const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.mysome.id/v1`;
+let environment: EnvironmentTypes | null = null;
+let verboseConfig: boolean | null = null;
+
+export const WEBAPP_BASE_URL = () => {
+	if ( !environment ) {
+		throw new Error('Environment not initialised');
+	}
+	return webAppBaseUrlFromEnvironment(environment);
+};
+
+export const SERVICE_BASE_URL = () => {
+	if ( !environment ) {
+		throw new Error('Environment not initialised');
+	}
+	return serviceBaseUrlFromEnvironment(environment);
+};
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
@@ -259,11 +278,10 @@ const ensureWidget = () => {
 	return widget;
 };
 
-
 (async () => {
-	const staging = (await storage.get("staging", true)) ?? false;
-	TEST = !!staging;
-	console.log("test ", TEST);
+	environment = (await storage.get("environment", true)) ?? sharedConfig.defaultEnvironment;
+	verboseConfig = (await storage.get("verbose", false)) ?? sharedConfig.defaultVerbose;
+	console.log("Config ", {environment, verbose: verboseConfig});
 })().then().catch(console.error);
 
 const trackProofQR = createTracker<string | null>({
@@ -899,7 +917,7 @@ const getCreateLink = () => {
 		profilePicUrl: trackProfilePictureUrl.get(),
 		backgroundPicUrl: trackBackgroundUrl.get(),
 	})));
-	const base = WEBSITE_BASE_URL();
+	const base = WEBAPP_BASE_URL();
 	return `${base}/create/2?${template}`;
 };
 
@@ -1021,7 +1039,7 @@ const install = async () => {
 
 		const proofId = proofUrl?.split('/')?.[4] ?? '';
 		const proofKey = proofUrl?.split('/')?.[5] ?? '';
-		const base = WEBSITE_BASE_URL();
+		const base = WEBAPP_BASE_URL();
 		proofUrl = proofId && proofKey ? [base, trackOnOwnProfileOrFeed.get() ? 'my-proof' : 'v', proofId, proofKey ].join('/') : proofUrl;
 
 		const onProfilePage = trackOnProfileUrl.get();

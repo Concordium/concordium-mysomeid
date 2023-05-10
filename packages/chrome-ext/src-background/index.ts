@@ -1,30 +1,65 @@
 declare var chrome: any;
 
-let TEST = false;
-let verbose = false;
+import {
+	sharedConfig,
+	EnvironmentTypes
+} from '@mysomeid/chrome-ext-shared';
 
-const SERVICE_BASE_URL = () => TEST ? 'http://0.0.0.0:8080/v1' : `https://api.mysomeid.dev/v1`;
+// 
+
+let environment: EnvironmentTypes | null = null;
+let verbose = false;
+let storageInitialised = false;
+let storageFailedInitialising = false;
+
+const SERVICE_BASE_URL = async (): Promise<string> => {
+	if (storageFailedInitialising) {
+		throw new Error('Cannot get base url as storage has failed initialising');
+	}
+	// Wait until storage has been initialised.
+	while(!storageInitialised) {
+		await new Promise<void>(resolve => setTimeout(resolve, 1000));
+	}
+
+	if ( !environment ) {
+		throw new Error('Cannot get service base url since environment is not initialised');
+	}
+
+	const result = sharedConfig?.environments?.[environment]?.serviceBaseUrl;
+	if (!result) {
+		throw new Error('Failed retriving service base url for environment: ' + environment);
+	}
+	return result;
+}
 
 const stores: Record<string, any> = {};
 
-const initStore = async (storeName: string): Promise<void> => {
+const initStore = async (storeName: string): Promise<boolean> => {
 	storeName = storeName ?? 'state';
-	console.log("initStore ", { storeName });
-	return new Promise<void>(resolve => {
+	verbose && console.log("initStore ", { storeName });
+	return new Promise<boolean>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
-			console.log(`Init ${storeName} store`, result?.[storeName]);
+			verbose && console.log(`Init ${storeName} store`, result?.[storeName]);
+			let createdNew = false;
 			if (!result?.[storeName]) {
-				console.log("Creating empty store");
+				verbose && console.log("Creating empty store");
+				createdNew = true;
 			}
 			stores[storeName] = result?.[storeName] ?? {};
-			resolve();
+			resolve(createdNew);
 		});
 	});
 };
 
 const fetchStore = async (storeName: string, allowCached = false) => {
+	if (storageFailedInitialising) {
+		throw new Error('Cannot get store as storage has failed initialiasing');
+	}
+	while(!environment) {
+		console.warn("Waiting for environment to be initialised");
+		await new Promise<void>(resolve => setTimeout(resolve, 1000));
+	}
 	storeName = storeName ?? 'state';
-	console.log("fetchStore ", { storeName, allowCached });
 	if (allowCached && stores[storeName] !== undefined) {
 		return stores[storeName];
 	}
@@ -44,9 +79,7 @@ const fetchStore = async (storeName: string, allowCached = false) => {
 
 const saveStore = async (storeName: string, value: any) => {
 	storeName = storeName ?? 'state';
-	console.log("saveStore ", { storeName, value });
 	return new Promise<void>(resolve => {
-		// console.log("setting registration");
 		chrome.storage.local.set({ [storeName]: value }, () => {
 			stores[storeName] = value;
 			resolve();
@@ -61,11 +94,12 @@ const getCachedStore = (storeName: string) => {
 
 const upsertStore = async (storeName: string, data: any) => {
 	storeName = storeName ?? 'state';
-	console.log("upsertStore ", { storeName, data });
+	verbose && console.log("upsertStore ", { storeName, data });
 	return new Promise<any>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
+			const before = result?.[storeName];
 			const store = {
-				...(result?.[storeName] ?? {}),
+				...(before ?? {}),
 				...(data ?? {}),
 			};
 			stores[storeName] = store;
@@ -78,7 +112,7 @@ const upsertStore = async (storeName: string, data: any) => {
 };
 
 chrome.runtime.onInstalled.addListener(function () {
-	console.log("ChromeExtension: Installed");
+	verbose && console.log("ChromeExtension: Installed");
 	chrome.tabs.query({}, (tabs: any) => {
 		tabs.map((tab: any) => ({ tabId: tab.id, tabUrl: tab.url }))
 			.forEach(({ tabId, tabUrl }: any) => {
@@ -87,7 +121,7 @@ chrome.runtime.onInstalled.addListener(function () {
 					chrome.tabs.reload(tabId);
 				}
 			}
-			);
+		);
 	});
 });
 
@@ -138,36 +172,37 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 			sendErrorResponse('invalid args');
 			return;
 		}
-		const base = SERVICE_BASE_URL();
-		proofUrl = encodeURIComponent(proofUrl);
-		firstName = encodeURIComponent(firstName);
-		lastName = encodeURIComponent(lastName);
-		userData = encodeURIComponent(userData);
-		const url =
-			`${base}/proof/validate-proof-url?url=${proofUrl}&firstName=${firstName}&lastName=${lastName}&platform=${platform}&userData=${userData}`;
-		fetch(url).then(res => {
-			return res.json();
-		}).then(obj => {
-			if (obj === null) {
-				setTimeout(() => {
-					sendErrorResponse('no connection');
-				});
-			} else {
-				setTimeout(() => {
-					sendResponse({
-						to: from,
-						from: 'background',
-						type: resp(type),
-						serial,
-						responseTo: s,
-						origin: 'mysome',
-						payload: {
-							...obj,
-						},
+		SERVICE_BASE_URL().then(base => {
+			proofUrl = encodeURIComponent(proofUrl);
+			firstName = encodeURIComponent(firstName);
+			lastName = encodeURIComponent(lastName);
+			userData = encodeURIComponent(userData);
+			const url = `${base}/proof/validate-proof-url?url=${proofUrl}&firstName=${firstName}&lastName=${lastName}&platform=${platform}&userData=${userData}`;
+			fetch(url).then(res => {
+				return res.json();
+			}).then(obj => {
+				if (obj === null) {
+					setTimeout(() => {
+						sendErrorResponse('no connection');
 					});
-				});
-			}
+				} else {
+					setTimeout(() => {
+						sendResponse({
+							to: from,
+							from: 'background',
+							type: resp(type),
+							serial,
+							responseTo: s,
+							origin: 'mysome',
+							payload: {
+								...obj,
+							},
+						});
+					});
+				}
+			});	
 		});
+
 		return true;
 	} else if (type === 'reload-tabs') {
 		const {
@@ -234,7 +269,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 				responseTo: s,
 				origin: 'mysome'
 			});
-			console.log("Updated registrations ", state.regs);
+			verbose && console.log("Updated registrations ", state.regs);
 		})().then().catch(console.error);
 		return true;
 	}
@@ -328,12 +363,45 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 	}
 });
 
-initStore('state').then(() => {
-	if (stores.state['staging'] === undefined) {
-		stores.state['staging'] = false;
+initStore('state').then(createdNewStore => {
+	if ( !stores?.state  ) {
+		throw new Error('Error stores not initialised');
 	}
-	TEST = stores.state ? stores.state['staging'] : null;
-	console.log("Config: Test ", TEST);
-});
+
+	// If environment is not initialised we will default to main-net.
+	let setToDefault = false;
+	if ( [null, undefined].indexOf(stores.state['environment']) >= 0 ) {
+		stores.state['environment'] = sharedConfig.defaultEnvironment;
+		setToDefault = true;
+	}
+
+	// If verbose is not initised we will default to not showing any verbose.
+	if ( [null, undefined].indexOf(stores.state['verbose']) >= 0 ) {
+		stores.state['verbose'] = sharedConfig.defaultVerbose;
+		setToDefault = true;
+	}
+
+	verbose = !!stores.state['verbose'];
+	environment = stores.state['environment'] as EnvironmentTypes;
+
+	verbose && console.log("Config: ", {
+		verbose,
+		environment,
+	});
+
+	if ( createdNewStore || setToDefault ) {
+		saveStore('state', stores.state).then(() => {
+			storageInitialised = true;	
+		}).catch(err => {
+			storageFailedInitialising = true;
+		});	
+	} else {
+		storageInitialised = true;
+		storageFailedInitialising = false;
+	
+	}
+}).catch( err => {
+	storageFailedInitialising = true;
+})
 
 initStore('platform-requests');

@@ -1,3 +1,8 @@
+import {
+	EnvironmentTypes,
+  webAppBaseUrlFromEnvironment,
+} from '@mysomeid/chrome-ext-shared';
+
 console.log("Installing MySoMeId Injected.");
 
 type MessageTypes = 'show-popup' | 'create-tour' | 'reload-tabs' | 'create-badge' | 'get-state' | 'set-state' | 'update-registration' | 'create-popup' | 'widget-create' | 'get-url';
@@ -234,14 +239,22 @@ class MySoMeAPI {
   reloadTabs = reloadTabs;
 }
 
-let TEST: boolean | null = null;
-let webAppBaseUrl = 'https://app.mysome.id';
+let environment: EnvironmentTypes | null = null;
+let webAppBaseUrl: string | null = null;
 
 getState('state').then(state => {
-  TEST = !!(state?.['staging']);
-  webAppBaseUrl = TEST ? 'https://app.testnet.mysome.id' : 'https://app.mysome.id';
+  environment = state?.['environment'];
+  if ( !environment ) {
+    throw new Error('Environment not initialised');
+  }
+  webAppBaseUrl = webAppBaseUrlFromEnvironment(environment);
 });
 
-export const getWebAppBaseUrl = () => webAppBaseUrl;
+export const getWebAppBaseUrl = (): string => {
+  if ( !webAppBaseUrl ) {
+    throw new  Error('Web app base url not initialised yet.');
+  }
+  return webAppBaseUrl;
+};
 
 (window as any).mysome = new MySoMeAPI();

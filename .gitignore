@@ -16,6 +16,8 @@ packages/test-suite/output.jpg
 packages/test-suite/uploads/*
 packages/test-suite/volume
 
+packages/chrome-ext-shared/lib
+
 packages/web-app/build/*
 
 */build/*

@@ -2,7 +2,7 @@ import {
 	getMessageHandler
 } from './content-messaging';
 
-import { WEBSITE_BASE_URL } from './integrations/linked-in';
+import { WEBAPP_BASE_URL } from './integrations/linked-in';
 
 import {
 	mysome,
@@ -244,11 +244,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			p,
 		})));
 
-		if (platform === 'test') {
-			return `http://localhost:3000/create/2?template=${data}`;
-		}
-
-		const webAppBaseUrl = WEBSITE_BASE_URL();
+		const webAppBaseUrl = WEBAPP_BASE_URL();
 		return `${webAppBaseUrl}/create/2?template=${data}`;
 	}
 

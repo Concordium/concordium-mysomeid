@@ -7,8 +7,8 @@
   },
   "workspaces": {
     "packages": [
-      "packages/portal",
-      "packages/chrome-ext"
+      "packages/chrome-ext",
+      "packages/chrome-ext-shared"
     ],
     "nohoist": [
       "ansi-html-community",

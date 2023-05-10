@@ -111,10 +111,6 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			p,
 		})));
 
-		if ( platform === 'test' ) {
-			return `http://localhost:3000/create/1?template=${data}`;
-		}
-
 		const webAppBaseUrl = getWebAppBaseUrl();
 		return `${webAppBaseUrl}/create/1?template=${data}`;
 	} 

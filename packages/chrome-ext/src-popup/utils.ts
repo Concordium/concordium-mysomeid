@@ -1,3 +1,5 @@
+import { webAppBaseUrlFromEnvironment } from "@mysomeid/chrome-ext-shared";
+
 declare var chrome: any;
 
 export async function traverseDomWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
@@ -93,7 +95,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' = 'li') => {
 			u: 'Test user name',
 			p: 'li',
 		})));
-		return 'localhost:3000/create/2?template=' + testData;
+		return `${webAppBaseUrlFromEnvironment('dev')}/create/2?template=${testData}`;
 	}
 	const u = getProfileNameInUrl();
 	if ( !u ) {
@@ -110,7 +112,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' = 'li') => {
 		u,
 		p,
 	})));
-	return `https://mysomeid.dev/create/2?template=${data}`;
+	return `${webAppBaseUrlFromEnvironment('main-net')}/create/2?template=${data}`;
 }
 
 export const blobToBase64 = (blob: any) => {
