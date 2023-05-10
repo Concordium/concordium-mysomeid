@@ -39,7 +39,7 @@ import {ReactComponent as QRSvg} from 'src/images/qr.svg';
 import { AppTheme } from "src/themes";
 import { makeStyles } from "@mui/styles";
 import { defaultFontFamily } from "src/themes/theme";
-import { formatHexStringToHexStringReadable, numberToLittleEndianHexString } from "src/utils";
+import { formatHexStringToHexStringComponents, numberToLittleEndianHexString } from "src/utils";
 
 const useStyles = makeStyles((theme: AppTheme) => {
   return ({
@@ -131,15 +131,15 @@ export function MyProofs({}) {
       renderCell: params =>
         <Typography sx={{fontSize: '16px', fontWeight: 400}}>{
           Number.isFinite(Number.parseInt(params?.value)) ?
-            formatHexStringToHexStringReadable(
+            formatHexStringToHexStringComponents(
               numberToLittleEndianHexString(Number.parseInt(params.value))
-            )
+            ).map( (x, it) => <Box component="span" sx={{marginLeft: it > 0 ? '3px' : undefined, }}>{x}</Box>)
           : 'Invalid Token ID'}
         </Typography>
     },
     {
       field: "action", headerName: "",
-      width: 180,
+      width: 174,
       sortable: false,
       align: 'right',
       renderCell: (params) => {

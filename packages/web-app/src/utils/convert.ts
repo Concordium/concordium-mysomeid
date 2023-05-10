@@ -31,7 +31,7 @@ export function numberToLittleEndianHexString(num: number): string {
 }
 
 // Format a string such as "0000000000000000" to "00 00 00 00 00 00 00 00"
-export function formatHexStringToHexStringReadable(inputStr: string): string {
+export function formatHexStringToHexStringComponents(inputStr: string): string[] {
     let outputStr = '';
     for (let i = 0; i < inputStr.length; i++) {
         outputStr += inputStr[i];
@@ -39,5 +39,5 @@ export function formatHexStringToHexStringReadable(inputStr: string): string {
             outputStr += ' ';
         }
     }
-    return outputStr;
+    return outputStr.split(' ');
 }
