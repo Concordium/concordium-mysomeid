@@ -62,8 +62,7 @@ type PlatformProfileRepresentationArgs = {
   platform: 'li',
   firstName: string;
   surname: string;
-  firstNameMatch?: boolean;
-  surnameMatch?: boolean;
+  nameMatch?: boolean;
 };
 
 export const PlatformProfileRepresentation = ({
@@ -72,13 +71,18 @@ export const PlatformProfileRepresentation = ({
   platform,
   firstName,
   surname,
-  firstNameMatch: firstNameMatch = null,
-  surnameMatch: surnameMatch = null
+  nameMatch: nameMatch = null,
 }: PlatformProfileRepresentationArgs) => {
+  const nameIsInvalid = nameMatch !== null && !nameMatch;
+  const linkedInNameStyle = {
+    color: nameIsInvalid ? 'red' : undefined,
+    fontWeight: nameIsInvalid ? 600 : undefined,
+    textDecoration: nameIsInvalid ? 'underline' : undefined,
+  };
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '287px', }}>
       {platform === 'li' ? <Typography display="flex" variant="h6" fontSize="16px" fontWeight="400">LinkedIn<LinkedInIcon sx={{ marginTop: '2px', width: '21px', height: '21px' }} /></Typography> : undefined}
-      <Typography variant="h6" display="block">{userData ?? '?'}</Typography>
+      <Typography variant="h6"  display="block">{userData ?? '?'}</Typography>
       <Box sx={{
         width: '140px',
         height: '140px',
@@ -91,11 +95,11 @@ export const PlatformProfileRepresentation = ({
       <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
         <Box sx={{ display: 'flex' }}>
           <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
-          <Typography variant="h6" display="block" marginLeft="auto">{firstName} {firstNameMatch !== null ? firstNameMatch ? '✅' : '❌' : undefined}</Typography>
+          <Typography variant="h6" display="block" marginLeft="auto" sx={linkedInNameStyle}>{firstName}</Typography>
         </Box>
         <Box sx={{ display: 'flex' }}>
           <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
-          <Typography variant="h6" display="block" marginLeft="auto">{surname} {surnameMatch !== null ? surnameMatch ? '✅' : '❌' : undefined}</Typography>
+          <Typography variant="h6" display="block" marginLeft="auto" sx={linkedInNameStyle}>{surname}</Typography>
         </Box>
       </Box>
     </Box>
@@ -302,8 +306,7 @@ export default connect(state => ({
                             profileImageUrl,
                             firstName: profileFirstName,
                             surname: profileSurname,
-                            firstNameMatch: nameMatch,
-                            surnameMatch: nameMatch
+                            nameMatch,
                           }} />
 
                           <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
