@@ -159,7 +159,6 @@ export default connect(state => ({
     :
     'Next';
 
-  // console.error("isConnected ", isConnected);
   const prevDisabled = connectWithIDLoading;
 
   const {
