@@ -159,12 +159,18 @@ export default connect(state => ({
     :
     'Next';
 
+  // console.error("isConnected ", isConnected);
   const prevDisabled = connectWithIDLoading;
 
   const {
     profileFirstName,
     profileSurname,
   } = parseNameFromNameString(name);
+
+  const [
+    triggerOnNext,
+    setTriggerOnNext,
+  ] = useState(false);
 
   const onNext = useCallback(() => {
     if (connectWithIDLoading) {
@@ -185,22 +191,23 @@ export default connect(state => ({
     if (!isConnected) {
       setConnecting(true);
       connectAsync().then((addr) => {
-        if (addr) {
-          setShowError(null);
-          setTimeout(() => {
-            onNext();
-          }, 1000);
+        if (!addr) {
+          return;
         }
-      }).catch((err => {
+        setShowError(null);
+        setTimeout(() => {
+          setConnecting(false);
+          setTriggerOnNext(true);
+        }, 1000);
+    }).catch((err => {
         console.error(err);
+        setConnecting(false);
         if ( err?.message === 'No account in the wallet' ) {
           setShowError(noAccountInWallet);
         } else {
           setShowError(connectError);
         }
-      })).finally(() => {
-        setConnecting(false);
-      });
+      }));
       return;
     }
 
@@ -245,7 +252,27 @@ export default connect(state => ({
       console.log('Authorise is done done');
       setConnectWithIDLoading(false);
     });
-  }, [props, userId, proof, profileFirstName, profileSurname, platform, account, connectWithIDLoading, isConnected]);
+  }, [
+    props,
+    isConnected,
+    isConnecting,
+    connecting,
+    userId,
+    proof,
+    profileFirstName,
+    profileSurname,
+    platform,
+    account,
+    connectWithIDLoading,
+  ]);
+
+  useEffect(() => {
+    if ( !triggerOnNext ) {
+      return;
+    }
+    setTriggerOnNext(false);
+    onNext();
+  }, [triggerOnNext]);
 
   return (
     <form>

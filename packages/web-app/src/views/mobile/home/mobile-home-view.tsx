@@ -42,7 +42,7 @@ export const MobileHomeView = ({ }) => {
             }} />
 
             <Typography display="block" sx={{ fontSize: '18px', color: 'black', margin: '24px 16px 0px 16px', fontWeight: 400, lineHeight: '1.3', float: 'left' }}>
-              Sorry, as of right now, it is only possible to use mysome.id for verifying profiles on a PC with a Chromium browser installed.<br />
+              Sorry, as of right now, it is only possible to use mysome.id for verifying profiles on a Computer with a Chromium browser installed.<br />
               (ie. Chrome, Opera, Brave or Edge)
             </Typography>
           </Box>
