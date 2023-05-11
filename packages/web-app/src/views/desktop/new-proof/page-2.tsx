@@ -191,6 +191,8 @@ export default connect(state => ({
       setConnecting(true);
       connectAsync().then((addr) => {
         if (!addr) {
+          setConnecting(false);
+          dispatch(error('Failed to connect wallet'));
           return;
         }
         setShowError(null);
