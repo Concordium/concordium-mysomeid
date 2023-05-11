@@ -196,7 +196,6 @@ export default connect(state => ({
   const {
     profileFirstName,
     profileSurname,
-    // country: profileCountry,
   } = parseNameFromNameString(name);
 
   const nameMatch = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);

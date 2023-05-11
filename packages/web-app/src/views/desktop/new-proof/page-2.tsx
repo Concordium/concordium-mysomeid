@@ -42,29 +42,23 @@ type ProfileInfo = {
   name: string;
 };
 
-export function parseNameFromNameString(name: string) {
-  let profileFirstName = '';
-  let profileSurname = '';
+export function parseNameFromNameString(name: string): {profileFirstName: string, profileSurname: string} {
   try {
     const profileNameComponents = (name?.split(' ') ?? []).filter(x => !!x.trim());
-    profileFirstName = profileNameComponents[0] ?? '';
-    profileFirstName = capitalize(profileFirstName.toLowerCase());
-  } catch (e) {
-    console.error(e);
-  }
+    const [profileFirstName, ...profileSurname] = profileNameComponents ?? [];
 
-  try {
-    const profileNameComponents = (name?.split(' ') ?? []).filter(x => !!x.trim());
-    profileSurname = profileNameComponents[profileNameComponents.length - 1] ?? '';
-    profileSurname = capitalize(profileSurname.toLowerCase());
+    return {
+      profileFirstName,
+      profileSurname: profileSurname.join(' '),
+    };
   } catch (e) {
     console.error(e);
+
   }
 
   return {
-    profileFirstName,
-    profileSurname,
-    // country: country ?? 'N/A',
+    profileFirstName: '',
+    profileSurname: '',
   };
 }
 

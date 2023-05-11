@@ -26,5 +26,11 @@
   "include": [
     "src-content",
     "src-content/custom.d.ts"
+  ],
+  "exclude": [
+    "__tests__/**/*",
+    "test/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 }

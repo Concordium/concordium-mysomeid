@@ -59,9 +59,9 @@ type ProfileStatus = {
 const defaultMessages = {
 	failedResolve: 'Unable to resolve the status of the profile',
 	noConnection: 'No connection to the mysome.id service',
-	notRegistered: 'This person's profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.',
-	registered: 'This person's profile is verified by mysome.id',
-	suspecious: 'This person's profile is not verified or suspicious',
+	notRegistered: 'This person\'s profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.',
+	registered: 'This person\'s profile is verified by mysome.id',
+	suspecious: 'This person\'s profile is not verified or suspicious',
 	statusUnknown: 'This profile status is unknown',
 };
 
@@ -947,7 +947,6 @@ const install = async () => {
 	getMessageHandler().addMessageHandler((data) => {
 		const {
 			type,
-			// payload,
 		} = data;
 		switch(type) {
 			case 'show-content-widget':
@@ -1086,7 +1085,6 @@ const install = async () => {
 
 		} else if ( onOwnProfileOrFeed ) {
 			if ( ownUserId !== null && profileStatus !== null ) {
-				const tmp = profileStatus.get();
 				const status = profileStatus.get()?.status ?? null;
 				if ( status === 'not-registered' ) {
 					const reg = registrations.select(mysome.platform, ownUserId);
@@ -1179,8 +1177,8 @@ const install = async () => {
 			const userId = trackProfileUserId.get();
 			const name = trackProfileName.get();
 			const components = name?.split(' ') ?? [];
-			const firstName = components[0] ?? '';
-			const lastName = components[components.length - 1] ?? '';
+			const [firstName, ...lastNameComponents] = components;
+			const lastName = (lastNameComponents ?? []).join(' ');
 
 			validateProofWithProfile({
 				firstName,

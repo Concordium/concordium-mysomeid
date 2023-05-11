@@ -21,8 +21,7 @@
       "isolatedModules": true,
       "noEmit": true,
       "noFallthroughCasesInSwitch": true,
-      "types": ["@types/jest", "jest", "@types/node"],
-      "typeRoots": ["./types", "node_modules/@types"]
+      "typeRoots": ["node_modules/@types", "jest", "node"]
     },
     "include": ["./index.d.ts", "src", "babel.config.js", "**/*.test.ts", "**/*.test.tsx"],
     "exclude": ["node_modules", "vendor", "public"],

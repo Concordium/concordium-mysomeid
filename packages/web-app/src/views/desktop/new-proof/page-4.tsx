@@ -177,11 +177,6 @@ export default connect(state => ({
     console.error(e);
   }
 
-  const {
-    profileFirstName,
-    profileSurname,
-  } = parseNameFromNameString(name);
-
   let proofFirstName = "";
   try {
     proofFirstName = proof?.proof?.value.proofs[0]?.attribute;

@@ -1,12 +1,16 @@
 import {
 	getMessageHandler
-} from './content-messaging';
+} from '../content-messaging';
 
-import { WEBSITE_BASE_URL } from './integrations/linked-in';
+import { WEBSITE_BASE_URL } from '../integrations/linked-in';
 
 import {
 	mysome,
-} from './root';
+} from '../root';
+
+import {
+	stripTitlesAndEmojisFromName
+} from './strip-titles-and-emojis';
 
 export async function traverseDomWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
 	let e: any = null;
@@ -186,8 +190,8 @@ export const getUsersNameOnFeed = (): string | null => {
 		name = avatarGhostButton.alt;
 	}
 
-	if (name?.length > 0) {
-		return name;
+	if ((name ?? '').trim().length > 0) {
+		return stripTitlesAndEmojisFromName(name);
 	}
 
 	// Fallback: We can fall back on the code element if the other methods fails.
@@ -203,12 +207,12 @@ export const getUsersNameOnFeed = (): string | null => {
 			}
 		})[0];
 
-	const firstName = codeObject.included[0].firstName;
-	const lastName = codeObject.included[0].lastName;
-	name = firstName + ' ' + lastName;
+	const firstName = codeObject?.included?.[0]?.firstName ?? '';
+	const lastName = codeObject?.included?.[0]?.lastName ?? '';
+	name = [firstName, lastName].filter (x => x && x.trim?.()).join(' ');
 
-	if (name?.length > 0) {
-		return name;
+	if ((name ?? '').trim().length > 0) {
+		return stripTitlesAndEmojisFromName(name);
 	}
 
 	return null;
@@ -221,7 +225,7 @@ export const getUsersNameOnProfile = () => {
 		return null;
 	}
 	const name = nameElement?.innerText?.trim() ?? null;
-	return name ? name : null;
+	return name ? stripTitlesAndEmojisFromName(name) : null;
 }
 
 export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {

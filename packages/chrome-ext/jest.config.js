@@ -1,8 +1,7 @@
 module.exports = {
-    verbose: true,
     preset: 'ts-jest',
     testEnvironment: 'node',
-    testMatch: ['**/__tests__/**/*.ts?(x)', '**/?(*.)+(spec|test).ts?(x)'],
+    testMatch: ['**/__tests__/**/*.ts?(x)'],
     transform: {
         '^.+\\.tsx?$': ['ts-jest', {//the content you'd placed at "global"
             babel: true,
