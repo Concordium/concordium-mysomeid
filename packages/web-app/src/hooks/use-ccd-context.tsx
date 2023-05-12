@@ -409,8 +409,14 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
         body: JSON.stringify({ challenge, proof, account }),
       });
 
-      if (response.status !== 200) {
-        throw new Error("Internal server error : " + response.status);
+      const code = response.status;
+      if (code !== 200) {
+        let message: string | undefined;
+        try {
+          message = await response.text();
+        } catch(e) {
+        }
+        throw new Error(message ?? 'Interval server error : ' + response.status);
       }
 
       const body = await response.json();
