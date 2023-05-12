@@ -418,7 +418,7 @@ const createHeartbeat = () => {
 				}
 				return null;
 			},
-		})
+		});
 
 		const {
 			value: profileUserId,
