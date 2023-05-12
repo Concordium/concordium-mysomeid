@@ -1,4 +1,5 @@
-import attentionSvg from './attention.svg';
+import attentionRedSvg from './attention-red.svg';
+import attentionYellowSvg from './attention-yellow.svg';
 
 import logoSvg from './logo.svg';
 
@@ -21,7 +22,7 @@ export const createBadge = ({showAttention: showAttention = false}: {showAttenti
 		<a id="mysome-access-badge-link" style="display: flex;">
 		  <img src="${logoSvg}" width="60" height="60">
 		  <span id="mysome-access-badge-attention" style="position: absolute; top: -1px; right: 5px; color: white; width: 18px; text-align: center; height: 18px;">
-			<img src="${attentionSvg}" width="18px" height="18px"></img>
+			<img id="mysome-access-badge-attention-img" src="${attentionRedSvg}" width="18px" height="18px"></img>
 		  </span>
 		</a>
 	  </div>
@@ -40,6 +41,7 @@ export const createBadge = ({showAttention: showAttention = false}: {showAttenti
 	};
 	const anchor = document.getElementById("mysome-access-badge-link");
 	anchor?.addEventListener("click", eventHandler);
+	const attentionImg = document.getElementById("mysome-access-badge-attention-img") as HTMLImageElement;
 	const attention = document.getElementById("mysome-access-badge-attention");
 	if (attention) {
 		attention.style.visibility = !showAttention ? 'hidden' : 'initial';
@@ -51,9 +53,10 @@ export const createBadge = ({showAttention: showAttention = false}: {showAttenti
 		addClickHandler: (fn: (e: any) => void) => {
 			mysome.widgets[id].click.push(fn);
 		},
-		showAttention: (v: boolean) => {
+		showAttention: (v: false | 'error' | 'warning') => {
 			if ( attention ) {
-				attention.style.visibility = !v ? 'hidden' : 'initial';
+				attention.style.visibility = v === false ? 'hidden' : 'initial';
+				attentionImg.src = v === 'error' ? attentionRedSvg : attentionYellowSvg;
 			}
 		},
 		show: () => {
