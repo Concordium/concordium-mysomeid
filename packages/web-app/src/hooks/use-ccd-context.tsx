@@ -416,7 +416,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
           message = await response.text();
         } catch(e) {
         }
-        throw new Error(message ?? 'Interval server error : ' + response.status);
+        throw new Error(message ?? 'Interval server error: ' + response.status);
       }
 
       const body = await response.json();
