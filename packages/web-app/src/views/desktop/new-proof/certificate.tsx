@@ -167,14 +167,6 @@ export const Certificate = ({
                   {profilePageUrl}
                   {loading && !profilePageUrl ?
                     <Skeleton animation="wave" variant="text" width={120} /> : undefined}
-                  {!isNil(owner) ? <Box sx={{
-                    marginTop: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    placeContent: 'center',
-                  }} >
-                    <Typography>{transformCCDAddress(owner ?? '', lt560)}</Typography>
-                  </Box> : undefined}
                 </Box>
 
                 <Box id="cert-content" display="flex" width="100%" sx={{
