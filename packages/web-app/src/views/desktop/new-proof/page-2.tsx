@@ -39,7 +39,7 @@ function capitalize(s: string) {
 }
 
 type ProfileInfo = {
-  name: string;
+  name: string; 
 };
 
 export function parseNameFromNameString(name: string) {
@@ -247,10 +247,10 @@ export default connect(state => ({
         dispatch(error(`${startMsg} Unknown error`));
       }
     }).catch(e => {
-      console.error('Authorise failed', e);
-      dispatch(error("Failed to Authorise: " + e.message));
+      console.error('Failed to create proof', e);
+      dispatch(error(e.message ?? 'Unknown error creating proof'));
     }).finally(() => {
-      console.log('Authorise is done done');
+      console.log('Creating proof is done');
       setConnectWithIDLoading(false);
     });
   }, [
