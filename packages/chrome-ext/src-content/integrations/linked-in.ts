@@ -1200,13 +1200,13 @@ const install = async () => {
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'registered');	
 				} else if (status === 'invalid' || status === 'suspecious' ) {
 					shield?.setSuspeciousProfile(proof);
-					badge.showAttention(true);
+					badge.showAttention('error');
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspecious');	
 				} else {
 					console.error("Failed to evaluate the status of the proof.");
 					messages.failedResolve = defaultMessages.failedResolve;
 					shield?.setFailedResolve(proof, messages.failedResolve);
-					badge.showAttention(true);
+					badge.showAttention('warning');
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'failed-resolve');	
 				}
 
@@ -1214,7 +1214,7 @@ const install = async () => {
 				console.error("exception while evaluting status of proof", err);
 				messages.failedResolve = err?.message ?? defaultMessages.failedResolve;
 				shield?.setFailedResolve(proof, messages.failedResolve);
-				badge.showAttention(true);
+				badge.showAttention('warning');
 				setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'failed-resolve');	
 
 			});
@@ -1222,14 +1222,14 @@ const install = async () => {
 		} else if ( proof === 'no-connection' ) {
 			logger.info("No QR code detected - no connection to API");
 			shield?.setNoConnection();
-			badge.showAttention(true);
+			badge.showAttention('warning');
 			setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'no-connection');
 
 		} else if ( proof === 'no-proof' ) {
 			logger.info("No QR code detected - Profile not detected");
 			onOwnPageOrFeed && shield?.setOwnProfileNotVerified();
 			!onOwnPageOrFeed && shield?.setOtherProfileNotVerified();
-			badge.showAttention(true);
+			badge.showAttention('warning');
 			setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'not-registered');
 
 		} else {	
