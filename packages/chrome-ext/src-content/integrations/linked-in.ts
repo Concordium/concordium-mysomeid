@@ -1179,8 +1179,9 @@ const install = async () => {
 			const userId = trackProfileUserId.get();
 			const name = trackProfileName.get();
 			const components = name?.split(' ') ?? [];
-			const firstName = components[0] ?? '';
-			const lastName = components[components.length - 1] ?? '';
+			const [firstNameOpt, ...lastNames] = components;
+			const firstName = firstNameOpt ?? '';
+			const lastName = lastNames.join(' ');
 
 			validateProofWithProfile({
 				firstName,
