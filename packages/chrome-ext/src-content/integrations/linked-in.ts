@@ -1177,7 +1177,7 @@ const install = async () => {
 			console.log('Proof observed', proof);
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get();
-			const name = trackProfileName.get();
+			const name = trackProfileName.get() ?? trackOwnProfileName.get();
 			const components = name?.split(' ') ?? [];
 			const firstName = components[0] ?? '';
 			const lastName = components[components.length - 1] ?? '';
