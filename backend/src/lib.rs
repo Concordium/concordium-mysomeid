@@ -177,14 +177,19 @@ impl ContractClient {
     }
 }
 
-/// Test whether the two names `a` and `b` match, where the case  and trailing
-/// whitespaces are ignored and some characters may be substituted.
-/// Substitutions are not applied recursively. E.g., if a -> aa is an allowed
-/// substitution, Dan can become Daan, but not Daaan. Furthermore, substitutions
-/// are only applied either from `a` to `b` or vice versa, but not in both
-/// directions. E.g., Jóhn Doe matches John Doe, but not John Doé. This avoids
-/// rules such as å -> (aa or a) to be misused to obtain Dan -> Dån -> Daan ->
-/// Dåån -> Daaaan.
+/// Test whether the two names `a` and `b` match, with the following rules
+///
+/// - case and trailing whitespaces are ignored and some characters may be
+///   substituted.
+/// - the words in name a must be a subset of the words in name b, and there
+///   must be at least two words in name a.
+///
+/// Character substitutions are not applied recursively. E.g., if a -> aa is an
+/// allowed substitution, Dan can become Daan, but not Daaan. Furthermore,
+/// substitutions are only applied either from `a` to `b` or vice versa, but not
+/// in both directions. E.g., Jóhn Doe matches John Doe, but not John Doé. This
+/// avoids rules such as å -> (aa or a) to be misused to obtain Dan -> Dån ->
+/// Daan -> Dåån -> Daaaan.
 ///
 /// Arguments:
 /// - `a1` - first name of `a`.
@@ -217,26 +222,27 @@ pub fn fuzzy_match_names(
     if a == b {
         return Ok(true);
     }
-    find_inclusion(a.as_str(), b.as_str(), allowed_substitutions)
+    check_inclusion(a.as_str(), b.as_str(), allowed_substitutions)
 }
 
 // Find inclusion ignoring the order but ensuring multiplicity is respected.
-fn find_inclusion(
+fn check_inclusion(
     a: &str,
     b: &str,
     allowed_substitutions: &HashMap<char, Vec<String>>,
 ) -> Result<bool, regex::Error> {
     let wa = a.split(' ');
-    let mut words = BTreeMap::new();
+    // The map of words in b, mapping them to their multiplicity.
+    let mut b_words = BTreeMap::new();
     for word in b.split(' ') {
         if !word.trim().is_empty() {
-            let entry = words.entry(word).or_insert(0);
+            let entry = b_words.entry(word).or_insert(0);
             *entry += 1;
         }
     }
     // Prevent denial of service by silly strings. You should not have more than 50
     // names.
-    if words.len() > 50 {
+    if b_words.len() > 50 {
         return Ok(false);
     }
     let mut count = 0;
@@ -249,7 +255,7 @@ fn find_inclusion(
         if !a_word.trim().is_empty() {
             count += 1;
             let mut found = false;
-            for (b_word, mult) in words.iter_mut() {
+            for (b_word, mult) in b_words.iter_mut() {
                 if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
                     *mult -= 1;
                     found = true;
@@ -376,13 +382,6 @@ mod tests {
 
         // test subset match with order and no duplicates.
         let a1 = "John";
-        let a2 = "";
-        let b1 = "John";
-        let b2 = "Doe Fitzgerald";
-        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
-
-        // test subset match with order and no duplicates.
-        let a1 = "John";
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Fitzgerald Adams Doe The Third";
@@ -454,42 +453,42 @@ mod tests {
     }
 
     #[test]
-    /// Test whether non matching names are rejected
+    /// Test `check_inclusion` function, both positive and negative tests.
     fn test_inclusion() -> anyhow::Result<()> {
         let allowed_substitutions = get_test_allowed_substitutions();
-        assert!(find_inclusion(
+        assert!(check_inclusion(
             "foo bar",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
-        assert!(find_inclusion(
+        assert!(check_inclusion(
             "foo bar baz",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
-        assert!(find_inclusion(
+        assert!(check_inclusion(
             "foo bar baz",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
-        assert!(find_inclusion(
+        assert!(check_inclusion(
             "foo bar baz",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
-        assert!(find_inclusion(
-            "foo bar baz",
+        assert!(check_inclusion(
+            "foo baz bar",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         // Too short not allowed
-        assert!(!find_inclusion(
+        assert!(!check_inclusion(
             "foo",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         // Too short not allowed
-        assert!(!find_inclusion(
+        assert!(!check_inclusion(
             "",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
@@ -563,6 +562,13 @@ mod tests {
         let a2 = "Bar";
         let b1 = "";
         let b2 = "";
+        assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test subset match with order and no duplicates.
+        let a1 = "John";
+        let a2 = "";
+        let b1 = "John";
+        let b2 = "Doe Fitzgerald";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 }
