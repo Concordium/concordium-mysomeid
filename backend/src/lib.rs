@@ -443,6 +443,13 @@ mod tests {
         let b1 = "Doe";
         let b2 = "John";
         assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // Multiplicity
+        let a1 = "foo bar";
+        let a2 = "";
+        let b1 = "foo bar foo";
+        let b2 = "";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 
     #[test]
@@ -470,7 +477,7 @@ mod tests {
             &allowed_substitutions
         )?);
         assert!(check_inclusion(
-            "foo bar baz",
+            "foo baz bar",
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
@@ -556,13 +563,6 @@ mod tests {
         let b1 = "";
         let b2 = "";
         assert!(!fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
-
-        // Multiplicity
-        let a1 = "foo bar";
-        let a2 = "";
-        let b1 = "foo bar foo";
-        let b2 = "";
-        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
 
         // test subset match with order and no duplicates.
         let a1 = "John";
