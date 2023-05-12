@@ -314,6 +314,9 @@ const trackOnOwnProfileOrFeed = createTracker<boolean>({
 const trackOwnProfileName = createTracker<string | null>({
 	name: 'ownProfileName'
 });
+const trackCurrentProfileName = createTracker<string | null>({
+	name: 'currentProfileName'
+});
 const trackProfileUserId = createTracker<string | null>({
 	name: 'profileUserId'
 })
@@ -404,6 +407,18 @@ const createHeartbeat = () => {
 				return getUsersNameOnFeed() ?? null;
 			}
 		});
+
+		const {value: currentProfileName,} = trackCurrentProfileName.update({
+			throttle: 2000,
+			query: () => {
+				if ( onProfileUrl ) {
+					return getUsersNameOnProfile();
+				} else if ( onFeedUrl ) {
+					return getUsersNameOnFeed();
+				}
+				return null;
+			},
+		})
 
 		const {
 			value: profileUserId,
@@ -597,8 +612,9 @@ const createHeartbeat = () => {
 							((onProfileUrl && !!shield) || onFeedUrl) &&
 							!!backgroundUrl &&
 							!!profilePictureUrl &&
-							!!profileUserId ?
-								url + backgroundUrl + profilePictureUrl + profileUserId : null;
+							!!profileUserId &&
+							!!currentProfileName ?
+								url + backgroundUrl + profilePictureUrl + profileUserId + currentProfileName : null;
 				/* console.log('trackVerifyStatus : ', {
 					"(onProfileUrl || onFeedUrl)": (onProfileUrl || onFeedUrl),
 					'((onProfileUrl && !!header) || onFeedUrl)': ((onProfileUrl && !!header) || onFeedUrl),
