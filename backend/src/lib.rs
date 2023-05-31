@@ -206,7 +206,7 @@ pub fn fuzzy_match_names(
     a2: &str,
     b1: &str,
     b2: &str,
-    allowed_substitutions: &HashMap<&str, Vec<String>>,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
 ) -> Result<bool, regex::Error> {
     // first test simplest case of exact match
     if a1 == b1 && a2 == b2 {
@@ -230,7 +230,7 @@ pub fn fuzzy_match_names(
 fn check_inclusion(
     a: &str,
     b: &str,
-    allowed_substitutions: &HashMap<&str, Vec<String>>,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
 ) -> Result<bool, regex::Error> {
     let wa = a.split(' ');
     // The map of words in b, mapping them to their multiplicity.
@@ -276,7 +276,7 @@ fn check_inclusion(
 fn can_transform_string(
     a: &str,
     b: &str,
-    allowed_substitutions: &HashMap<&str, Vec<String>>,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
 ) -> Result<bool, regex::Error> {
     // construct regular expression from `a` replacing all characters that can be
     // substituted by `s1` or `s2` or ... or `sn` by `(s1|...|sn)`
@@ -312,41 +312,40 @@ fn can_transform_string(
 }
 
 /// Returns a map with default allowed substitutions.
-pub fn get_allowed_substitutions() -> HashMap<&'static str, Vec<String>> {
+pub fn get_allowed_substitutions() -> HashMap<&'static str, Vec<&'static str>> {
     HashMap::from([
-        // Danish
-        ("å", ["aa", "a"].iter().map(|s| s.to_string()).collect()),
-        ("æ", ["ae"].iter().map(|s| s.to_string()).collect()),
-        ("ø", ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+        ("å", ["aa", "a"].to_vec()),
+        ("æ", ["ae"].to_vec()),
+        ("ø", ["oe", "o"].to_vec()),
         // German
-        ("ä", ["ae", "a"].iter().map(|s| s.to_string()).collect()),
-        ("ü", ["ue", "u"].iter().map(|s| s.to_string()).collect()),
-        ("ö", ["oe", "o"].iter().map(|s| s.to_string()).collect()),
-        ("ß", ["ss", "s"].iter().map(|s| s.to_string()).collect()),
+        ("ä", ["ae", "a"].to_vec()),
+        ("ü", ["ue", "u"].to_vec()),
+        ("ö", ["oe", "o"].to_vec()),
+        ("ß", ["ss", "s"].to_vec()),
         // French
-        ("ç", ["c"].iter().map(|s| s.to_string()).collect()),
-        ("é", ["e"].iter().map(|s| s.to_string()).collect()),
-        ("à", ["a"].iter().map(|s| s.to_string()).collect()),
-        ("è", ["e"].iter().map(|s| s.to_string()).collect()),
-        ("ì", ["i"].iter().map(|s| s.to_string()).collect()),
-        ("ò", ["o"].iter().map(|s| s.to_string()).collect()),
-        ("ù", ["u"].iter().map(|s| s.to_string()).collect()),
-        ("â", ["a"].iter().map(|s| s.to_string()).collect()),
-        ("ê", ["e"].iter().map(|s| s.to_string()).collect()),
-        ("î", ["i"].iter().map(|s| s.to_string()).collect()),
-        ("ô", ["o"].iter().map(|s| s.to_string()).collect()),
-        ("û", ["u"].iter().map(|s| s.to_string()).collect()),
-        ("ë", ["e"].iter().map(|s| s.to_string()).collect()),
-        ("ï", ["i"].iter().map(|s| s.to_string()).collect()),
-        ("œ", ["oe"].iter().map(|s| s.to_string()).collect()),
+        ("ç", ["c"].to_vec()),
+        ("é", ["e"].to_vec()),
+        ("à", ["a"].to_vec()),
+        ("è", ["e"].to_vec()),
+        ("ì", ["i"].to_vec()),
+        ("ò", ["o"].to_vec()),
+        ("ù", ["u"].to_vec()),
+        ("â", ["a"].to_vec()),
+        ("ê", ["e"].to_vec()),
+        ("î", ["i"].to_vec()),
+        ("ô", ["o"].to_vec()),
+        ("û", ["u"].to_vec()),
+        ("ë", ["e"].to_vec()),
+        ("ï", ["i"].to_vec()),
+        ("œ", ["oe"].to_vec()),
         // Slovenian
-        ("č", ["c"].iter().map(|s| s.to_string()).collect()),
-        ("š", ["s"].iter().map(|s| s.to_string()).collect()),
-        ("ž", ["z"].iter().map(|s| s.to_string()).collect()),
+        ("č", ["c"].to_vec()),
+        ("š", ["s"].to_vec()),
+        ("ž", ["z"].to_vec()),
         // Turkish
-        ("ğ", ["g"].iter().map(|s| s.to_string()).collect()),
-        ("ı", ["i"].iter().map(|s| s.to_string()).collect()),
-        ("ş", ["s"].iter().map(|s| s.to_string()).collect()),
+        ("ğ", ["g"].to_vec()),
+        ("ı", ["i"].to_vec()),
+        ("ş", ["s"].to_vec()),
     ])
 }
 
@@ -354,11 +353,11 @@ pub fn get_allowed_substitutions() -> HashMap<&'static str, Vec<String>> {
 mod tests {
     use super::*;
 
-    fn get_test_allowed_substitutions() -> HashMap<&'static str, Vec<String>> {
+    fn get_test_allowed_substitutions() -> HashMap<&'static str, Vec<&'static str>> {
         let mut allowed_substitutions = get_allowed_substitutions();
         // add extra substitution only for testing
-        allowed_substitutions.insert("*", ["**"].iter().map(|s| s.to_string()).collect());
-        allowed_substitutions.insert("षि", ["d"].iter().map(|s| s.to_string()).collect());
+        allowed_substitutions.insert("*", ["**"].to_vec());
+        allowed_substitutions.insert("षि", ["d"].to_vec());
         allowed_substitutions
     }
 
