@@ -340,6 +340,10 @@ pub fn get_allowed_substitutions() -> HashMap<char, Vec<String>> {
         ('č', ["c"].iter().map(|s| s.to_string()).collect()),
         ('š', ["s"].iter().map(|s| s.to_string()).collect()),
         ('ž', ["z"].iter().map(|s| s.to_string()).collect()),
+        // Turkish
+        ('ğ', ["g"].iter().map(|s| s.to_string()).collect()),
+        ('ı', ["i"].iter().map(|s| s.to_string()).collect()),
+        ('ş', ["s"].iter().map(|s| s.to_string()).collect()),
     ])
 }
 
