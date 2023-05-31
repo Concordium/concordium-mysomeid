@@ -1,3 +1,4 @@
+
 import {
 	getMessageHandler
 } from './content-messaging';
@@ -174,19 +175,29 @@ export const getUsersNameOnFeed = (): string | null => {
 		return null;
 	}
 
-	let name = $array($(".feed-identity-module__actor-meta")?.querySelectorAll('div'))
+	let name: string | null = $array($(".feed-identity-module__actor-meta")?.querySelectorAll('div'))
 		.map(x => x?.innerText?.trim()).filter(x => !!x?.trim() && x?.trim() !== '')?.[0] ?? null;
 
-	// If add a photo is displayed it means that the user hasnt got a photo
-	// and the user will be shown as "Welcome, <Username>!" - instead we can use 
-	// the alt paramter in the topbar. ( works if the topbar is visible but if the window is small it will not be present. ).
-	const AddAPhoto = !!$$('a > div > span').filter(x => x.innerText === 'Add a photo')[0];
-	const avatarGhostButton = $$('button > img.ghost-person')[0] as any;
-	if (AddAPhoto && avatarGhostButton) {
+	// If the 'Add a photo' button is visible it means that the user hasn't got a photo OR if the name looks like "Welcome, <first name>!" 
+	// and the user will be shown as "Welcome, <first name>!" then we discard of the name.
+	// The reason why both checks are needed is that LinkedIn loads elements async on the page so in 
+	// case the addAPhotoButton is not yet loaded we will still chjeck if the name looks.
+	const addAPhotoButton = !!$$('a > div > span').filter(x => x.innerText === 'Add a photo')[0];
+	const nameLooksLikeWelcome = name && name.endsWith('!') && name.indexOf(', ') > 0;
+	if ( (nameLooksLikeWelcome || addAPhotoButton) ) {
+		name = null;
+	}
+
+	// Test if the AvatarGhost button is available and use this value since this is more reliable.
+	// Note that the AvatarGhost button is not always availale on the feed so we cannot solely rely on that
+	// to resolve the name.
+	const avatarGhostButton = $$('button > img.ghost-person')[0] as HTMLImageElement;
+	if ( avatarGhostButton && avatarGhostButton.alt ) {
 		name = avatarGhostButton.alt;
 	}
 
-	if (name?.length > 0) {
+	// If we have found the name we will return it.
+	if ( name && name.length > 0 ) {
 		return name;
 	}
 
@@ -202,10 +213,10 @@ export const getUsersNameOnFeed = (): string | null => {
 				return null;
 			}
 		})[0];
-
-	const firstName = codeObject.included[0].firstName;
-	const lastName = codeObject.included[0].lastName;
-	name = firstName + ' ' + lastName;
+	name = [
+		codeObject?.included?.[0]?.firstName,
+		codeObject?.included?.[0]?.lastName
+	].filter( x => !!x ).join(' ');
 
 	if (name?.length > 0) {
 		return name;
