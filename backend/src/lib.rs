@@ -19,6 +19,7 @@ use concordium_rust_sdk as concordium;
 use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
 use regex::Regex;
 use std::collections::{BTreeMap, HashMap};
+use unicode_segmentation::UnicodeSegmentation;
 
 pub struct ContractClient {
     pub address: ContractAddress,
@@ -205,7 +206,7 @@ pub fn fuzzy_match_names(
     a2: &str,
     b1: &str,
     b2: &str,
-    allowed_substitutions: &HashMap<char, Vec<String>>,
+    allowed_substitutions: &HashMap<&str, Vec<String>>,
 ) -> Result<bool, regex::Error> {
     // first test simplest case of exact match
     if a1 == b1 && a2 == b2 {
@@ -229,7 +230,7 @@ pub fn fuzzy_match_names(
 fn check_inclusion(
     a: &str,
     b: &str,
-    allowed_substitutions: &HashMap<char, Vec<String>>,
+    allowed_substitutions: &HashMap<&str, Vec<String>>,
 ) -> Result<bool, regex::Error> {
     let wa = a.split(' ');
     // The map of words in b, mapping them to their multiplicity.
@@ -275,15 +276,17 @@ fn check_inclusion(
 fn can_transform_string(
     a: &str,
     b: &str,
-    allowed_substitutions: &HashMap<char, Vec<String>>,
+    allowed_substitutions: &HashMap<&str, Vec<String>>,
 ) -> Result<bool, regex::Error> {
     // construct regular expression from `a` replacing all characters that can be
     // substituted by `s1` or `s2` or ... or `sn` by `(s1|...|sn)`
     let mut a_regex_string = "^".to_string();
-    for c in a.chars() {
+    // iterate over the visible characters (graphemes, which may consist of multiple
+    // chars) in a
+    for c in a.graphemes(true) {
         // escape all regular expression characters
-        let c_escaped = regex::escape(&format!("{c}"));
-        match allowed_substitutions.get(&c) {
+        let c_escaped = regex::escape(c);
+        match allowed_substitutions.get(c) {
             Some(sub) => {
                 // If substitution exists, replace character by regex with allowed alternatives
                 let mut sub_exp = "(".to_string();
@@ -309,41 +312,41 @@ fn can_transform_string(
 }
 
 /// Returns a map with default allowed substitutions.
-pub fn get_allowed_substitutions() -> HashMap<char, Vec<String>> {
+pub fn get_allowed_substitutions() -> HashMap<&'static str, Vec<String>> {
     HashMap::from([
         // Danish
-        ('å', ["aa", "a"].iter().map(|s| s.to_string()).collect()),
-        ('æ', ["ae"].iter().map(|s| s.to_string()).collect()),
-        ('ø', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+        ("å", ["aa", "a"].iter().map(|s| s.to_string()).collect()),
+        ("æ", ["ae"].iter().map(|s| s.to_string()).collect()),
+        ("ø", ["oe", "o"].iter().map(|s| s.to_string()).collect()),
         // German
-        ('ä', ["ae", "a"].iter().map(|s| s.to_string()).collect()),
-        ('ü', ["ue", "u"].iter().map(|s| s.to_string()).collect()),
-        ('ö', ["oe", "o"].iter().map(|s| s.to_string()).collect()),
-        ('ß', ["ss", "s"].iter().map(|s| s.to_string()).collect()),
+        ("ä", ["ae", "a"].iter().map(|s| s.to_string()).collect()),
+        ("ü", ["ue", "u"].iter().map(|s| s.to_string()).collect()),
+        ("ö", ["oe", "o"].iter().map(|s| s.to_string()).collect()),
+        ("ß", ["ss", "s"].iter().map(|s| s.to_string()).collect()),
         // French
-        ('ç', ["c"].iter().map(|s| s.to_string()).collect()),
-        ('é', ["e"].iter().map(|s| s.to_string()).collect()),
-        ('à', ["a"].iter().map(|s| s.to_string()).collect()),
-        ('è', ["e"].iter().map(|s| s.to_string()).collect()),
-        ('ì', ["i"].iter().map(|s| s.to_string()).collect()),
-        ('ò', ["o"].iter().map(|s| s.to_string()).collect()),
-        ('ù', ["u"].iter().map(|s| s.to_string()).collect()),
-        ('â', ["a"].iter().map(|s| s.to_string()).collect()),
-        ('ê', ["e"].iter().map(|s| s.to_string()).collect()),
-        ('î', ["i"].iter().map(|s| s.to_string()).collect()),
-        ('ô', ["o"].iter().map(|s| s.to_string()).collect()),
-        ('û', ["u"].iter().map(|s| s.to_string()).collect()),
-        ('ë', ["e"].iter().map(|s| s.to_string()).collect()),
-        ('ï', ["i"].iter().map(|s| s.to_string()).collect()),
-        ('œ', ["oe"].iter().map(|s| s.to_string()).collect()),
+        ("ç", ["c"].iter().map(|s| s.to_string()).collect()),
+        ("é", ["e"].iter().map(|s| s.to_string()).collect()),
+        ("à", ["a"].iter().map(|s| s.to_string()).collect()),
+        ("è", ["e"].iter().map(|s| s.to_string()).collect()),
+        ("ì", ["i"].iter().map(|s| s.to_string()).collect()),
+        ("ò", ["o"].iter().map(|s| s.to_string()).collect()),
+        ("ù", ["u"].iter().map(|s| s.to_string()).collect()),
+        ("â", ["a"].iter().map(|s| s.to_string()).collect()),
+        ("ê", ["e"].iter().map(|s| s.to_string()).collect()),
+        ("î", ["i"].iter().map(|s| s.to_string()).collect()),
+        ("ô", ["o"].iter().map(|s| s.to_string()).collect()),
+        ("û", ["u"].iter().map(|s| s.to_string()).collect()),
+        ("ë", ["e"].iter().map(|s| s.to_string()).collect()),
+        ("ï", ["i"].iter().map(|s| s.to_string()).collect()),
+        ("œ", ["oe"].iter().map(|s| s.to_string()).collect()),
         // Slovenian
-        ('č', ["c"].iter().map(|s| s.to_string()).collect()),
-        ('š', ["s"].iter().map(|s| s.to_string()).collect()),
-        ('ž', ["z"].iter().map(|s| s.to_string()).collect()),
+        ("č", ["c"].iter().map(|s| s.to_string()).collect()),
+        ("š", ["s"].iter().map(|s| s.to_string()).collect()),
+        ("ž", ["z"].iter().map(|s| s.to_string()).collect()),
         // Turkish
-        ('ğ', ["g"].iter().map(|s| s.to_string()).collect()),
-        ('ı', ["i"].iter().map(|s| s.to_string()).collect()),
-        ('ş', ["s"].iter().map(|s| s.to_string()).collect()),
+        ("ğ", ["g"].iter().map(|s| s.to_string()).collect()),
+        ("ı", ["i"].iter().map(|s| s.to_string()).collect()),
+        ("ş", ["s"].iter().map(|s| s.to_string()).collect()),
     ])
 }
 
@@ -351,10 +354,11 @@ pub fn get_allowed_substitutions() -> HashMap<char, Vec<String>> {
 mod tests {
     use super::*;
 
-    fn get_test_allowed_substitutions() -> HashMap<char, Vec<String>> {
+    fn get_test_allowed_substitutions() -> HashMap<&'static str, Vec<String>> {
         let mut allowed_substitutions = get_allowed_substitutions();
         // add extra substitution only for testing
-        allowed_substitutions.insert('*', ["**"].iter().map(|s| s.to_string()).collect());
+        allowed_substitutions.insert("*", ["**"].iter().map(|s| s.to_string()).collect());
+        allowed_substitutions.insert("षि", ["d"].iter().map(|s| s.to_string()).collect());
         allowed_substitutions
     }
 
@@ -453,6 +457,13 @@ mod tests {
         let a2 = "";
         let b1 = "foo bar foo";
         let b2 = "";
+        assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
+
+        // test name with extended grapheme cluster
+        let a1 = "John";
+        let a2 = "षिoe";
+        let b1 = "John";
+        let b2 = "Doe";
         assert!(fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions).unwrap());
     }
 

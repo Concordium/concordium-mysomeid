@@ -214,7 +214,7 @@ struct ServiceState {
     pub read_db:               db::ReadDatabase,
     pub max_daily_mints:       u32,
     pub allowed_domains:       Arc<Vec<String>>,
-    pub allowed_substitutions: Arc<HashMap<char, Vec<String>>>,
+    pub allowed_substitutions: Arc<HashMap<&'static str, Vec<String>>>,
 }
 
 #[tokio::main]
