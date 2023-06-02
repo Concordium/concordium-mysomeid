@@ -44,3 +44,4 @@ unicode-segmentation = "1.9.0"
 
 concordium-rust-sdk = {version = "2", path = "../deps/concordium-rust-sdk"}
 key_derivation = { path = "../deps/concordium-rust-sdk/concordium-base/rust-src/key_derivation"}
+emojis = "0.6.0"

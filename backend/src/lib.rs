@@ -20,6 +20,7 @@ use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
 use regex::Regex;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use unicode_segmentation::UnicodeSegmentation;
+use emojis;
 
 pub struct ContractClient {
     pub address: ContractAddress,
@@ -228,12 +229,23 @@ pub fn fuzzy_match_names(
     // allowed titles and emojis
     let mut a_words: Vec<&str> = Vec::new();
     for word in a.split(|c: char| c.is_whitespace() || c == ',') {
-        if !word.is_empty() && !allowed_titles.contains(word) {
+        if !word.is_empty() && !allowed_titles.contains(word) &&!is_allowed_emoji_word(word) {
             a_words.push(word);
         }
     }
     // finally check whether all relevant words in a are contained in b
     check_inclusion(&a_words, b.as_str(), allowed_substitutions)
+}
+
+/// Check whether `word` only consists of emojis.
+/// All Unicode emojis are currently allowed.
+fn is_allowed_emoji_word(word: &str) -> bool {
+    for c in word.graphemes(true) {
+        if emojis::get(c).is_none() {
+            return false;
+        }
+    }
+    true
 }
 
 /// Check whether all words in `a_words` are contained the string `b`, ignoring
@@ -520,6 +532,45 @@ mod tests {
         assert!(
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
+
+        // emojis in name are ignored
+        let a1 = "John";
+        let a2 = "Doe 🚀🚀🚀";
+        let b1 = "John";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+    }
+
+    #[test]
+    /// Test `is_allowed_emoji_word` function, both positive and negative tests.
+    fn test_emojis() -> anyhow::Result<()> {
+        // single emoji is allowed
+        assert!(is_allowed_emoji_word("🚀"));
+
+        // word consisting of multiple emoji is allowed
+        assert!(is_allowed_emoji_word("🚀🚀🚀"));
+
+        // flag of England consists of several characters
+        assert!(is_allowed_emoji_word("🏴󠁧󠁢󠁥󠁮󠁧󠁿"));
+
+        // combination of emojis
+        assert!(is_allowed_emoji_word("🏴󠁧󠁢󠁥󠁮󠁧󠁿🚀🏴🏴"));
+
+        // a letter is not an emoji
+        assert!(!is_allowed_emoji_word("a"));
+
+        // word is only allowed to contain emojis
+        assert!(!is_allowed_emoji_word("🚀a"));
+
+        // word is only allowed to contain emojis
+        assert!(!is_allowed_emoji_word("🚀 😬"));
+
+        // prefix of flag of England is not a valid emoji
+        assert!(!is_allowed_emoji_word("🏴󠁧󠁢󠁥󠁮󠁧"));
+
+        Ok(())
     }
 
     #[test]
@@ -653,11 +704,20 @@ mod tests {
             !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
 
-        // test subset match with order and no duplicates.
+        // at least two names must match
         let a1 = "John";
         let a2 = "";
         let b1 = "John";
         let b2 = "Doe Fitzgerald";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // emojis inside name are not allowed
+        let a1 = "Joh🚀n";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe";
         assert!(
             !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
