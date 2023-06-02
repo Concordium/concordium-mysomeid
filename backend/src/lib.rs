@@ -20,7 +20,6 @@ use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
 use regex::Regex;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use unicode_segmentation::UnicodeSegmentation;
-use emojis;
 
 pub struct ContractClient {
     pub address: ContractAddress,
@@ -229,7 +228,7 @@ pub fn fuzzy_match_names(
     // allowed titles and emojis
     let mut a_words: Vec<&str> = Vec::new();
     for word in a.split(|c: char| c.is_whitespace() || c == ',') {
-        if !word.is_empty() && !allowed_titles.contains(word) &&!is_allowed_emoji_word(word) {
+        if !word.is_empty() && !allowed_titles.contains(word) && !is_allowed_emoji_word(word) {
             a_words.push(word);
         }
     }
@@ -278,7 +277,8 @@ fn check_inclusion(
         count += 1;
         let mut found = false;
         for (b_word, mult) in b_words.iter_mut() {
-            if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
+            if are_equivalent_mod_substitutions(a_word, b_word, allowed_substitutions)? && *mult > 0
+            {
                 *mult -= 1;
                 found = true;
                 break;
@@ -329,6 +329,21 @@ fn can_transform_string(
     let a_regex = Regex::new(&a_regex_string)?;
     // note: it is fine for `b` to be untrusted according to regex documentation
     Ok(a_regex.is_match(b))
+}
+
+/// Check whether the string `a` can be converted to `b` using the allowed
+/// substitutions or vice versa.
+fn are_equivalent_mod_substitutions(
+    a: &str,
+    b: &str,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
+) -> Result<bool, regex::Error> {
+    match can_transform_string(a, b, allowed_substitutions) {
+        // if a can be transformed to b, we are done
+        Ok(true) => Ok(true),
+        // otherwise try other direction
+        _ => can_transform_string(b, a, allowed_substitutions),
+    }
 }
 
 /// Returns a map with default allowed substitutions.
@@ -465,6 +480,15 @@ mod tests {
         let a2 = "Dåe";
         let b1 = "John";
         let b2 = "Daae";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test basic substitutions in other direction
+        let a1 = "John";
+        let a2 = "Daae";
+        let b1 = "John";
+        let b2 = "Dåe";
         assert!(
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
