@@ -702,7 +702,7 @@ const changeBackgroundTour = {
 					a?.click();
 					console.log('# 2c');
 					if ( !a ) {
-            console.error('Feed profile link not found.');
+            			console.error('Feed profile link not found.');
 					}
 					let max = 0;
 					console.log('# 2d');
@@ -714,7 +714,6 @@ const changeBackgroundTour = {
 					}
 					console.log('# 2e');
 				}
-
 
 				console.log('# 2f');
 				userId = getUserIdInUrl();
@@ -750,16 +749,22 @@ const changeBackgroundTour = {
 				container.items.add(file);
 
 				// Test what kind of view shows up.
-				const changeBackgroundFound = qsa("div").find( x => x.innerText === 'Background photo' )?.parentElement?.parentElement?.qsa("label").find( x => x.innerText === "Change photo" );
-				const addBackgroundViewFound = qsa("h2").find( x => x.innerText.trim() === 'Add background photo' );
-
-				// 1. If we have not previously send a photo we need to detect if there is one available.
-				const editProfileBackgroundButton = document.querySelector('[aria-label="Edit profile background"]');
-				console.log({
-					changeBackgroundFound,
-					addBackgroundViewFound,
-					editProfileBackgroundButton,
-				});
+				let nretries = 0;
+				let changeBGModalView: HTMLElement | undefined | null;
+				let changeBackgroundFound: HTMLElement | undefined;
+				let addBackgroundViewFound: HTMLElement | undefined;
+				// Used to detect if we have previously uploaded a background image
+				let editProfileBackgroundButton: HTMLElement | null = null; 
+				while ( nretries++ < 15 && !changeBGModalView && !(changeBackgroundFound || addBackgroundViewFound || editProfileBackgroundButton) ) {
+					if ( nretries > 1) {
+						console.log("# 4 - Waiting for modal background to be initialised.");
+						await sleep(1000);
+					}
+					changeBGModalView = changeBGModalView ?? qsa("div").find( x => x.innerText === 'Background photo' )?.parentElement?.parentElement;
+					changeBackgroundFound = changeBGModalView?.qsa("label").find( x => x.innerText === "Change photo" );
+					addBackgroundViewFound = qsa("h2").find( x => x.innerText.trim() === 'Add background photo' );
+					editProfileBackgroundButton = document.querySelector('[aria-label="Edit profile background"]');
+				}
 
 				if ( !changeBackgroundFound && addBackgroundViewFound && editProfileBackgroundButton ) {			
 					console.log('# 5a - We have not previously added a background picture');
