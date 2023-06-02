@@ -18,7 +18,7 @@ use concordium::{
 use concordium_rust_sdk as concordium;
 use concordium_rust_sdk::{cis2::TokenId, types::ContractAddress, v2};
 use regex::Regex;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use unicode_segmentation::UnicodeSegmentation;
 
 pub struct ContractClient {
@@ -180,10 +180,11 @@ impl ContractClient {
 
 /// Test whether the two names `a` and `b` match, with the following rules
 ///
-/// - case and trailing whitespaces are ignored and some characters may be
-///   substituted.
-/// - the words in name a must be a subset of the words in name b, and there
-///   must be at least two words in name a.
+/// - case and extra whitespaces are ignored and some characters may be
+///   substituted,
+/// - emojis and allowed titles in `a` are ignored,
+/// - the words in name `a` must be a subset of the words in name `b`, and there
+///   must be at least two words in name `a`.
 ///
 /// Character substitutions are not applied recursively. E.g., if a -> aa is an
 /// allowed substitution, Dan can become Daan, but not Daaan. Furthermore,
@@ -201,6 +202,7 @@ impl ContractClient {
 ///   `c` a vector of strings with which `c` can be replaced. Only lowercase
 ///   characters need to be considered and the strings in the vectors must all
 ///   be lowercase.
+/// - `allowed_titles` - set of all titles that that are ignored in `a`
 pub fn fuzzy_match_names(
     a1: &str,
     a2: &str,
@@ -213,27 +215,56 @@ pub fn fuzzy_match_names(
     if a1 == b1 && a2 == b2 {
         return Ok(true);
     }
-    // next remove trailing whitespaces, convert to lower case, and concatenate into
-    // full name
+    // next remove trailing whitespaces and concatenate into full name
     let a1_trimmed = a1.trim();
     let a2_trimmed = a2.trim();
     let b1_trimmed = b1.trim();
     let b2_trimmed = b2.trim();
-    let a = format!("{a1_trimmed} {a2_trimmed}").to_lowercase();
-    let b = format!("{b1_trimmed} {b2_trimmed}").to_lowercase();
+    let a = format!("{a1_trimmed} {a2_trimmed}");
+    let b = format!("{b1_trimmed} {b2_trimmed}");
     if a == b {
         return Ok(true);
     }
-    // generate vector a_words of all nonempty words in the string a, excluding
-    // allowed titles and emojis
+    // if some matching intervals are found, names match according to the rules
+    Ok(get_matching_intervals(&a, &b, allowed_substitutions, allowed_titles)?.is_some())
+}
+
+/// Fuzzily match names `a` and `b`. If they do not match according to the rules
+/// described for the function `fuzzy_match_names`, returns `None`. Otherwise, a
+/// vector of intervals of all words in `a` that match words in `b`. The
+/// returned intervals are represented by the start index (inclusive) and the
+/// end index (exclusive), both corresponding to bytes of UTF-8 encoded strings.
+fn get_matching_intervals(
+    a: &str,
+    b: &str,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
+    allowed_titles: &HashSet<&str>,
+) -> Result<Option<Vec<(usize, usize)>>, regex::Error> {
+    let a = a.to_lowercase();
+    let b = b.to_lowercase();
+    // Generate vector a_words of all nonempty words in the string a, excluding
+    // allowed titles and emojis, together with a vector of the byte indices
+    // corresponding to the beginning (inclusive) and end (exclusive) of the word in
+    // the string a.
     let mut a_words: Vec<&str> = Vec::new();
+    let mut a_word_indices: Vec<(usize, usize)> = Vec::new();
     for word in a.split(|c: char| c.is_whitespace() || c == ',') {
         if !word.is_empty() && !allowed_titles.contains(word) && !is_allowed_emoji_word(word) {
             a_words.push(word);
+            let word_begin = word.as_ptr() as usize - a.as_ptr() as usize;
+            let word_end = word_begin + word.len();
+            a_word_indices.push((word_begin, word_end));
         }
     }
+    // require at least two matching names
+    if a_words.len() < 2 {
+        return Ok(None);
+    }
     // finally check whether all relevant words in a are contained in b
-    check_inclusion(&a_words, b.as_str(), allowed_substitutions)
+    if check_inclusion(&a_words, &b, allowed_substitutions)? {
+        return Ok(Some(a_word_indices));
+    }
+    Ok(None)
 }
 
 /// Check whether `word` only consists of emojis.
@@ -254,32 +285,26 @@ fn check_inclusion(
     b: &str,
     allowed_substitutions: &HashMap<&str, Vec<&str>>,
 ) -> Result<bool, regex::Error> {
-    // The map of words in b, mapping them to their multiplicity.
-    let mut b_words = BTreeMap::new();
-    for word in b.split(' ') {
-        if !word.trim().is_empty() {
-            let entry = b_words.entry(word).or_insert(0);
-            *entry += 1;
+    // vector of words in b, together with boolean indicating whether it is still
+    // available for matching (and not already used)
+    let mut b_words: Vec<(&str, bool)> = Vec::new();
+    for word in b.split(|c: char| c.is_whitespace() || c == ',') {
+        if !word.is_empty() {
+            b_words.push((word, true));
         }
     }
     // Prevent denial of service by silly strings. You should not have more than 50
     // names.
-    if b_words.len() > 50 {
+    if a_words.len() > 50 || b_words.len() > 50 {
         return Ok(false);
     }
-    let mut count = 0;
     for a_word in a_words {
-        // Prevent denial of service by silly strings. You should not have more than 50
-        // names.
-        if count > 50 {
-            return Ok(false);
-        }
-        count += 1;
         let mut found = false;
-        for (b_word, mult) in b_words.iter_mut() {
-            if are_equivalent_mod_substitutions(a_word, b_word, allowed_substitutions)? && *mult > 0
+        for (b_word, available) in b_words.iter_mut() {
+            if *available
+                && are_equivalent_mod_substitutions(a_word, b_word, allowed_substitutions)?
             {
-                *mult -= 1;
+                *available = false;
                 found = true;
                 break;
             }
@@ -288,7 +313,7 @@ fn check_inclusion(
             return Ok(false);
         }
     }
-    Ok(count >= 2)
+    Ok(true)
 }
 
 /// Test whether the string `a` can be transformed into `b` using
@@ -577,6 +602,38 @@ mod tests {
     }
 
     #[test]
+    /// Test `get_matching_intervals` function, both positive and negative
+    /// tests.
+    fn test_matching_indices() -> anyhow::Result<()> {
+        let allowed_substitutions = get_test_allowed_substitutions();
+        let allowed_titles = get_allowed_titles();
+
+        // all names match
+        assert_eq!(
+            get_matching_intervals(
+                "John Doe",
+                "John Doe",
+                &allowed_substitutions,
+                &allowed_titles
+            ),
+            Ok(Some([(0, 4), (5, 8)].to_vec()))
+        );
+
+        // title and emoji are ignored, 🚀 is 4 bytes long
+        assert_eq!(
+            get_matching_intervals(
+                "Dr. John 🚀 Doe 🚀",
+                "John Doe",
+                &allowed_substitutions,
+                &allowed_titles
+            ),
+            Ok(Some([(4, 8), (14, 17)].to_vec()))
+        );
+
+        Ok(())
+    }
+
+    #[test]
     /// Test `is_allowed_emoji_word` function, both positive and negative tests.
     fn test_emojis() -> anyhow::Result<()> {
         // single emoji is allowed
@@ -632,18 +689,6 @@ mod tests {
         )?);
         assert!(check_inclusion(
             &["foo", "baz", "bar"],
-            "foo bar qux baz baz baz baz",
-            &allowed_substitutions
-        )?);
-        // Too short not allowed
-        assert!(!check_inclusion(
-            &["foo"],
-            "foo bar qux baz baz baz baz",
-            &allowed_substitutions
-        )?);
-        // Too short not allowed
-        assert!(!check_inclusion(
-            &[],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
