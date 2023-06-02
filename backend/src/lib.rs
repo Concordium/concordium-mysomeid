@@ -557,6 +557,15 @@ mod tests {
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
 
+        // comma separates names and titles, with or without spaces
+        let a1 = "Prof., Dr. , John ,Dr., James prof,";
+        let a2 = "Doe,PhD";
+        let b1 = "John James";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
         // emojis in name are ignored
         let a1 = "John";
         let a2 = "Doe 🚀🚀🚀";
