@@ -224,16 +224,25 @@ pub fn fuzzy_match_names(
     if a == b {
         return Ok(true);
     }
-    check_inclusion(a.as_str(), b.as_str(), allowed_substitutions)
+    // generate vector a_words of all nonempty words in the string a, excluding
+    // allowed titles and emojis
+    let mut a_words: Vec<&str> = Vec::new();
+    for word in a.split(|c: char| c.is_whitespace() || c == ',') {
+        if !word.is_empty() && !allowed_titles.contains(word) {
+            a_words.push(word);
+        }
+    }
+    // finally check whether all relevant words in a are contained in b
+    check_inclusion(&a_words, b.as_str(), allowed_substitutions)
 }
 
-// Find inclusion ignoring the order but ensuring multiplicity is respected.
+/// Check whether all words in `a_words` are contained the string `b`, ignoring
+/// the order but ensuring multiplicity is respected.
 fn check_inclusion(
-    a: &str,
+    a_words: &[&str],
     b: &str,
     allowed_substitutions: &HashMap<&str, Vec<&str>>,
 ) -> Result<bool, regex::Error> {
-    let wa = a.split(' ');
     // The map of words in b, mapping them to their multiplicity.
     let mut b_words = BTreeMap::new();
     for word in b.split(' ') {
@@ -248,25 +257,23 @@ fn check_inclusion(
         return Ok(false);
     }
     let mut count = 0;
-    for a_word in wa {
+    for a_word in a_words {
         // Prevent denial of service by silly strings. You should not have more than 50
         // names.
         if count > 50 {
             return Ok(false);
         }
-        if !a_word.trim().is_empty() {
-            count += 1;
-            let mut found = false;
-            for (b_word, mult) in b_words.iter_mut() {
-                if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
-                    *mult -= 1;
-                    found = true;
-                    break;
-                }
+        count += 1;
+        let mut found = false;
+        for (b_word, mult) in b_words.iter_mut() {
+            if can_transform_string(a_word, b_word, allowed_substitutions)? && *mult > 0 {
+                *mult -= 1;
+                found = true;
+                break;
             }
-            if !found {
-                return Ok(false);
-            }
+        }
+        if !found {
+            return Ok(false);
         }
     }
     Ok(count >= 2)
@@ -351,10 +358,12 @@ pub fn get_allowed_substitutions() -> HashMap<&'static str, Vec<&'static str>> {
 }
 
 /// Returns a map with default allowed substitutions.
+/// Note: Since name is converted to lowercase, all titles here must be in lower
+/// case.
 pub fn get_allowed_titles() -> HashSet<&'static str> {
     HashSet::from([
-        "Dr.", "Dr", "Prof.", "Prof", "PhD", "Ph.D.", "PhD.", "M.D.", "MD.", "MD", "L.D.", "LD.",
-        "LD", "Msc.", "Msc", "Bsc.", "Bsc", "MBA", "CFA",
+        "dr.", "dr", "prof.", "prof", "phd", "ph.d.", "phd.", "m.d.", "md.", "md", "l.d.", "ld.",
+        "ld", "msc.", "msc", "bsc.", "bsc", "mba", "cfa",
     ])
 }
 
@@ -502,6 +511,15 @@ mod tests {
         assert!(
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
+
+        // titles in name are ignored
+        let a1 = "Prof. Dr. John Dr. James prof";
+        let a2 = "Doe, PhD";
+        let b1 = "John James";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
     }
 
     #[test]
@@ -509,39 +527,39 @@ mod tests {
     fn test_inclusion() -> anyhow::Result<()> {
         let allowed_substitutions = get_test_allowed_substitutions();
         assert!(check_inclusion(
-            "foo bar",
+            &["foo", "bar"],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         assert!(check_inclusion(
-            "foo bar baz",
+            &["foo", "bar", "baz"],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         assert!(check_inclusion(
-            "foo bar baz",
+            &["foo", "bar", "baz"],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         assert!(check_inclusion(
-            "foo bar baz",
+            &["foo", "bar", "baz"],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         assert!(check_inclusion(
-            "foo baz bar",
+            &["foo", "baz", "bar"],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         // Too short not allowed
         assert!(!check_inclusion(
-            "foo",
+            &["foo"],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
         // Too short not allowed
         assert!(!check_inclusion(
-            "",
+            &[],
             "foo bar qux baz baz baz baz",
             &allowed_substitutions
         )?);
