@@ -181,7 +181,7 @@ export const getUsersNameOnFeed = (): string | null => {
 	// If the 'Add a photo' button is visible it means that the user hasn't got a photo OR if the name looks like "Welcome, <first name>!" 
 	// and the user will be shown as "Welcome, <first name>!" then we discard of the name.
 	// The reason why both checks are needed is that LinkedIn loads elements async on the page so in 
-	// case the addAPhotoButton is not yet loaded we will still chjeck if the name looks.
+	// case the addAPhotoButton is not yet loaded we will still check if the name matches the aforementioned pattern.
 	const addAPhotoButton = !!$$('a > div > span').filter(x => x.innerText === 'Add a photo')[0];
 	const nameLooksLikeWelcome = name && name.endsWith('!') && name.indexOf(', ') > 0;
 	if ( (nameLooksLikeWelcome || addAPhotoButton) ) {
