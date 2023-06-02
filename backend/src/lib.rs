@@ -684,8 +684,8 @@ mod tests {
         );
 
         // test that substitutions are only applied in one direction
-        let a1 = "Jóhn";
-        let a2 = "Doe";
+        let a1 = "John";
+        let a2 = "Dòe";
         let b1 = "John";
         let b2 = "Doé";
         assert!(
