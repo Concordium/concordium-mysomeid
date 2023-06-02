@@ -44,7 +44,7 @@ use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     io::Read,
     path::PathBuf,
     str::FromStr,
@@ -215,6 +215,7 @@ struct ServiceState {
     pub max_daily_mints:       u32,
     pub allowed_domains:       Arc<Vec<String>>,
     pub allowed_substitutions: Arc<HashMap<&'static str, Vec<&'static str>>>,
+    pub allowed_titles:        Arc<HashSet<&'static str>>,
 }
 
 #[tokio::main]
@@ -321,6 +322,7 @@ async fn main() -> anyhow::Result<()> {
         max_daily_mints: app.max_daily_mints,
         allowed_domains: Arc::new(app.allowed_domains),
         allowed_substitutions: Arc::new(get_allowed_substitutions()),
+        allowed_titles: Arc::new(get_allowed_titles()),
     };
 
     let (db_sender, db_receiver) = tokio::sync::mpsc::channel(100);
@@ -830,6 +832,7 @@ async fn validate_proof(
         crypto_params,
         statement,
         allowed_substitutions,
+        allowed_titles,
         ..
     }): State<ServiceState>,
 ) -> Result<axum::Json<serde_json::Value>, Error> {
@@ -865,6 +868,7 @@ async fn validate_proof(
         proof.private.first_name.0.as_str(),
         proof.private.surname.0.as_str(),
         &allowed_substitutions,
+        &allowed_titles,
     ) {
         Ok(true) => (),
         Ok(false) => {
