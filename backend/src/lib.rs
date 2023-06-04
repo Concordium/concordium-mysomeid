@@ -279,7 +279,9 @@ fn is_allowed_emoji_word(word: &str) -> bool {
 }
 
 /// Check whether all words in `a_words` are contained the string `b`, ignoring
-/// the order but ensuring multiplicity is respected.
+/// the order but ensuring multiplicity is respected. Names in `b` can also
+/// occur abbreviated in `a`, either as a single grapheme or as one followed by
+/// '.'.
 fn check_inclusion(
     a_words: &[&str],
     b: &str,
@@ -298,11 +300,33 @@ fn check_inclusion(
     if a_words.len() > 50 || b_words.len() > 50 {
         return Ok(false);
     }
+    // store abbreviated names in `a` in a vector an compare afterwards. This
+    // ensures that all fully matching names are matches first and an abbreviation
+    // does not consume a word in `b` that is needed to match another name.
+    let mut abbreviations: Vec<&str> = Vec::new();
     for a_word in a_words {
+        if let Some(abbreviation) = get_abbreviation(a_word) {
+            abbreviations.push(abbreviation);
+            continue;
+        }
+        let mut found = false;
+        for (b_word, available) in b_words.iter_mut() {
+            if *available && match_mod_substitutions(a_word, b_word, allowed_substitutions)? {
+                *available = false;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            return Ok(false);
+        }
+    }
+
+    for abbreviation in abbreviations {
         let mut found = false;
         for (b_word, available) in b_words.iter_mut() {
             if *available
-                && are_equivalent_mod_substitutions(a_word, b_word, allowed_substitutions)?
+                && starts_with_mod_substitutions(abbreviation, b_word, allowed_substitutions)
             {
                 *available = false;
                 found = true;
@@ -314,6 +338,27 @@ fn check_inclusion(
         }
     }
     Ok(true)
+}
+
+/// If word consists only of a single grapheme or one followed by '.', return
+/// this grapheme. Otherwise, return `None`.
+fn get_abbreviation(word: &str) -> Option<&str> {
+    if let Some(start) = word.graphemes(true).next() {
+        if word == start || word == start.to_owned() + "." {
+            return Some(start);
+        }
+    }
+    None
+}
+
+/// Test whether the string `b` starts with `a` using
+/// `allowed_substitutions`.
+fn starts_with_mod_substitutions(
+    a: &str,
+    b: &str,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
+) -> bool {
+    true
 }
 
 /// Test whether the string `a` can be transformed into `b` using
@@ -357,8 +402,9 @@ fn can_transform_string(
 }
 
 /// Check whether the string `a` can be converted to `b` using the allowed
-/// substitutions or vice versa.
-fn are_equivalent_mod_substitutions(
+/// substitutions or vice versa. Note that this is not an equivalence relation
+/// since it is not transitive.
+fn match_mod_substitutions(
     a: &str,
     b: &str,
     allowed_substitutions: &HashMap<&str, Vec<&str>>,
@@ -599,6 +645,25 @@ mod tests {
         assert!(
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
+
+        // test abbreviated middle name
+        let a1 = "John F.";
+        let a2 = "Doe";
+        let b1 = "John Fitzgerald";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test nontrivial matching with substitutions (Dån matches both Dan and Daan,
+        // but must be matched with Daan).
+        let a1 = "Dån Dan";
+        let a2 = "Doe";
+        let b1 = "Dan Daan";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
     }
 
     #[test]
@@ -659,6 +724,29 @@ mod tests {
 
         // prefix of flag of England is not a valid emoji
         assert!(!is_allowed_emoji_word("🏴󠁧󠁢󠁥󠁮󠁧"));
+
+        Ok(())
+    }
+
+    #[test]
+    /// Test `get_abbreviation` function.
+    fn test_abbreviation() -> anyhow::Result<()> {
+        // Just one letter is recognized
+        assert_eq!(get_abbreviation("F"), Some("F"));
+
+        // One letter with dot is recognized
+        assert_eq!(get_abbreviation("F."), Some("F"));
+
+        // Multiple letters are rejected
+        assert_eq!(get_abbreviation("Fi"), None);
+        assert_eq!(get_abbreviation("Fi."), None);
+        assert_eq!(get_abbreviation("F.."), None);
+
+        // test single letter with extended grapheme cluster
+        assert_eq!(get_abbreviation("षि"), Some("षि"));
+        assert_eq!(get_abbreviation("षि."), Some("षि"));
+        assert_eq!(get_abbreviation("षिx"), None);
+        assert_eq!(get_abbreviation("aषि"), None);
 
         Ok(())
     }
@@ -795,6 +883,15 @@ mod tests {
         let a1 = "Joh🚀n";
         let a2 = "Doe";
         let b1 = "John";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test abbreviated middle name
+        let a1 = "John F.";
+        let a2 = "Doe";
+        let b1 = "John Donald";
         let b2 = "Doe";
         assert!(
             !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
