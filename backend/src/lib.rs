@@ -429,8 +429,12 @@ fn can_extend_matching(
 /// this grapheme. Otherwise, return `None`.
 fn get_abbreviation(word: &str) -> Option<&str> {
     if let Some(start) = word.graphemes(true).next() {
-        if word == start || word == start.to_owned() + "." {
-            return Some(start);
+        if word == start {
+            Some(start)
+        } else if let Some(word_stripped) = word.strip_suffix(".") {
+            if word_stripped == start {
+                 Some(start)
+            } else { None}
         }
     }
     None
