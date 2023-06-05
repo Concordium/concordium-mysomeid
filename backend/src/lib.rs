@@ -246,7 +246,7 @@ pub fn fuzzy_match_names_v2(
 /// returns a vector of intervals of all words in `a` that match words in `b`,
 /// as pairs of start byte offset in `a` (inclusive) and end byte offset
 /// (exclusive), where `a` is UTF-8 encoded.
-fn get_matching_intervals(
+pub fn get_matching_intervals(
     a: &str,
     b: &str,
     allowed_substitutions: &HashMap<&str, Vec<&str>>,

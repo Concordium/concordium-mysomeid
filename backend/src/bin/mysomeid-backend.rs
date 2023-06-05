@@ -406,8 +406,12 @@ async fn main() -> anyhow::Result<()> {
             axum::routing::get(validate_proof),
         )
         .route(
-            "/v/proof/validate",
+            "/v2/proof/validate",
             axum::routing::get(validate_proof_v2),
+        )
+        .route(
+            "/v1/names/match",
+            axum::routing::get(match_names),
         )
         .route(
             "/v1/proof/meta/:proof",
@@ -816,6 +820,13 @@ struct ValidateProofParamsV2 {
     user_data: String,
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MatchNamesParams {
+    so_me_name: String,
+    id_name:    String,
+}
+
 // The URL is meant to be in the format
 // base/:tokenId/:decryptionKey
 // Where tokenId is a u64 (represented as a number), and decryption key is
@@ -973,6 +984,34 @@ async fn validate_proof_v2(
     Ok(axum::Json(
         serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
     ))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn match_names(
+    Query(MatchNamesParams {
+        so_me_name,
+        id_name,
+    }): Query<MatchNamesParams>,
+    State(ServiceState {
+        allowed_substitutions,
+        allowed_titles,
+        ..
+    }): State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    match get_matching_intervals(
+        &so_me_name,
+        &id_name,
+        &allowed_substitutions,
+        &allowed_titles,
+    ) {
+        Ok(None) => Ok(axum::Json(
+            serde_json::json!({"matching": false, "intervals": null}),
+        )),
+        Ok(Some(matching_intervals)) => Ok(axum::Json(
+            serde_json::json!({"matching": true, "intervals": matching_intervals}),
+        )),
+        Err(_) => Err(Error::Invalid),
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Copy, Clone)]
