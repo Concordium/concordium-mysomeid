@@ -292,6 +292,7 @@ fn is_allowed_emoji_word(word: &str) -> bool {
 /// parentheses.
 fn is_nickname(word: &str) -> bool {
     (word.starts_with('\"') && word.ends_with('\"'))
+        || (word.starts_with('“') && word.ends_with('”'))
         || (word.starts_with('(') && word.ends_with(')'))
 }
 
@@ -819,6 +820,15 @@ mod tests {
 
         // test nicknames
         let a1 = "John \"Johnny\"";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test nicknames
+        let a1 = "John “Johnny”";
         let a2 = "Doe";
         let b1 = "John";
         let b2 = "Doe";
