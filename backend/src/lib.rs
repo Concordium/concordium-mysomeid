@@ -183,6 +183,7 @@ impl ContractClient {
 /// - case and extra whitespaces are ignored and some characters may be
 ///   substituted,
 /// - emojis and allowed titles in `a` are ignored,
+/// - nicknames enclosed in quotation marks or parentheses in `a` are ignored,
 /// - names in `a` can be abbreviated as their first character, optionally
 ///   followed by `.`,
 /// - the words in name `a` must be a subset of the words in name `b`, and there
