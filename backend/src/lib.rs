@@ -341,7 +341,7 @@ fn check_inclusion(
                 }
             }
         }
-        // abort if nothing can be matches with `a_word`
+        // abort if nothing can be matched with `a_word`
         if matches_with.len() <= ai {
             return Ok(false);
         }
