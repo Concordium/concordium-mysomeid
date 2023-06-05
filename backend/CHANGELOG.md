@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.1.0
+
+- Revised name matching, allowing titles, emojis, and abbreviated middle names.
+
 ## 1.0.6
 
 - Allow subset matching when comparing names.
