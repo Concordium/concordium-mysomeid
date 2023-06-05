@@ -256,6 +256,7 @@ fn get_matching_intervals(
             && !is_nickname(word)
         {
             a_words.push(word);
+            // Compute byte offset of beginning of `word` in `a`. Subtracting the pointers works because `split` returns an iterator over sub-slices of `a`.
             let word_begin = word.as_ptr() as usize - a.as_ptr() as usize;
             let word_end = word_begin + word.len();
             a_word_indices.push((word_begin, word_end));
