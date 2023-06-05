@@ -2,7 +2,8 @@
 
 ## 1.1.0
 
-- Revised name matching, allowing titles, emojis, and abbreviated middle names.
+- Revise name matching, allowing titles, emojis, and abbreviated middle names.
+- Add Turkish letters to allowed substitutions.
 
 ## 1.0.6
 
