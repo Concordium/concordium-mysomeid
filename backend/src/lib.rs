@@ -298,7 +298,7 @@ fn is_nickname(word: &str) -> bool {
 /// occur abbreviated in `a`, either as a single grapheme or as one followed by
 /// '.'.
 ///
-/// Returns `false` if `a` or `b` contains more than 50 words to avoid
+/// Returns `false` if `a` or `b` contain more than 50 words to avoid
 /// denial-of-service attack.
 fn check_inclusion(
     a_words: &[&str],
