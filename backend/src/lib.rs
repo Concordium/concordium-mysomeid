@@ -408,7 +408,8 @@ fn can_extend_matching(
         if r_available[*v] {
             r_available[*v] = false; // try each v only once
             let found = match r_matched_to[*v] {
-                // if `v` is already matched, recursively try to reassign
+                // If `v` is already matched, recursively try to reassign.
+                // Note that the recursive call is only made if `r_available[*v]`, which is subsequently set to `false`. Hence, the recursion depth is limited to the number of nodes on the right.
                 Some(current_match) => {
                     can_extend_matching(adj, r_matched_to, r_available, current_match)
                 }
