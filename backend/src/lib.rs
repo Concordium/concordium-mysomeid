@@ -225,6 +225,22 @@ pub fn fuzzy_match_names(
     Ok(get_matching_intervals(&a, &b, allowed_substitutions, allowed_titles)?.is_some())
 }
 
+/// same as `fuzzy_match_names` but takes `a` as full name
+pub fn fuzzy_match_names_v2(
+    a: &str,
+    b1: &str,
+    b2: &str,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
+    allowed_titles: &HashSet<&str>,
+) -> Result<bool, regex::Error> {
+    // remove trailing whitespaces and concatenate into full name
+    let b1_trimmed = b1.trim();
+    let b2_trimmed = b2.trim();
+    let b = format!("{b1_trimmed} {b2_trimmed}");
+    // if some matching intervals are found, names match according to the rules
+    Ok(get_matching_intervals(a, &b, allowed_substitutions, allowed_titles)?.is_some())
+}
+
 /// Fuzzily match names `a` and `b`. If they do not match according to the rules
 /// described for the function `fuzzy_match_names`, returns `None`. Otherwise,
 /// returns a vector of intervals of all words in `a` that match words in `b`,

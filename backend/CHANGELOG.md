@@ -4,6 +4,7 @@
 
 - Revise name matching, allowing titles, emojis, abbreviated middle names, and nicknames.
 - Add Turkish letters to allowed substitutions.
+- Add new validation endpoint taking full name instead of first name, last name as parameters.
 
 ## 1.0.6
 

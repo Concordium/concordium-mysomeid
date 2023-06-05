@@ -42,6 +42,8 @@
 
 - `GET /v1/proof/validate` (same as the previous endpoint)
 
+- `GET /v2/proof/validate` same as the previous endpoint, except that it takes
+  the full name `name` instead of `firstName` and `lastName`.
 
 - `GET /v1/proof/meta/:proofId` takes a proof id and `p=li` and `r` query
   parameters. It returns token metadata in the format expected for CIS2 token metadata.
