@@ -326,7 +326,7 @@ fn check_inclusion(
         let mut found = false;
         for (b_word, available) in b_words.iter_mut() {
             if *available
-                && starts_with_mod_substitutions(abbreviation, b_word, allowed_substitutions)
+                && starts_with_mod_substitutions(abbreviation, b_word, allowed_substitutions)?
             {
                 *available = false;
                 found = true;
@@ -349,16 +349,6 @@ fn get_abbreviation(word: &str) -> Option<&str> {
         }
     }
     None
-}
-
-/// Test whether the string `b` starts with `a` using
-/// `allowed_substitutions`.
-fn starts_with_mod_substitutions(
-    a: &str,
-    b: &str,
-    allowed_substitutions: &HashMap<&str, Vec<&str>>,
-) -> bool {
-    true
 }
 
 /// Test whether the string `a` can be transformed into `b` using
@@ -415,6 +405,38 @@ fn match_mod_substitutions(
         // otherwise try other direction
         _ => can_transform_string(b, a, allowed_substitutions),
     }
+}
+
+/// Test whether the string `b` starts with `a` using
+/// `allowed_substitutions`. It is assumed that `a` is a single grapheme.
+fn starts_with_mod_substitutions(
+    a: &str,
+    b: &str,
+    allowed_substitutions: &HashMap<&str, Vec<&str>>,
+) -> Result<bool, regex::Error> {
+    if b.starts_with(a) {
+        return Ok(true);
+    }
+    // if `b` does not start with `a`, try possible substitutions for `a`
+    if let Some(a_subs) = allowed_substitutions.get(a) {
+        for si in a_subs {
+            if b.starts_with(si) {
+                return Ok(true);
+            }
+        }
+    }
+    // finally try substitutions for first grapheme in `b`
+    if let Some(b_start) = b.graphemes(true).next() {
+        if let Some(b_subs) = allowed_substitutions.get(b_start) {
+            for si in b_subs {
+                if a == *si {
+                    return Ok(true);
+                }
+            }
+        }
+    }
+    // no match found
+    Ok(false)
 }
 
 /// Returns a map with default allowed substitutions.
@@ -747,6 +769,27 @@ mod tests {
         assert_eq!(get_abbreviation("षि."), Some("षि"));
         assert_eq!(get_abbreviation("षिx"), None);
         assert_eq!(get_abbreviation("aषि"), None);
+
+        Ok(())
+    }
+
+    #[test]
+    /// Test `starts_with_mod_substitutions` function.
+    fn test_starts_with() -> anyhow::Result<()> {
+        let allowed_substitutions = get_test_allowed_substitutions();
+        assert!(starts_with_mod_substitutions("f", "f", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("f", "fitzgerald", &allowed_substitutions).unwrap());
+        assert!(!starts_with_mod_substitutions("f", "affe", &allowed_substitutions).unwrap());
+        assert!(!starts_with_mod_substitutions("f", "af", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("ä", "aegidius", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("a", "ägidius", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("ae", "ägidius", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("ae", "ägidius", &allowed_substitutions).unwrap());
+        assert!(!starts_with_mod_substitutions("æ", "anton", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("षि", "षिoe", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("d", "षिoe", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("षि", "doe", &allowed_substitutions).unwrap());
+        assert!(!starts_with_mod_substitutions("षि", "joe", &allowed_substitutions).unwrap());
 
         Ok(())
     }
