@@ -183,6 +183,8 @@ impl ContractClient {
 /// - case and extra whitespaces are ignored and some characters may be
 ///   substituted,
 /// - emojis and allowed titles in `a` are ignored,
+/// - names in `a` can be abbreviated as their first character, optionally
+///   followed by `.`,
 /// - the words in name `a` must be a subset of the words in name `b`, and there
 ///   must be at least two words in name `a`.
 ///
@@ -282,62 +284,132 @@ fn is_allowed_emoji_word(word: &str) -> bool {
 /// the order but ensuring multiplicity is respected. Names in `b` can also
 /// occur abbreviated in `a`, either as a single grapheme or as one followed by
 /// '.'.
+///
+/// Returns `false` if `a` or `b` contains more than 50 words to avoid
+/// denial-of-service attack.
 fn check_inclusion(
     a_words: &[&str],
     b: &str,
     allowed_substitutions: &HashMap<&str, Vec<&str>>,
 ) -> Result<bool, regex::Error> {
-    // vector of words in b, together with boolean indicating whether it is still
-    // available for matching (and not already used)
-    let mut b_words: Vec<(&str, bool)> = Vec::new();
+    // vector of words in b
+    let mut b_words: Vec<&str> = Vec::new();
     for word in b.split(|c: char| c.is_whitespace() || c == ',') {
         if !word.is_empty() {
-            b_words.push((word, true));
+            b_words.push(word);
         }
     }
-    // Prevent denial of service by silly strings. You should not have more than 50
-    // names.
+    // Prevent denial of service.
     if a_words.len() > 50 || b_words.len() > 50 {
         return Ok(false);
     }
-    // store abbreviated names in `a` in a vector an compare afterwards. This
-    // ensures that all fully matching names are matches first and an abbreviation
-    // does not consume a word in `b` that is needed to match another name.
-    let mut abbreviations: Vec<&str> = Vec::new();
-    for a_word in a_words {
-        if let Some(abbreviation) = get_abbreviation(a_word) {
-            abbreviations.push(abbreviation);
-            continue;
-        }
-        let mut found = false;
-        for (b_word, available) in b_words.iter_mut() {
-            if *available && match_mod_substitutions(a_word, b_word, allowed_substitutions)? {
-                *available = false;
-                found = true;
-                break;
+
+    // for every a_word, build list of indices in b_words with which it can be
+    // matched
+    let mut matches_with: Vec<Vec<usize>> = Vec::new();
+    for (ai, a_word) in a_words.iter().enumerate() {
+        let a_abbrev = get_abbreviation(a_word);
+        for (bi, b_word) in b_words.iter().enumerate() {
+            // check whether a_word and b_word can be matched, using different logic if
+            // a_word is abbreviation
+            let does_match = match a_abbrev {
+                Some(abbreviation) => {
+                    starts_with_mod_substitutions(abbreviation, b_word, allowed_substitutions)?
+                }
+                None => match_mod_substitutions(a_word, b_word, allowed_substitutions)?,
+            };
+            if does_match {
+                // add bi to list of matches for ai if it exists, otherwise add new list
+                // containing bi
+                if matches_with.len() > ai {
+                    matches_with[ai].push(bi);
+                } else {
+                    matches_with.push(vec![bi]);
+                }
             }
         }
-        if !found {
+        // abort if nothing can be matches with `a_word`
+        if matches_with.len() <= ai {
             return Ok(false);
         }
     }
 
-    for abbreviation in abbreviations {
-        let mut found = false;
-        for (b_word, available) in b_words.iter_mut() {
-            if *available
-                && starts_with_mod_substitutions(abbreviation, b_word, allowed_substitutions)?
-            {
-                *available = false;
-                found = true;
+    // We now know that all words in `a` can be matched to at least one word in `b`
+    // and need to find a matching such that each word in `b` is used at most once.
+    // In many simple cases (e.g., if names are not reordered), matching to the
+    // first possible word in `b` is sufficient, but this does not work in general.
+    // E.g., for a = "Dån Dan" and b = "Dan Daan", Dån must be matched to Daan and
+    // not Dan even though it matches both. We thus use a matching algorithm for
+    // bipartite graphs.
+    Ok(is_bipartite_matchable(&matches_with, b_words.len()))
+}
+
+/// Given adjacency list `adj` of bipartite graph with `r_num` nodes on the
+/// right, determine whether there exists matching containing all nodes on the
+/// left. Based on Ford-Fulkerson algorithm for maximal flow.
+fn is_bipartite_matchable(adj: &[Vec<usize>], r_num: usize) -> bool {
+    // vector remembering for each node on the right, to which node on the left it
+    // is already matched (if any)
+    let mut r_matched_to: Vec<Option<usize>> = vec![None; r_num];
+    // first match all nodes on left to first possible node on right and remember
+    // unmatched left nodes
+    let mut l_unmatched: Vec<usize> = Vec::new();
+    for (u, adj_u) in adj.iter().enumerate() {
+        let mut u_matched = false;
+        for v in adj_u {
+            if r_matched_to[*v].is_none() {
+                r_matched_to[*v] = Some(u);
+                u_matched = true;
                 break;
             }
         }
-        if !found {
-            return Ok(false);
+        if !u_matched {
+            l_unmatched.push(u);
         }
     }
-    Ok(true)
+    if l_unmatched.is_empty() {
+        return true;
+    }
+    // if some nodes could not be matched, try to match them by reassigning other
+    // nodes
+    for u in l_unmatched {
+        let mut r_available = vec![true; r_num];
+        if !can_extend_matching(adj, &mut r_matched_to, &mut r_available, u) {
+            return false;
+        }
+    }
+    // all nodes could be matched
+    true
+}
+
+/// Given adjacency list `adj` of bipartite graph, vector of already matched
+/// right nodes `r_matched_to`, vector `r_available`, and node `u` on the left,
+/// try to extend existing matching by matching `u` and reassigning other nodes
+/// to nodes `v` with `r_available[v] == true`.
+fn can_extend_matching(
+    adj: &[Vec<usize>],
+    r_matched_to: &mut [Option<usize>],
+    r_available: &mut [bool],
+    u: usize,
+) -> bool {
+    for v in &adj[u] {
+        if r_available[*v] {
+            r_available[*v] = false; // try each v only once
+            let found = match r_matched_to[*v] {
+                // if `v` is already matched, recursively try to reassign
+                Some(current_match) => {
+                    can_extend_matching(adj, r_matched_to, r_available, current_match)
+                }
+                // if `v` is not matched, yet, we can match it to `u`
+                None => true,
+            };
+            if found {
+                r_matched_to[*v] = Some(u);
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// If word consists only of a single grapheme or one followed by '.', return
@@ -429,7 +501,7 @@ fn starts_with_mod_substitutions(
     if let Some(b_start) = b.graphemes(true).next() {
         if let Some(b_subs) = allowed_substitutions.get(b_start) {
             for si in b_subs {
-                if a == *si {
+                if si.starts_with(a) {
                     return Ok(true);
                 }
             }
@@ -686,12 +758,48 @@ mod tests {
         assert!(
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
+
+        // test many middle names
+        let a1 = "John J. J James";
+        let a2 = "Doe 🚀";
+        let b1 = "Jonas John James Jacob";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test middle names with special characters matching
+        let a1 = "John Ä";
+        let a2 = "Doe";
+        let b1 = "John Ägidius";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test middle names with special characters matching
+        let a1 = "John Æ";
+        let a2 = "Doe";
+        let b1 = "John Aegidius";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test middle names with special characters matching
+        let a1 = "John A";
+        let a2 = "Doe";
+        let b1 = "John Ægidius";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
     }
 
     #[test]
     /// Test `get_matching_intervals` function, both positive and negative
     /// tests.
-    fn test_matching_indices() -> anyhow::Result<()> {
+    fn test_matching_intervals() -> anyhow::Result<()> {
         let allowed_substitutions = get_test_allowed_substitutions();
         let allowed_titles = get_allowed_titles();
 
@@ -783,8 +891,9 @@ mod tests {
         assert!(!starts_with_mod_substitutions("f", "af", &allowed_substitutions).unwrap());
         assert!(starts_with_mod_substitutions("ä", "aegidius", &allowed_substitutions).unwrap());
         assert!(starts_with_mod_substitutions("a", "ägidius", &allowed_substitutions).unwrap());
-        assert!(starts_with_mod_substitutions("ae", "ägidius", &allowed_substitutions).unwrap());
-        assert!(starts_with_mod_substitutions("ae", "ägidius", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("a", "ægidius", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("æ", "ægidius", &allowed_substitutions).unwrap());
+        assert!(starts_with_mod_substitutions("æ", "aegidius", &allowed_substitutions).unwrap());
         assert!(!starts_with_mod_substitutions("æ", "anton", &allowed_substitutions).unwrap());
         assert!(starts_with_mod_substitutions("षि", "षिoe", &allowed_substitutions).unwrap());
         assert!(starts_with_mod_substitutions("d", "षिoe", &allowed_substitutions).unwrap());
@@ -935,6 +1044,42 @@ mod tests {
         let a1 = "John F.";
         let a2 = "Doe";
         let b1 = "John Donald";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test middle names not matching
+        let a1 = "John J. J. James";
+        let a2 = "Doe";
+        let b1 = "Jonas James James";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test missing space
+        let a1 = "John JJ";
+        let a2 = "Doe";
+        let b1 = "John James James";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test middle names not matching
+        let a1 = "John J. J. James";
+        let a2 = "Doe";
+        let b1 = "James James James James";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test special character abbreviation not matching
+        let a1 = "John Æ";
+        let a2 = "Doe";
+        let b1 = "John Anton";
         let b2 = "Doe";
         assert!(
             !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
