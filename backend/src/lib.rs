@@ -293,7 +293,7 @@ fn is_nickname(word: &str) -> bool {
         || (word.starts_with('(') && word.ends_with(')'))
 }
 
-/// Check whether all words in `a_words` are contained the string `b`, ignoring
+/// Check whether all words in `a_words` are contained in the string `b`, ignoring
 /// the order but ensuring multiplicity is respected. Names in `b` can also
 /// occur abbreviated in `a`, either as a single grapheme or as one followed by
 /// '.'.
