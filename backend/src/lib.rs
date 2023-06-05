@@ -233,8 +233,10 @@ pub fn fuzzy_match_names(
 }
 
 /// Fuzzily match names `a` and `b`. If they do not match according to the rules
-/// described for the function `fuzzy_match_names`, returns `None`. Otherwise, returns a
-/// vector of intervals of all words in `a` that match words in `b`, as pairs of start byte offset in `a` (inclusive) and end byte offset (exclusive), where `a` is UTF-8 encoded.
+/// described for the function `fuzzy_match_names`, returns `None`. Otherwise,
+/// returns a vector of intervals of all words in `a` that match words in `b`,
+/// as pairs of start byte offset in `a` (inclusive) and end byte offset
+/// (exclusive), where `a` is UTF-8 encoded.
 fn get_matching_intervals(
     a: &str,
     b: &str,
@@ -256,7 +258,8 @@ fn get_matching_intervals(
             && !is_nickname(word)
         {
             a_words.push(word);
-            // Compute byte offset of beginning of `word` in `a`. Subtracting the pointers works because `split` returns an iterator over sub-slices of `a`.
+            // Compute byte offset of beginning of `word` in `a`. Subtracting the pointers
+            // works because `split` returns an iterator over sub-slices of `a`.
             let word_begin = word.as_ptr() as usize - a.as_ptr() as usize;
             let word_end = word_begin + word.len();
             a_word_indices.push((word_begin, word_end));
@@ -292,10 +295,10 @@ fn is_nickname(word: &str) -> bool {
         || (word.starts_with('(') && word.ends_with(')'))
 }
 
-/// Check whether all words in `a_words` are contained in the string `b`, ignoring
-/// the order but ensuring multiplicity is respected. Names in `b` can also
-/// occur abbreviated in `a`, either as a single grapheme or as one followed by
-/// '.'.
+/// Check whether all words in `a_words` are contained in the string `b`,
+/// ignoring the order but ensuring multiplicity is respected. Names in `b` can
+/// also occur abbreviated in `a`, either as a single grapheme or as one
+/// followed by '.'.
 ///
 /// Returns `false` if `a` or `b` contain more than 50 words to avoid
 /// denial-of-service attack.
@@ -409,7 +412,9 @@ fn can_extend_matching(
             r_available[*v] = false; // try each v only once
             let found = match r_matched_to[*v] {
                 // If `v` is already matched, recursively try to reassign.
-                // Note that the recursive call is only made if `r_available[*v]`, which is subsequently set to `false`. Hence, the recursion depth is limited to the number of nodes on the right.
+                // Note that the recursive call is only made if `r_available[*v]`, which is
+                // subsequently set to `false`. Hence, the recursion depth is limited to the number
+                // of nodes on the right.
                 Some(current_match) => {
                     can_extend_matching(adj, r_matched_to, r_available, current_match)
                 }
@@ -430,11 +435,11 @@ fn can_extend_matching(
 fn get_abbreviation(word: &str) -> Option<&str> {
     if let Some(start) = word.graphemes(true).next() {
         if word == start {
-            Some(start)
-        } else if let Some(word_stripped) = word.strip_suffix(".") {
+            return Some(start);
+        } else if let Some(word_stripped) = word.strip_suffix('.') {
             if word_stripped == start {
-                 Some(start)
-            } else { None}
+                return Some(start);
+            }
         }
     }
     None
