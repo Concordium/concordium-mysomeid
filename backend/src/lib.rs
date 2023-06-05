@@ -233,10 +233,8 @@ pub fn fuzzy_match_names(
 }
 
 /// Fuzzily match names `a` and `b`. If they do not match according to the rules
-/// described for the function `fuzzy_match_names`, returns `None`. Otherwise, a
-/// vector of intervals of all words in `a` that match words in `b`. The
-/// returned intervals are represented by the start index (inclusive) and the
-/// end index (exclusive), both corresponding to bytes of UTF-8 encoded strings.
+/// described for the function `fuzzy_match_names`, returns `None`. Otherwise, returns a
+/// vector of intervals of all words in `a` that match words in `b`, as pairs of start byte offset in `a` (inclusive) and end byte offset (exclusive), where `a` is UTF-8 encoded.
 fn get_matching_intervals(
     a: &str,
     b: &str,
