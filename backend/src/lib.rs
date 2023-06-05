@@ -214,20 +214,13 @@ pub fn fuzzy_match_names(
     allowed_substitutions: &HashMap<&str, Vec<&str>>,
     allowed_titles: &HashSet<&str>,
 ) -> Result<bool, regex::Error> {
-    // first test simplest case of exact match
-    if a1 == b1 && a2 == b2 {
-        return Ok(true);
-    }
-    // next remove trailing whitespaces and concatenate into full name
+    // remove trailing whitespaces and concatenate into full name
     let a1_trimmed = a1.trim();
     let a2_trimmed = a2.trim();
     let b1_trimmed = b1.trim();
     let b2_trimmed = b2.trim();
     let a = format!("{a1_trimmed} {a2_trimmed}");
     let b = format!("{b1_trimmed} {b2_trimmed}");
-    if a == b {
-        return Ok(true);
-    }
     // if some matching intervals are found, names match according to the rules
     Ok(get_matching_intervals(&a, &b, allowed_substitutions, allowed_titles)?.is_some())
 }
