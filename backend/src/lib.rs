@@ -251,7 +251,11 @@ fn get_matching_intervals(
     let mut a_words: Vec<&str> = Vec::new();
     let mut a_word_indices: Vec<(usize, usize)> = Vec::new();
     for word in a.split(|c: char| c.is_whitespace() || c == ',') {
-        if !word.is_empty() && !allowed_titles.contains(word) && !is_allowed_emoji_word(word) {
+        if !word.is_empty()
+            && !allowed_titles.contains(word)
+            && !is_allowed_emoji_word(word)
+            && !is_nickname(word)
+        {
             a_words.push(word);
             let word_begin = word.as_ptr() as usize - a.as_ptr() as usize;
             let word_end = word_begin + word.len();
@@ -278,6 +282,14 @@ fn is_allowed_emoji_word(word: &str) -> bool {
         }
     }
     true
+}
+
+/// Determine whether `word` is to be considered a nickname that is ignored. A
+/// word is a nickname if it is enclosed either in quotation marks or
+/// parentheses.
+fn is_nickname(word: &str) -> bool {
+    (word.starts_with('\"') && word.ends_with('\"'))
+        || (word.starts_with('(') && word.ends_with(')'))
 }
 
 /// Check whether all words in `a_words` are contained the string `b`, ignoring
@@ -794,6 +806,24 @@ mod tests {
         assert!(
             fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
         );
+
+        // test nicknames
+        let a1 = "John \"Johnny\"";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // test nicknames
+        let a1 = "John (Johnny)";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe";
+        assert!(
+            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
     }
 
     #[test]
@@ -1080,6 +1110,24 @@ mod tests {
         let a1 = "John Æ";
         let a2 = "Doe";
         let b1 = "John Anton";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // nickname delimiters must match
+        let a1 = "John (Johnny\"";
+        let a2 = "Doe";
+        let b1 = "John";
+        let b2 = "Doe";
+        assert!(
+            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
+        );
+
+        // real names must still match if nicknames are used
+        let a1 = "Johnny (John)";
+        let a2 = "Doe";
+        let b1 = "John";
         let b2 = "Doe";
         assert!(
             !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
