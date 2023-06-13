@@ -49,7 +49,7 @@
   performs fuzzy matching. The response is a JSON object with entires
   `matching`and `intervals`. The former is `true` or `false` indicating whether
   `so_me_name` matches the requirements for a valid social media name for ID
-  name `id_name`. If `matchin` is `true`, `intervals` contains a list of
+  name `id_name`. If `matching` is `true`, `intervals` contains a list of
   intervals of all words in `so_me_name` that match words in `id_name`, as
   pairs of start byte offset in `so_me_name` (inclusive) and end byte offset
   (exclusive), where the byte offsets are relative to UTF-8 encoding.
