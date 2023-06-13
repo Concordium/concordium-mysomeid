@@ -851,64 +851,22 @@ async fn validate_proof(
         platform,
         user_data,
     }): Query<ValidateProofParams>,
-    State(ServiceState {
-        concordium_client,
-        contract_address,
-        crypto_params,
-        statement,
-        allowed_substitutions,
-        allowed_titles,
-        ..
-    }): State<ServiceState>,
+    service_state: State<ServiceState>,
 ) -> Result<axum::Json<serde_json::Value>, Error> {
     let Some((token_id, key)) = get_token_id_and_key(&url) else {
         return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
     };
-    let proof =
-        get_proof_worker(token_id, concordium_client.clone(), contract_address, key).await?;
-
-    if proof.revoked {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
-    }
-
-    if platform != proof.platform {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
-    }
-
-    if user_data != proof.private.user_data {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
-    }
-
-    // Ensure that the parameters stored in the proof are the same as that sent in
-    // the query parameters.
-    match fuzzy_match_names(
-        &first_name,
-        &last_name,
-        proof.private.first_name.0.as_str(),
-        proof.private.surname.0.as_str(),
-        &allowed_substitutions,
-        &allowed_titles,
-    ) {
-        Ok(true) => (),
-        Ok(false) => {
-            return Ok(axum::Json(
-                serde_json::json!({"status": "invalid", "id": token_id}),
-            ));
-        }
-        Err(_) => return Err(Error::Invalid),
-    }
-
-    let res = verify_proof_worker(concordium_client, crypto_params, statement, VerifyParams {
-        account:   proof.owner,
-        proof:     proof.private.proof,
-        challenge: proof.private.challenge,
-    })
+    let first_name_trimmed = first_name.trim();
+    let last_name_trimmed = last_name.trim();
+    let full_name = format!("{first_name_trimmed} {last_name_trimmed}");
+    let res = validate_proof_worker(
+        token_id,
+        key,
+        &full_name,
+        platform,
+        &user_data,
+        service_state,
+    )
     .await?;
     Ok(axum::Json(
         serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
@@ -923,6 +881,24 @@ async fn validate_proof_v2(
         platform,
         user_data,
     }): Query<ValidateProofParamsV2>,
+    service_state: State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    let Some((token_id, key)) = get_token_id_and_key(&url) else {
+        return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
+    };
+    let res =
+        validate_proof_worker(token_id, key, &name, platform, &user_data, service_state).await?;
+    Ok(axum::Json(
+        serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
+    ))
+}
+
+async fn validate_proof_worker(
+    token_id: u64,
+    key: EncryptionKey,
+    name: &str,
+    platform: SupportedPlatform,
+    user_data: &str,
     State(ServiceState {
         concordium_client,
         contract_address,
@@ -932,35 +908,26 @@ async fn validate_proof_v2(
         allowed_titles,
         ..
     }): State<ServiceState>,
-) -> Result<axum::Json<serde_json::Value>, Error> {
-    let Some((token_id, key)) = get_token_id_and_key(&url) else {
-        return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
-    };
+) -> Result<bool, Error> {
     let proof =
         get_proof_worker(token_id, concordium_client.clone(), contract_address, key).await?;
 
     if proof.revoked {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        return Ok(false);
     }
 
     if platform != proof.platform {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        return Ok(false);
     }
 
     if user_data != proof.private.user_data {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        return Ok(false);
     }
 
     // Ensure that the parameters stored in the proof are the same as that sent in
     // the query parameters.
-    match fuzzy_match_names_v2(
-        &name,
+    match fuzzy_match_names(
+        name,
         proof.private.first_name.0.as_str(),
         proof.private.surname.0.as_str(),
         &allowed_substitutions,
@@ -968,9 +935,7 @@ async fn validate_proof_v2(
     ) {
         Ok(true) => (),
         Ok(false) => {
-            return Ok(axum::Json(
-                serde_json::json!({"status": "invalid", "id": token_id}),
-            ));
+            return Ok(false);
         }
         Err(_) => return Err(Error::Invalid),
     }
@@ -981,9 +946,7 @@ async fn validate_proof_v2(
         challenge: proof.private.challenge,
     })
     .await?;
-    Ok(axum::Json(
-        serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
-    ))
+    Ok(res)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

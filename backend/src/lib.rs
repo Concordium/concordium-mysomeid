@@ -191,14 +191,13 @@ impl ContractClient {
 ///
 /// Character substitutions are not applied recursively. E.g., if a -> aa is an
 /// allowed substitution, Dan can become Daan, but not Daaan. Furthermore,
-/// substitutions are only applied either from `a` to `b` or vice versa, but not
-/// in both directions. E.g., Jóhn Doe matches John Doe, but not John Doé. This
-/// avoids rules such as å -> (aa or a) to be misused to obtain Dan -> Dån ->
-/// Daan -> Dåån -> Daaaan.
+/// substitutions are only applied either from `a` to `b` or vice versa for each
+/// word, but not in both directions. E.g., John Dòe matches John Doe, but not
+/// John Doé. This avoids rules such as å -> (aa or a) to be misused to obtain
+/// Dan -> Dån -> Daan -> Dåån -> Daaaan.
 ///
 /// Arguments:
-/// - `a1` - first name of `a`.
-/// - `a2` - last name of `a`.
+/// - `a` - full name of `a`.
 /// - `b1` - first name of `b`.
 /// - `b2` - last name of `b`.
 /// - `allowed_substitutions` - map containing for each substitutable character
@@ -207,26 +206,6 @@ impl ContractClient {
 ///   be lowercase.
 /// - `allowed_titles` - set of all titles that that are ignored in `a`
 pub fn fuzzy_match_names(
-    a1: &str,
-    a2: &str,
-    b1: &str,
-    b2: &str,
-    allowed_substitutions: &HashMap<&str, Vec<&str>>,
-    allowed_titles: &HashSet<&str>,
-) -> Result<bool, regex::Error> {
-    // remove trailing whitespaces and concatenate into full name
-    let a1_trimmed = a1.trim();
-    let a2_trimmed = a2.trim();
-    let b1_trimmed = b1.trim();
-    let b2_trimmed = b2.trim();
-    let a = format!("{a1_trimmed} {a2_trimmed}");
-    let b = format!("{b1_trimmed} {b2_trimmed}");
-    // if some matching intervals are found, names match according to the rules
-    Ok(get_matching_intervals(&a, &b, allowed_substitutions, allowed_titles)?.is_some())
-}
-
-/// same as `fuzzy_match_names` but takes `a` as full name
-pub fn fuzzy_match_names_v2(
     a: &str,
     b1: &str,
     b2: &str,
@@ -610,249 +589,168 @@ mod tests {
         let allowed_titles = get_allowed_titles();
 
         // test exact match
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test subset match with order and no duplicates.
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "John Fitzgerald";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test subset match with order and no duplicates.
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "John";
         let b2 = "Doe Fitzgerald";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test subset match with order and no duplicates.
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "John";
         let b2 = "Fitzgerald Adams Doe The Third";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test different cases
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "JOHN";
         let b2 = "doE";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test trailing whitespaces
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = " John";
         let b2 = "Doe  ";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test exact match containing regular expression characters
-        let a1 = "John";
-        let a2 = "Doe (Jr.*)";
+        let a = "John Doe (Jr.*)";
         let b1 = "John";
         let b2 = "Doe (Jr.*)";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test basic substitutions
-        let a1 = "John";
-        let a2 = "Dåe";
+        let a = "John Dåe";
         let b1 = "John";
         let b2 = "Daae";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test basic substitutions in other direction
-        let a1 = "John";
-        let a2 = "Daae";
+        let a = "John Daae";
         let b1 = "John";
         let b2 = "Dåe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test basic substitutions with uppercase special characters
-        let a1 = "JOHN";
-        let a2 = "DÆE";
+        let a = "JOHN DÆE";
         let b1 = "John";
         let b2 = "Daee";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test substitution with regular expression characters
-        let a1 = "Jöhn";
-        let a2 = "Doé (Jr.*)";
+        let a = "Jöhn Doé (Jr.*)";
         let b1 = "John";
         let b2 = "Doe (Jr.*)";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test substitution with regular expression characters also in substituted
         // string
-        let a1 = "J*hn";
-        let a2 = "Doé";
+        let a = "J*hn Doé";
         let b1 = "J**hn";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // interchanging first and last name matches
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "Doe";
         let b2 = "John";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // Multiplicity
-        let a1 = "foo bar";
-        let a2 = "";
+        let a = "foo bar";
         let b1 = "foo bar foo";
         let b2 = "";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test name with extended grapheme cluster
-        let a1 = "John";
-        let a2 = "षिoe";
+        let a = "John षिoe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // titles in name are ignored
-        let a1 = "Prof. Dr. John Dr. James prof";
-        let a2 = "Doe, PhD";
+        let a = "Prof. Dr. John Dr. James prof Doe, PhD";
         let b1 = "John James";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // comma separates names and titles, with or without spaces
-        let a1 = "Prof., Dr. , John ,Dr., James prof,";
-        let a2 = "Doe,PhD";
+        let a = "Prof., Dr. , John ,Dr., James prof, Doe,PhD";
         let b1 = "John James";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // emojis in name are ignored
-        let a1 = "John";
-        let a2 = "Doe 🚀🚀🚀";
+        let a = "John Doe 🚀🚀🚀";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test abbreviated middle name
-        let a1 = "John F.";
-        let a2 = "Doe";
+        let a = "John F. Doe";
         let b1 = "John Fitzgerald";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test nontrivial matching with substitutions (Dån matches both Dan and Daan,
         // but must be matched with Daan).
-        let a1 = "Dån Dan";
-        let a2 = "Doe";
+        let a = "Dån Dan Doe";
         let b1 = "Dan Daan";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test many middle names
-        let a1 = "John J. J James";
-        let a2 = "Doe 🚀";
+        let a = "John J. J James Doe 🚀";
         let b1 = "Jonas John James Jacob";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test middle names with special characters matching
-        let a1 = "John Ä";
-        let a2 = "Doe";
+        let a = "John Ä Doe";
         let b1 = "John Ägidius";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test middle names with special characters matching
-        let a1 = "John Æ";
-        let a2 = "Doe";
+        let a = "John Æ Doe";
         let b1 = "John Aegidius";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test middle names with special characters matching
-        let a1 = "John A";
-        let a2 = "Doe";
+        let a = "John A Doe";
         let b1 = "John Ægidius";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test nicknames
-        let a1 = "John \"Johnny\"";
-        let a2 = "Doe";
+        let a = "John \"Johnny\" Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test nicknames
-        let a1 = "John “Johnny”";
-        let a2 = "Doe";
+        let a = "John “Johnny” Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test nicknames
-        let a1 = "John (Johnny)";
-        let a2 = "Doe";
+        let a = "John (Johnny) Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
     }
 
     #[test]
@@ -1001,165 +899,111 @@ mod tests {
         let allowed_titles = get_allowed_titles();
 
         // different first names don't match
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "James";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // Wrong multiplicity does not match
-        let a1 = "foo bar bar";
-        let a2 = "";
+        let a = "foo bar bar";
         let b1 = "foo foo bar";
         let b2 = "";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // duplicate names don't match
-        let a1 = "John";
-        let a2 = "John";
+        let a = "John John";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // different last names don't match
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "John";
         let b2 = "Smith";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test that substitutions are only applied in one direction
-        let a1 = "John";
-        let a2 = "Dòe";
+        let a = "John Dòe";
         let b1 = "John";
         let b2 = "Doé";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test that regular expression character in name is not executed
-        let a1 = "John";
-        let a2 = "Do*e";
+        let a = "John Do*e";
         let b1 = "John";
         let b2 = "Dooooe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test that substitution is only applied once
-        let a1 = "John";
-        let a2 = "Doe";
+        let a = "John Doe";
         let b1 = "J***hn";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test that the full name must match modulo substitutions
-        let a1 = "Foo";
-        let a2 = "Bar";
+        let a = "Foo Bar";
         let b1 = "oo";
         let b2 = "Bar";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test that the full name must match modulo substitutions
-        let a1 = "Foo";
-        let a2 = "Bar";
+        let a = "Foo Bar";
         let b1 = "";
         let b2 = "";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // at least two names must match
-        let a1 = "John";
-        let a2 = "";
+        let a = "John";
         let b1 = "John";
         let b2 = "Doe Fitzgerald";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // emojis inside name are not allowed
-        let a1 = "Joh🚀n";
-        let a2 = "Doe";
+        let a = "Joh🚀n Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test abbreviated middle name
-        let a1 = "John F.";
-        let a2 = "Doe";
+        let a = "John F. Doe";
         let b1 = "John Donald";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test middle names not matching
-        let a1 = "John J. J. James";
-        let a2 = "Doe";
+        let a = "John J. J. James Doe";
         let b1 = "Jonas James James";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test missing space
-        let a1 = "John JJ";
-        let a2 = "Doe";
+        let a = "John JJ Doe";
         let b1 = "John James James";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test middle names not matching
-        let a1 = "John J. J. James";
-        let a2 = "Doe";
+        let a = "John J. J. James Doe";
         let b1 = "James James James James";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // test special character abbreviation not matching
-        let a1 = "John Æ";
-        let a2 = "Doe";
+        let a = "John Æ Doe";
         let b1 = "John Anton";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // nickname delimiters must match
-        let a1 = "John (Johnny\"";
-        let a2 = "Doe";
+        let a = "John (Johnny\" Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
 
         // real names must still match if nicknames are used
-        let a1 = "Johnny (John)";
-        let a2 = "Doe";
+        let a = "Johnny (John) Doe";
         let b1 = "John";
         let b2 = "Doe";
-        assert!(
-            !fuzzy_match_names(a1, a2, b1, b2, &allowed_substitutions, &allowed_titles).unwrap()
-        );
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
     }
 }
