@@ -751,6 +751,17 @@ mod tests {
         let b1 = "John";
         let b2 = "Doe";
         assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+        // test very long name with high matching complexity
+        let a = "Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån \
+                 Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån Dån \
+                 Dån Dån Dån Dån Dån Dån Dån Dån Dån Daan";
+        let b1 = "Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan \
+                  Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan \
+                  Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan Daan \
+                  Daan";
+        let b2 = "Dan";
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
     }
 
     #[test]
