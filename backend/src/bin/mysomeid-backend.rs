@@ -44,7 +44,7 @@ use rand::Rng;
 use reqwest::Url;
 use sha2::Digest;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     io::Read,
     path::PathBuf,
     str::FromStr,
@@ -214,7 +214,8 @@ struct ServiceState {
     pub read_db:               db::ReadDatabase,
     pub max_daily_mints:       u32,
     pub allowed_domains:       Arc<Vec<String>>,
-    pub allowed_substitutions: Arc<HashMap<char, Vec<String>>>,
+    pub allowed_substitutions: Arc<HashMap<&'static str, Vec<&'static str>>>,
+    pub allowed_titles:        Arc<HashSet<&'static str>>,
 }
 
 #[tokio::main]
@@ -321,6 +322,7 @@ async fn main() -> anyhow::Result<()> {
         max_daily_mints: app.max_daily_mints,
         allowed_domains: Arc::new(app.allowed_domains),
         allowed_substitutions: Arc::new(get_allowed_substitutions()),
+        allowed_titles: Arc::new(get_allowed_titles()),
     };
 
     let (db_sender, db_receiver) = tokio::sync::mpsc::channel(100);
@@ -402,6 +404,14 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/v1/proof/validate",
             axum::routing::get(validate_proof),
+        )
+        .route(
+            "/v2/proof/validate",
+            axum::routing::get(validate_proof_v2),
+        )
+        .route(
+            "/v1/names/match",
+            axum::routing::get(match_names),
         )
         .route(
             "/v1/proof/meta/:proof",
@@ -800,6 +810,23 @@ struct ValidateProofParams {
     user_data:  String,
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ValidateProofParamsV2 {
+    url:       Url,
+    // Full name as appearing on the profile.
+    name:      String,
+    platform:  SupportedPlatform,
+    user_data: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MatchNamesParams {
+    so_me_name: String,
+    id_name:    String,
+}
+
 // The URL is meant to be in the format
 // base/:tokenId/:decryptionKey
 // Where tokenId is a u64 (represented as a number), and decryption key is
@@ -824,53 +851,91 @@ async fn validate_proof(
         platform,
         user_data,
     }): Query<ValidateProofParams>,
+    service_state: State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    let Some((token_id, key)) = get_token_id_and_key(&url) else {
+        return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
+    };
+    let first_name_trimmed = first_name.trim();
+    let last_name_trimmed = last_name.trim();
+    let full_name = format!("{first_name_trimmed} {last_name_trimmed}");
+    let res = validate_proof_worker(
+        token_id,
+        key,
+        &full_name,
+        platform,
+        &user_data,
+        service_state,
+    )
+    .await?;
+    Ok(axum::Json(
+        serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
+    ))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn validate_proof_v2(
+    Query(ValidateProofParamsV2 {
+        url,
+        name,
+        platform,
+        user_data,
+    }): Query<ValidateProofParamsV2>,
+    service_state: State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    let Some((token_id, key)) = get_token_id_and_key(&url) else {
+        return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
+    };
+    let res =
+        validate_proof_worker(token_id, key, &name, platform, &user_data, service_state).await?;
+    Ok(axum::Json(
+        serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
+    ))
+}
+
+async fn validate_proof_worker(
+    token_id: u64,
+    key: EncryptionKey,
+    name: &str,
+    platform: SupportedPlatform,
+    user_data: &str,
     State(ServiceState {
         concordium_client,
         contract_address,
         crypto_params,
         statement,
         allowed_substitutions,
+        allowed_titles,
         ..
     }): State<ServiceState>,
-) -> Result<axum::Json<serde_json::Value>, Error> {
-    let Some((token_id, key)) = get_token_id_and_key(&url) else {
-        return Err(Error::InvalidRequest("Could not parse token id and key from the URL.".into()));
-    };
+) -> Result<bool, Error> {
     let proof =
         get_proof_worker(token_id, concordium_client.clone(), contract_address, key).await?;
 
     if proof.revoked {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        return Ok(false);
     }
 
     if platform != proof.platform {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        return Ok(false);
     }
 
     if user_data != proof.private.user_data {
-        return Ok(axum::Json(
-            serde_json::json!({"status": "invalid", "id": token_id}),
-        ));
+        return Ok(false);
     }
 
     // Ensure that the parameters stored in the proof are the same as that sent in
     // the query parameters.
     match fuzzy_match_names(
-        &first_name,
-        &last_name,
+        name,
         proof.private.first_name.0.as_str(),
         proof.private.surname.0.as_str(),
         &allowed_substitutions,
+        &allowed_titles,
     ) {
         Ok(true) => (),
         Ok(false) => {
-            return Ok(axum::Json(
-                serde_json::json!({"status": "invalid", "id": token_id}),
-            ));
+            return Ok(false);
         }
         Err(_) => return Err(Error::Invalid),
     }
@@ -881,9 +946,35 @@ async fn validate_proof(
         challenge: proof.private.challenge,
     })
     .await?;
-    Ok(axum::Json(
-        serde_json::json!({"status": if res { "valid" } else {"invalid"}, "id": token_id}),
-    ))
+    Ok(res)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn match_names(
+    Query(MatchNamesParams {
+        so_me_name,
+        id_name,
+    }): Query<MatchNamesParams>,
+    State(ServiceState {
+        allowed_substitutions,
+        allowed_titles,
+        ..
+    }): State<ServiceState>,
+) -> Result<axum::Json<serde_json::Value>, Error> {
+    match get_matching_intervals(
+        &so_me_name,
+        &id_name,
+        &allowed_substitutions,
+        &allowed_titles,
+    ) {
+        Ok(None) => Ok(axum::Json(
+            serde_json::json!({"matching": false, "intervals": null}),
+        )),
+        Ok(Some(matching_intervals)) => Ok(axum::Json(
+            serde_json::json!({"matching": true, "intervals": matching_intervals}),
+        )),
+        Err(_) => Err(Error::Invalid),
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Copy, Clone)]

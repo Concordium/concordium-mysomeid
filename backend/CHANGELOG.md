@@ -1,5 +1,12 @@
 # Changelog mysomeid backend and test tools
 
+## 1.1.0
+
+- Revise name matching, allowing titles, emojis, abbreviated middle names, and nicknames.
+- Add Turkish letters to allowed substitutions.
+- Add new validation endpoint taking full name instead of first name, last name as parameters.
+- Add new endpoint for matching names.
+
 ## 1.0.6
 
 - Allow subset matching when comparing names.

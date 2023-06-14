@@ -40,6 +40,8 @@ aes-gcm = "0.10"
 rand = "0.8.5"
 percent-encoding = "2.2.0"
 regex = "1"
+unicode-segmentation = "1.9.0"
 
 concordium-rust-sdk = {version = "2", path = "../deps/concordium-rust-sdk"}
 key_derivation = { path = "../deps/concordium-rust-sdk/concordium-base/rust-src/key_derivation"}
+emojis = "0.6.0"

@@ -42,6 +42,17 @@
 
 - `GET /v1/proof/validate` (same as the previous endpoint)
 
+- `GET /v2/proof/validate` same as the previous endpoint, except that it takes
+  the full name `name` instead of `firstName` and `lastName`.
+
+- `GET /v1/names/match` takes `soMeName` and `idName` as parameters and
+  performs fuzzy matching. The response is a JSON object with entires
+  `matching`and `intervals`. The former is `true` or `false` indicating whether
+  `soMeName` matches the requirements for a valid social media name for ID
+  name `idName`. If `matching` is `true`, `intervals` contains a list of
+  intervals of all words in `soMeName` that match words in `idName`, as
+  pairs of start byte offset in `soMeName` (inclusive) and end byte offset
+  (exclusive), where the byte offsets are relative to UTF-8 encoding.
 
 - `GET /v1/proof/meta/:proofId` takes a proof id and `p=li` and `r` query
   parameters. It returns token metadata in the format expected for CIS2 token metadata.
