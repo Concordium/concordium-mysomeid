@@ -77,7 +77,7 @@ const upsertStore = async (storeName: string, data: any) => {
 	});
 };
 
-chrome.runtime.onInstalled.addListener(function () {
+chrome.runtime.onInstalled.addListener(() => {
 	console.log("ChromeExtension: Installed");
 	chrome.tabs.query({}, (tabs: any) => {
 		tabs.map((tab: any) => ({ tabId: tab.id, tabUrl: tab.url }))
@@ -131,9 +131,13 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 			proofUrl,
 			firstName,
 			lastName,
-			platform,
 			userData,
 		} = request?.payload ?? {};
+
+		const {
+			platform,
+		} = request?.payload ?? {};
+
 		if (platform !== 'li' || !proofUrl || !firstName || !lastName || !userData) {
 			sendErrorResponse('invalid args');
 			return;

@@ -37,7 +37,7 @@ import { getMessageHandler } from '../content-messaging';
 import { request } from 'http';
 let nvisit = 0;
 let root: RootWidget = null as any as RootWidget;
-let state = {
+const state = {
 	proofUrl: '',
 	pageHasBeenVerified: false,
 };
@@ -139,11 +139,11 @@ function qs(s: string): HTMLElement | null {
 	return document.querySelector(s);
 }
 
-(HTMLElement.prototype as any).qsa = function(s: string): HTMLElement[] {
+(HTMLElement.prototype as any).qsa = (s: string): HTMLElement[] => {
 	return Array.prototype.slice.call(document.querySelectorAll(s) ?? []);
 };
 
-const _d: any = (HTMLElement.prototype as any).qs = function(s: string): HTMLElement | null {
+const _d: any = (HTMLElement.prototype as any).qs = (s: string): HTMLElement | null => {
 	return document.querySelector(s);
 };
 
@@ -486,7 +486,6 @@ const createHeartbeat = () => {
 					return null;
 				}
 				const newHeader = document.querySelector("h1");
-				//console.error("header : " + newHeader);
 				return newHeader;
 			},
 			cmp: (header: HTMLHeadingElement | null, newHeader: HTMLHeadingElement | null) => {
@@ -772,7 +771,7 @@ const changeBackgroundTour = {
 					await sleep(1000);
 					// profile-topcard-background-image_file-upload-input
 					console.log('# 6a - Locating input');
-					let input =  document.querySelector('input[aria-label="Edit profile background"]')
+					const input =  document.querySelector('input[aria-label="Edit profile background"]')
 								?? Array.prototype.slice.call(document.querySelectorAll("input")).find ( x => x.accept === 'image/*' )
 									?? null;
 					if ( input ) {
@@ -806,7 +805,7 @@ const changeBackgroundTour = {
 					}
 				
 					console.log('# 6b - find the input field.');
-					let input = document.querySelector('.artdeco-modal')?.querySelector('input.visually-hidden')
+					const input = document.querySelector('.artdeco-modal')?.querySelector('input.visually-hidden')
 									?? document.querySelector("input#background-image-cropper__file-upload-input.hidden")
 										?? Array.prototype.slice.call(document.querySelectorAll('input')).filter( x => x.accept === 'image/*' )[0]
 											?? null;
@@ -1302,13 +1301,13 @@ const install = async () => {
 	tracking.on(trackHeader.changeEventName, (header: HTMLHeadingElement | null) => {
 		verbose("Header: updated");
 		if ( header ) {
-			verbose("Header: Aquired header"); //, {preHeader, newHeader: header});
+			verbose("Header: Aquired header");
 			shield = ensureWidget();
 		} else if ( !header ) {
-			verbose("Header: Lost header"); //, {preHeader, newHeader: header});
+			verbose("Header: Lost header");
 			shield?.hide();
 		} else {
-			verbose("Header: changed"); //, {preHeader, newHeader: header});
+			verbose("Header: changed");
 		}
 	});
 

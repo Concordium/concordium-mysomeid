@@ -11,7 +11,7 @@ let numPopups = 0;
 
 export const countPopupsWithClassName = (className: string): number => {
 	let cnt = 0;
-	for( let widget of Object.entries(mysome.widgets) ) {
+	for( const widget of Object.entries(mysome.widgets) ) {
 		cnt += widget[1].className === className ?  1 : 0;
 	}
 	return cnt;

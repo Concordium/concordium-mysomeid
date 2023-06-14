@@ -47,7 +47,8 @@
     "test": "react-app-rewired test",
     "package": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --pack-extension=./build --pack-extension-key=./privkey2.pem",
     "host-test": "http-server-spa test-page index.html 8082",
-    "host-widget": "http-server-spa build/widget index.html 1234"
+    "host-widget": "http-server-spa build/widget index.html 1234",
+    "lint": "npx tslint -c tslint.json 'src-*/**/*.ts'"
   },
   "eslintConfig": {
     "extends": [
@@ -79,6 +80,7 @@
     "svg-inline-loader": "^0.8.2",
     "svg-inline-react": "^3.2.1",
     "ts-loader": "^9.4.2",
+    "tslint": "^6.1.3",
     "ttf-loader": "^1.0.2",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1"

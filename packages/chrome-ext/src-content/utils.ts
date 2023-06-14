@@ -30,13 +30,13 @@ export async function traverseDomWithTimeout(path: string, timeout: number, inte
 
 export async function traverseDomAllWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
 	let e: any = null;
-	const ts = new Date().getTime();
+	const ts = (new Date()).getTime();
 	while (!e) {
 		e = (document.querySelectorAll(path) as any);
 		if (e) {
 			break;
 		}
-		if (new Date().getTime() - ts > timeout) {
+		if ((new Date()).getTime() - ts > timeout) {
 			break;
 		}
 		await (new Promise<void>(resolve => setTimeout(resolve, interval)));
@@ -350,7 +350,7 @@ export const storage = new (class {
 	}
 })();
 
-export const registrations = new (class {
+export const registrations = new class {
 	async fetch() {
 		const regs = (await storage.get("regs", true)) ?? {};
 		(mysome as any).regs = regs;
@@ -375,7 +375,7 @@ export const registrations = new (class {
 		console.log("storing new regs", regs);
 		await storage.set('regs', regs);
 	}
-});
+}();
 
 export type PlatformRequest = {
 	id: string;
