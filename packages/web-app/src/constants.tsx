@@ -1,5 +1,5 @@
 
-export function serviceUrl(route: string, params?: Record<string, string | number | boolean> | string ): string {
+export function serviceUrl(route: string, params?: Record<string, string | number | boolean> | string, version: 'v1' | 'v2' = 'v1' ): string {
     if ( params ) {
         if ( typeof params === 'object' ) {
             params = Object.entries(params as Record<string, string | number | boolean>)
@@ -8,7 +8,7 @@ export function serviceUrl(route: string, params?: Record<string, string | numbe
                         }, '');
         }
     }
-    const baseUrl = process.env.REACT_APP_SERVICE_BASE ?? 'http://0.0.0.0:8080/v1';
+    const baseUrl = (process.env.REACT_APP_SERVICE_BASE ? process.env.REACT_APP_SERVICE_BASE.replace('/v1', '/') : 'http://0.0.0.0:8080/') + version;
     return  baseUrl + route + (params ? '?' + params : '');
 }
 

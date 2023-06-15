@@ -42,8 +42,9 @@ const state = {
 	pageHasBeenVerified: false,
 };
 let TEST = false;
-export const WEBSITE_BASE_URL = () => TEST ? `http://localhost:3000` : `https://app.mysome.id`;
-const SERVICE_BASE_URL = () => TEST ? 'https://api.testnet.mysome.id/v1' : `https://api.mysome.id/v1`;
+let DEV  = false;
+export const WEBSITE_BASE_URL = () => DEV ? `http://localhost:3000` : TEST ? `https://app.testnet.mysome.id` : `https://app.mysome.id`;
+const SERVICE_BASE_URL = (version: 'v1' | 'v2' = 'v1') => (DEV ? 'http://0.0.0.0:8080/' : TEST ? 'https://api.testnet.mysome.id/' : `https://api.mysome.id/`) + version;
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
@@ -157,8 +158,7 @@ const fetchQRFromImage = async (url: string): Promise<{
 	}
 
 	try {
-		const base = SERVICE_BASE_URL();
-		const validateUrl = `${base}/qr/validate?url=${encodeURIComponent(url)}`;
+		const validateUrl = `${SERVICE_BASE_URL()}/qr/validate?url=${encodeURIComponent(url)}`;
 		console.log("Getting QR code for : " + url );
 		const qr = await fetch(validateUrl)
 			.then(response => {
@@ -920,12 +920,11 @@ const validateProofWithProfile = async ({
 	userData: string;
 	platform: 'li';
 }): Promise<{status: string | null}> => {
-	const base = SERVICE_BASE_URL();
 	proofUrl = encodeURIComponent(proofUrl);
 	name = encodeURIComponent(name);
 	userData = encodeURIComponent(userData);
 	const url =
-		`${base}/proof/validate?url=${proofUrl}&name=${name}&platform=${platform}&userData=${userData}`;
+		`${SERVICE_BASE_URL('v2')}/proof/validate?url=${proofUrl}&name=${name}&platform=${platform}&userData=${userData}`;
 
 	return fetch(url).then(res => {
 		return res.json();

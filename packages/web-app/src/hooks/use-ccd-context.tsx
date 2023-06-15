@@ -34,6 +34,7 @@ export type ProofData = {
   platform?: 'li' | string;
   revoked?: 1 | 0;
   created?: number;
+  name?: string;
   firstName?: string;
   lastName?: string;
   tx?: string;
@@ -527,6 +528,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     const newProof: ProofData = {
       id: event.tokenId,
       platform,
+      name: profileName,
       firstName,
       lastName: surName,
       userData: userId,
