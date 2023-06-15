@@ -12,9 +12,6 @@ const fnc = () => {
 	scriptElement.id = "mysomeid-injected-script";
 	scriptElement.type = "text/javascript";
 	scriptElement.src = chrome.runtime.getURL("injected/index.js");
-	scriptElement.onload = function() {
-		// scriptElement.remove();
-    };
 	(document.head || document.documentElement).appendChild(scriptElement);
 
 	apiCreated = true;

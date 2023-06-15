@@ -20,7 +20,7 @@ export type TourWidget = {
 let instance: TourWidget;
 
 const setStyle = (e: any, style: any) => {
-	for ( let key of Object.keys(style) ) {
+	for ( const key of Object.keys(style) ) {
 		const value = style[key];
 		e.style[key] = value;
 	}

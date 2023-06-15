@@ -3,47 +3,6 @@ import { mysome } from "./root";
 declare var chrome: any;
 
 export const isMySOMEIDMessage = (msg: any) => msg?.origin === 'mysome' && !!msg?.type;
-// export const isMySOMEIDEvent = (msg: any) => msg?.origin === 'mysome' && msg?.isEvent === true;
-
-/*export type MySoMeIdExtensionResponse = {
-    msg: any;
-    response: any;
-};*/
-
-/* export type MessageHandler = {
-    sendMessage: (msg: any) => void;
-}; */
-
-// let injectedMessageHandler: MessageHandler | null;
-
-/*export const getInjectedMessageHandler = (): MessageHandler => {
-    if ( !injectedMessageHandler ) {
-        throw new Error('MYSOMEID-Content: No message handler created');
-    }
-    return injectedMessageHandler;
-};*/
-
-/*export const createInjectedMessageHandler = (): MessageHandler => {
-    if ( injectedMessageHandler ) {
-        throw new Error('MYSOMEID-Content: Message handler already created');
-    }
-
-    const sendMessage = (msg: any) => {
-        window.postMessage(msg, 'mysomeid-injected');
-    };
-
-    window.addEventListener('message', ({ data: msg, origin }) => {
-        if ( origin?.indexOf("mysomeid") === 0 ) {
-            console.log("MYSOMEID-Content: got some kind of message", {msg, origin});
-        }
-    });
-
-    injectedMessageHandler = {
-        sendMessage
-    };
-
-    return injectedMessageHandler;
-};*/
 
 let messageHandler: ContentMessageHandler | undefined;
 
@@ -142,15 +101,7 @@ export const createContentMessageHandler = (): ContentMessageHandler => {
                             // If an error is thrown in the background script, propagate it to inject.
                             throw new Error(response.error ?? undefined);
                         }
-                        /*const msgResponse: MySoMeIdExtensionResponse = {
-                            msg: {},
-                            response,
-                        };*/
-
                         console.log("TODO: send response back to origin. ", response);
-                        //window.postMessage(  );
-
-                        // window.postMessage(msgResponse);
                     })
                     .catch((e: Error) => {
                         console.error(e);

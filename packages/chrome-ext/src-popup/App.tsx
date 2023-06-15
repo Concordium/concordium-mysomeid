@@ -27,8 +27,8 @@ declare var chrome: any;
 chrome.tabs.query({ active: true, currentWindow: true }, (tab) => {
   const url = tab?.[0]?.url;
   if ((url ?? '').indexOf('linkedin.com') >= 0 ) {
-    chrome.tabs.query({currentWindow: true, active: true}, function (tabs){
-      var activeTab = tabs[0];
+    chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
+      const activeTab = tabs[0];
       const message = createMessage('content', 'show-content-widget', {});
       chrome.tabs.sendMessage(activeTab.id, message);
       window.close();
@@ -55,7 +55,7 @@ const PrimaryButton = ({onClick, children}: {onClick: () => void, children?: any
   );
 };
 
-let dev = false;
+const dev = false;
 let gDebugMode = false;
 
 // eslint-disable-next-line no-empty-pattern

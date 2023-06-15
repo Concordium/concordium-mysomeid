@@ -61,7 +61,7 @@ const PrimaryButton = ({ sx, onClick, children }: { sx?: any, onClick: () => voi
   );
 };
 
-let dev = false;
+const dev = false;
 
 const NotVerified = ({ id, messageHandler }: { id: number | undefined, messageHandler: any }) => {
   const [params] = useSearchParams();
@@ -177,7 +177,7 @@ const MessageRoute = ({ id, messageHandler }: { id: number | undefined, messageH
   const primary = (params.get("primary") ?? 'Okay');
   const primaryLink = (params.get("primary_link") ?? '');
   const loading = ['1', 'true'].indexOf(params.get('loading') ?? '') >= 0;
-  const goto_button = (params.get('goto_button') ?? '');
+  const gotoButton = (params.get('goto_button') ?? '');
   const gotoLink = (params.get('goto_link') ?? '');
 
   return <Message {...{
@@ -188,7 +188,7 @@ const MessageRoute = ({ id, messageHandler }: { id: number | undefined, messageH
     primary,
     primaryLink,
     loading,
-    goto_button,
+    goto_button: gotoButton,
     gotoLink
   }} />
 }
