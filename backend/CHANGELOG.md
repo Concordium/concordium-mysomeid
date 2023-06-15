@@ -1,6 +1,6 @@
 # Changelog mysomeid backend and test tools
 
-## 1.1.0
+## 1.0.7
 
 - Revise name matching, allowing titles, emojis, abbreviated middle names, and nicknames.
 - Add Turkish letters to allowed substitutions.
