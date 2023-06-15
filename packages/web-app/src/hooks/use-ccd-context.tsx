@@ -35,8 +35,6 @@ export type ProofData = {
   revoked?: 1 | 0;
   created?: number;
   name?: string;
-  firstName?: string;
-  lastName?: string;
   tx?: string;
   decryptionKey?: string;
   profileImageUrl?: string;
@@ -460,6 +458,8 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       throw new Error('Invalid proof.');
     }
 
+    // This is needed until we make a version of the API that supports
+    // a single name parameter.
     const comps = profileName.trim().split(' ');
     const surName = comps.pop();
     const firstName = comps.join(' ');
@@ -488,8 +488,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     const { decryptionKey, transactionHash } = await response.json();
 
-    console.log("transactionHash ", transactionHash );
-
     await contract.waitForTX(transactionHash);
 
     // Get the event data
@@ -497,7 +495,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     let cnt = 0;
     while (cnt++ < 10) {
       if (cnt > 1) {
-        await sleep(5000);
+        await sleep(1000);
       }
 
       const responseTxs = await fetch(
@@ -529,8 +527,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       id: event.tokenId,
       platform,
       name: profileName,
-      firstName,
-      lastName: surName,
       userData: userId,
       proof,
       decryptionKey,
