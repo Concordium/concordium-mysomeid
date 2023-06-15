@@ -17,6 +17,7 @@ export type VerifyProofResult = 'valid' | 'revoked' | 'invalid' | 'user-data-not
 
 export type APIContextData = {
   verifyProof: (args: VerifyProofArgs) => Promise<VerifyProofResult>;
+  fuzzyNameMatch: (nameToTest: string, proofFirstName: string, proofLastName: string) => Promise<{matching: boolean}>;
 } | null;
 
 const APIContext = React.createContext<APIContextData>(null);
@@ -79,10 +80,37 @@ export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ child
     return resultVerify?.status === 'valid' ? 'valid' : 'invalid';
   }, []);
 
+  const fuzzyNameMatch = async (nameTest: string, proofFirstName: string, proofLastName: string): Promise<{matching: boolean}> => {
+    const responseData = await fetch(
+      serviceUrl(`/names/match`, {
+        soMeName: nameTest,
+        idName: [proofFirstName, proofLastName].join(' '),
+      }),
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if ( responseData.status !== 200 ) {
+      throw new Error(`Failed loading proof (${responseData.status})`);
+    }
+
+    const response = await responseData.json();
+    
+    return {
+      matching: response.matching,
+    };
+  };
+
   const value: APIContextData = useMemo(() => ({
-    verifyProof
+    verifyProof,
+    fuzzyNameMatch
   }), [
-    verifyProof
+    verifyProof,
+    fuzzyNameMatch,
   ]);
 
   return <APIContext.Provider {...{value}}>{children}</APIContext.Provider>;

@@ -48,8 +48,7 @@ export type ProofData = {
 };
 
 type CreateProofSBNFTArgs = {
-  firstName: string;
-  surName: string;
+  profileName: string;
   userId: string;
   proof: IdProofOutput;
   platform: "li";
@@ -71,8 +70,6 @@ type CreateProofStatementResult = {
 };
 
 type CreateProofStatementArgs = {
-  firstName: string;
-  surName: string;
   platform: string;
   userData: string;
   account: string;
@@ -442,8 +439,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
   }, [account]);
 
   const createProofSBNFT = useCallback(async ({
-    firstName,
-    surName,
+    profileName,
     userId,
     challenge,
     platform,
@@ -455,14 +451,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       throw new Error('Already creating proof');
     }
 
-    if ( !firstName ) {
-      throw new Error('No first name given');
-    }
-
-    if ( !surName ) {
-      throw new Error('No surname given');
-    }
-
     if ( proof.credential.length !== 96 ) {
       throw new Error('Invalid length of credential');
     }
@@ -470,6 +458,10 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     if (proof.proof.value.proofs.length !== 2) {
       throw new Error('Invalid proof.');
     }
+
+    const comps = profileName.trim().split(' ');
+    const surName = comps.pop();
+    const firstName = comps.join(' ');
 
     // Use this end-point to substidise paying for the nft to be created.
     let response = await fetch(
@@ -495,6 +487,8 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     const { decryptionKey, transactionHash } = await response.json();
 
+    console.log("transactionHash ", transactionHash );
+
     await contract.waitForTX(transactionHash);
 
     // Get the event data
@@ -502,7 +496,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     let cnt = 0;
     while (cnt++ < 10) {
       if (cnt > 1) {
-        await sleep(1000);
+        await sleep(5000);
       }
 
       const responseTxs = await fetch(
