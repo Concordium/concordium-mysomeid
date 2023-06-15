@@ -57,8 +57,6 @@ export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ child
 
     const proofUrlEnc = encodeURIComponent([proofBaseUri, 'v', id, encodeURIComponent(decryptionKey)].join('/'));
     const nameEnc = encodeURIComponent([proofData.firstName, proofData.surName].join(' '));
-    const firstNameEnc = encodeURIComponent(proofData.firstName);
-    const surNameEnc = encodeURIComponent(proofData.surName);
     const platformEnc = encodeURIComponent(proofData.platform);
     const userDataEnc = encodeURIComponent(proofData.userData);
 
