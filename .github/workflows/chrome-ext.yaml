@@ -1,0 +1,34 @@
+name: Chrome Extension
+
+on:
+  push:
+    branches: main
+    paths: [packages/chrome-ext/**]
+
+  pull_request:
+    branches: main
+    paths: [packages/chrome-ext/**]
+
+  workflow_dispatch: # allows manual trigger
+
+jobs:
+  lint_chrome_ext:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./packages/chrome-ext
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setting up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20.0.0
+    - name: Install Yarn
+      run: npm install -g yarn
+    - name: Install Dependencies
+      run: yarn install
+    - name: Linting
+      run: yarn run lint
