@@ -910,25 +910,22 @@ function showNotVerifiedPopup() {
 }
 
 const validateProofWithProfile = async ({
-	firstName,
-	lastName,
+	name,
 	proofUrl,
 	userData,
 	platform,
 }: {
-	firstName: string;
-	lastName: string;
+	name: string;
 	proofUrl: string;
 	userData: string;
 	platform: 'li';
 }): Promise<{status: string | null}> => {
 	const base = SERVICE_BASE_URL();
 	proofUrl = encodeURIComponent(proofUrl);
-	firstName = encodeURIComponent(firstName);
-	lastName = encodeURIComponent(lastName);
+	name = encodeURIComponent(name);
 	userData = encodeURIComponent(userData);
 	const url =
-		`${base}/proof/validate-proof-url?url=${proofUrl}&firstName=${firstName}&lastName=${lastName}&platform=${platform}&userData=${userData}`;
+		`${base}/proof/validate?url=${proofUrl}&name=${name}&platform=${platform}&userData=${userData}`;
 
 	return fetch(url).then(res => {
 		return res.json();
@@ -1196,18 +1193,13 @@ const install = async () => {
 		if ( proof && proof !== 'no-connection' && proof !== 'no-proof' ) {
 			console.log('Proof observed', proof);
 			state.proofUrl = proof;
-			const userId = trackProfileUserId.get();
-			const name = trackCurrentProfileName.get();
-			const components = name?.split(' ') ?? [];
-			const [firstNameOpt, ...lastNames] = components;
-			const firstName = firstNameOpt ?? '';
-			const lastName = lastNames.join(' ');
+			const userId = trackProfileUserId.get() ?? '';
+			const name = trackCurrentProfileName.get() ?? '';
 
 			validateProofWithProfile({
-				firstName,
-				lastName,
+				name,
 				proofUrl: state.proofUrl,
-				userData: userId ?? '',
+				userData: userId,
 				platform: 'li',
 			}).then(response => {
 				const {
