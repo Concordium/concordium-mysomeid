@@ -42,7 +42,7 @@ const state = {
 	pageHasBeenVerified: false,
 };
 let TEST = false;
-let DEV  = false;
+const DEV  = false;
 export const WEBSITE_BASE_URL = () => DEV ? `http://localhost:3000` : TEST ? `https://app.testnet.mysome.id` : `https://app.mysome.id`;
 const SERVICE_BASE_URL = (version: 'v1' | 'v2' = 'v1') => (DEV ? 'http://0.0.0.0:8080/' : TEST ? 'https://api.testnet.mysome.id/' : `https://api.mysome.id/`) + version;
 
