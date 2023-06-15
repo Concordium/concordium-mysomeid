@@ -94,7 +94,7 @@ export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ child
     );
 
     if ( responseData.status !== 200 ) {
-      throw new Error(`Failed loading proof (${responseData.status})`);
+      throw new Error(`Failed matching name (${responseData.status})`);
     }
 
     const response = await responseData.json();
