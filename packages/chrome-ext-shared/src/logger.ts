@@ -4,26 +4,26 @@
  */
 export const logger = {
 	info: (s: any, ...rest: any[]) => {
-// #if LOG_NORMAL
+/// #if LOG_NORMAL
 		console.log('MySoMe:', ...[s, ...rest]);
-// #endif
+/// #endif
 	},
 	log: (s: any, ...rest: any[]) => {
-// #if LOG_INFO
+/// #if LOG_INFO
 		console.log("MySoMe:", ...[s, ...rest]);
-// #endif
+/// #endif
 	},
 	error: (s: any, ...rest: any[]) => {
 		console.error('MySoMe:', ...[s, ...rest]);
 	},
 	warn: (s: any, ...rest: any[]) => {
-// #if LOG_WARN
+/// #if LOG_WARN
 		console.warn('MySoMe:', ...[s, ...rest]);
-// #endif
+/// #endif
 	},
 	verbose: (s: any, ...rest: any[]) => {
-// #if LOG_VERBOSE
+/// #if LOG_VERBOSE
 		console.log('MySoMe:', ...[s, ...rest]);
-// #endif
+/// #endif
 	},
 };
