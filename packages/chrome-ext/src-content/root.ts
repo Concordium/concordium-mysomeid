@@ -1,7 +1,6 @@
 import {
 	logger,
-	// verbose,
-} from './utils';
+} from '@mysomeid/chrome-ext-shared';
 
 import {
 	// TourWidget,
@@ -50,7 +49,7 @@ export const getRootWidget = (): RootWidget => {
 };
 
 export const createRootWidget = (): RootWidget => {
-	console.log("creating root");
+	logger.log("creating root");
 	if ( instance ) {
 		return instance;
 	}
@@ -83,7 +82,7 @@ export const createRootWidget = (): RootWidget => {
 	};
 
 	(window as any).mysomeid = instance;
-	console.log("Created root");
+	logger.log("Created root");
 
 	return instance;
 };
@@ -93,7 +92,7 @@ const onPlatformObserved = (platform: string, userName: string) => {
 	messageHandler.sendMessageWResponse('background', 'set-platform-observed', {
 		platform,
 		userId: userName,
-	}).then().catch(console.error);	
+	}).then().catch(logger.error);	
 };
 
 export const mysome = {

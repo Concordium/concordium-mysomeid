@@ -1,6 +1,5 @@
+import { logger } from '@mysomeid/chrome-ext-shared';
 import {
-	logger,
-	verbose,
 	storage,
 	platformRequests,
 	isOnLinkedInProfileUrl,
@@ -151,7 +150,7 @@ const fetchQRFromImage = async (url: string): Promise<{
 	qr: string | null,
 	connectionError: boolean,
 }> => {
-	console.log("Getting QR code from url : " + url );
+	logger.log("Getting QR code from url : " + url );
 	if ( !url ) {
 		throw new Error('No url provided');
 	}
@@ -159,13 +158,13 @@ const fetchQRFromImage = async (url: string): Promise<{
 	try {
 		const base = SERVICE_BASE_URL();
 		const validateUrl = `${base}/qr/validate?url=${encodeURIComponent(url)}`;
-		console.log("Getting QR code for : " + url );
+		logger.log("Getting QR code for : " + url );
 		const qr = await fetch(validateUrl)
 			.then(response => {
 				if (response.status >= 200 && response.status < 300) {
 					return response.text();
 				};
-				console.error("No QR code found " + response.status );
+				logger.error("No QR code found " + response.status );
 				const error = new Error(response.statusText);
 				(error as any).response = response;
 				throw error;
@@ -174,9 +173,9 @@ const fetchQRFromImage = async (url: string): Promise<{
 			.then((data: any) => {
 				return data?.error ? null : data?.result ?? null;
 			}).catch(err => {
-				console.error(err);
+				logger.error(err);
 				if (err != null && 'response' in err && err.response.status === 401) {
-					console.error("Connetion error");
+					logger.error("Connetion error");
 				}
 				throw err;
 			});
@@ -186,7 +185,7 @@ const fetchQRFromImage = async (url: string): Promise<{
 			connectionError: false,
 		};
 	} catch(e) {
-		console.error(e);
+		logger.error(e);
 		return {
 			qr: null,
 			connectionError: true,
@@ -199,38 +198,37 @@ const verifyProfile = async (profileUserId: string, backgroundUrl: string | null
 	let connectionError = false;
 
 	if ( backgroundUrl === 'default' ) {
-		console.log("Background is the default and contains no QR.");
+		logger.log("Background is the default and contains no QR.");
 	}
 
 	if ( profilePictureUrl === 'default' || profilePictureUrl === 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' ) {
-		console.log("Profile picture is the default and contains no QR.");
+		logger.log("Profile picture is the default and contains no QR.");
 	}
 
 	// First see if the background image contains a QR code.
 	if ( !qrResult && backgroundUrl && backgroundUrl !== 'default' ) {
-		// console.log("backgroundImageUrl", backgroundImageUrl);
 		const {
 			qr,
 			connectionError: err,
 		} = await fetchQRFromImage(backgroundUrl);
 
 		if ( qr ) {
-			verbose("QR in background: YES");
+			logger.verbose("QR in background: YES");
 			qrResult = qr;
 		} else {
-			verbose("QR in background: NO");
+			logger.verbose("QR in background: NO");
 		}
 
 		if ( !qr && err ) {
 			connectionError = true;
 		}
 	} else {
-		verbose("Fetching QR result from background image: No background image found.");
+		logger.verbose("Fetching QR result from background image: No background image found.");
 	}
 
 	// Second see if the profile image contains a valid QR code.
 	if ( !qrResult && profilePictureUrl && profilePictureUrl !== 'default' && profilePictureUrl !== 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' ) {
-		verbose("Fetching QR result from profile image");
+		logger.verbose("Fetching QR result from profile image");
 		const profileImageUrl = profilePictureUrl;
 
 		const {
@@ -239,10 +237,10 @@ const verifyProfile = async (profileUserId: string, backgroundUrl: string | null
 		} = await fetchQRFromImage(profileImageUrl);
 
 		if ( qr ) {
-			verbose("QR in background: YES");
+			logger.verbose("QR in background: YES");
 			qrResult = qr;
 		} else {
-			verbose("QR in background: NO");
+			logger.verbose("QR in background: NO");
 		}
 
 		if ( !qr && err ) {
@@ -269,7 +267,7 @@ const ensureWidget = () => {
 
 	const widget = createShieldWidget(nameElement.parentElement, {
 		onClicked: (state: string, proofUrl: string) => {
-			console.log('Shield clicked', {state, proofUrl});
+			logger.log('Shield clicked', {state, proofUrl});
 			(mysome as any).badgeClickHandler &&
 			(mysome as any).badgeClickHandler({
 				origin: 'shield',
@@ -279,7 +277,7 @@ const ensureWidget = () => {
 		},
 	});
 
-	verbose("Widget created", widget);
+	logger.verbose("Widget created", widget);
 
 	widget.setInitialState();
 
@@ -289,8 +287,8 @@ const ensureWidget = () => {
 (async () => {
 	const staging = (await storage.get("staging", true)) ?? false;
 	TEST = !!staging;
-	console.log("test ", TEST);
-})().then().catch(console.error);
+	logger.log("test ", TEST);
+})().then().catch(logger.error);
 
 const trackProofQR = createTracker<string | null>({
 	name: 'proofQR',
@@ -387,9 +385,9 @@ const createHeartbeat = () => {
 			throttle: 1000,
 			/*on: (value: boolean) => { // called when changed.
 				if ( value ) {
-					verbose("You are on your own profile.");
+					logger.verbose("You are on your own profile.");
 				} else {
-					verbose("You are not on your own page");
+					logger.verbose("You are not on your own page");
 				}
 			}*/
 		});
@@ -398,7 +396,6 @@ const createHeartbeat = () => {
 			throttle: 2000,
 			query: () => {
 				if ( !onProfileUrl && !onFeedUrl ) {
-					// console.log("Not on feed url or profile url");
 					return null;
 				}
 				if ( onProfileUrl ) {
@@ -429,16 +426,13 @@ const createHeartbeat = () => {
 			],*/
 			query: () => {
 				if ( !onProfileUrl && !onFeedUrl ) {
-					// console.log("Not on feed url or profile url");
 					return null;
 				}
 				if ( onProfileUrl ) {
 					const value = getUserIdInUrl();
-					// console.log("resolved profile url profile name :"  + value);
 					return value;
 				} else if ( onFeedUrl ) {
 					const value = getUserIdOnPageFeed();
-					// console.log("resolved feed profile name :"  + value);
 					return value;
 				}
 				return null;
@@ -453,35 +447,15 @@ const createHeartbeat = () => {
 				trackOwnProfileUserId.get() === null,
 			],
 			query: () => {
-				console.log('ownProfile value : ' + trackOwnProfileUserId.get() );
-				console.log('ownProfile new Value : ' + profileUserId );
+				logger.log('ownProfile value : ' + trackOwnProfileUserId.get() );
+				logger.log('ownProfile new Value : ' + profileUserId );
 				return profileUserId;
 			},
 		});
 
-		// this tracks if we landed on the url of another user.
-		/*trackOtherProfileUserId.update({
-			throttle: 1000,
-			prerequisites: [
-				!onOwnPageOrFeed,
-				onProfileUrl === true,
-				!!profileUserId,
-				timeSinceStart > 3000,
-			],
-			query: () => {
-				if ( !!document.querySelector("button[aria-label=\"Edit intro\"]") ) {
-					return null;
-				}
-				console.log('otherProfile new Value : ' + getUserIdInUrl() );
-				return getUserIdInUrl();
-			},
-		});*/
-
 		const {value: header, dirty: headerChanged} = trackHeader.update({
 			throttle: 2000,
-			// resetThrottle: profileUserIdChanged,
 			query: () => {
-				// console.log("checking header : " + onProfileUrl);
 				if ( !onProfileUrl ) {
 					return null;
 				}
@@ -539,7 +513,6 @@ const createHeartbeat = () => {
 
 				if ( onProfileUrl ) {
 					const images = qsa("img.pv-top-card-profile-picture__image, img.profile-photo-edit__preview") as HTMLImageElement[];
-					// verbose("Profile image url", images);
 					if ( images.length > 0 ) {
 						const profileImageUrl = images[0]?.src;
 						if ( profileImageUrl === 'https://static.licdn.com/sc/h/13m4dq9c31s1sl7p7h82gh1vh' ) {
@@ -571,11 +544,6 @@ const createHeartbeat = () => {
 			throttle: 1000,
 			resetThrottle: headerChanged,
 			query: () => {
-				/*console.log({
-					onOwnPageOrFeed,
-					trackOnFeedUrl: trackOnFeedUrl.get(),
-					el: qs("div.feed-identity-module__member-bg-image"),
-				});*/
 				if ( !onOwnPageOrFeed ){
 					return false;
 				}
@@ -605,7 +573,6 @@ const createHeartbeat = () => {
 		trackVerifyStatus.update({
 			// throttle: 250,
 			query: () => {
-				// console.log('trackVerifyStatus : ' + backgroundUrl);
 				const ret = (onProfileUrl || onFeedUrl) &&
 							((onProfileUrl && !!header) || onFeedUrl) &&
 							((onProfileUrl && !!shield) || onFeedUrl) &&
@@ -645,10 +612,10 @@ const changeBackgroundTour = {
 	onTourCancel: (tour: any) => {
 		const u = getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '';
 		if ( u ) {
-			registrations.setRegStep(mysome.platform, u, 6).then().catch(console.error);
+			registrations.setRegStep(mysome.platform, u, 6).then().catch(logger.error);
 			
 		} else {
-			console.error('No user id while cancelling tour - could not change the status of the registration.');
+			logger.error('No user id while cancelling tour - could not change the status of the registration.');
 		}
 	},
 	steps: [
@@ -675,14 +642,13 @@ const changeBackgroundTour = {
 		},
 		{
 			activate: async (tour: any) => {
-				// console.log('# 1');
 				let userId: string | null = null;
 				userId = getUserIdInUrl();
 				const loc = window.location.href.toLowerCase();
 				const onProfile = loc.indexOf('/in/' + userId + '/' ) >= 0 &&
 									qs('.profile-topcard-background-image-edit__icon');
 				if (!onProfile) {
-					console.log('# 2a');
+					logger.verbose('# 2a');
 					const onFeed = loc.indexOf('/feed/') >= 0;
 					if ( !onFeed ) {
 						document.querySelector<HTMLElement>("a.app-aware-link")?.click();
@@ -694,42 +660,42 @@ const changeBackgroundTour = {
 							await sleep(250);
 						}
 					}
-					console.log('# 2b');
+					logger.verbose('# 2b');
 
 					const a = document.querySelector<HTMLElement>(".feed-identity-module")
 								?.querySelector<HTMLElement>('a');
 					a?.click();
-					console.log('# 2c');
+					logger.verbose('# 2c');
 					if ( !a ) {
-            			console.error('Feed profile link not found.');
+            			logger.error('Feed profile link not found.');
 					}
 					let max = 0;
-					console.log('# 2d');
+					logger.verbose('# 2d');
 					while ( !document.querySelector(".profile-topcard-background-image-edit") ) {
 						if ( max++ > 4 * 60) {
 							throw new Error('Timed out')
 						}
 						await sleep(250);
 					}
-					console.log('# 2e');
+					logger.verbose('# 2e');
 				}
 
-				console.log('# 2f');
+				logger.verbose('# 2f');
 				userId = getUserIdInUrl();
 				if ( !userId ) {
-					console.log('# 2g');
+					logger.verbose('# 2g');
 					tour.endWithError('Failed changing background (1)', 'Please try again later or change the background manually.');
 					return;
 				}
 
 				const reg = registrations.select(mysome.platform, userId);
-				console.log('# 2g');
+				logger.verbose('# 2g');
 				if ( !reg ) {
 					tour.endWithError('Failed changing background (2)', 'Please try again later or change the background manually.');
 					return;
 				}
 
-				console.log('# 3');
+				logger.verbose('# 3');
 				const editBgButton = document.querySelector(".profile-topcard-background-image-edit")?.querySelector("button");
 									 // document.querySelector<HTMLElement>(".profile-topcard-background-image-edit")?.querySelector<HTMLElement>("button");
 				if ( !editBgButton ) {
@@ -741,7 +707,7 @@ const changeBackgroundTour = {
 				// Give it some time to render.
 				await sleep(250);
 
-				console.log('# 4 - fetching stored background image');
+				logger.verbose('# 4 - fetching stored background image');
 				const {blob, imageType} = base64ToBlob(reg.image);
 				const file = new File([blob], 'image.png', { type: imageType ?? 'image/png', lastModified: new Date().getTime()});
 				const container = new DataTransfer(); 
@@ -756,7 +722,7 @@ const changeBackgroundTour = {
 				let editProfileBackgroundButton: HTMLElement | null = null; 
 				while ( nretries++ < 15 && !changeBGModalView && !(changeBackgroundFound || addBackgroundViewFound || editProfileBackgroundButton) ) {
 					if ( nretries > 1) {
-						console.log("# 4 - Waiting for modal background to be initialised.");
+						logger.verbose("# 4 - Waiting for modal background to be initialised.");
 						await sleep(1000);
 					}
 					changeBGModalView = changeBGModalView ?? qsa("div").find( x => x.innerText === 'Background photo' )?.parentElement?.parentElement;
@@ -766,24 +732,24 @@ const changeBackgroundTour = {
 				}
 
 				if ( !changeBackgroundFound && addBackgroundViewFound && editProfileBackgroundButton ) {			
-					console.log('# 5a - We have not previously added a background picture');
+					logger.verbose('# 5a - We have not previously added a background picture');
 					let max = 0;
 					await sleep(1000);
 					// profile-topcard-background-image_file-upload-input
-					console.log('# 6a - Locating input');
+					logger.verbose('# 6a - Locating input');
 					const input =  document.querySelector('input[aria-label="Edit profile background"]')
 								?? Array.prototype.slice.call(document.querySelectorAll("input")).find ( x => x.accept === 'image/*' )
 									?? null;
 					if ( input ) {
-						console.log('# 6a - dispatching change event.');
+						logger.verbose('# 6a - dispatching change event.');
 						input.files = container.files;
 						input.dispatchEvent(new Event('change'));
 					} else {
-						console.error('Failed to locate element to add the image to.');
+						logger.error('Failed to locate element to add the image to.');
 					}
 				
 					while ( !document.querySelector('footer.image-edit-tool-footer') ) {
-						console.log('# 7a');
+						logger.verbose('# 7a');
 						await sleep(1000);
 						if ( max++ > 30 ) {
 							tour.endWithError('Failed changing background (4)', 'Please try again later or change the background manually.');	
@@ -791,10 +757,10 @@ const changeBackgroundTour = {
 						}
 					}
 
-					console.log('# 8a');
+					logger.verbose('# 8a');
 
 				} else { // 1. If we have already set a background image before we will be asked to 
-					console.log('# 5b - We have previously set a background image.');
+					logger.verbose('# 5b - We have previously set a background image.');
 					let max = 0;
 					while (!document.querySelector('footer.image-edit-tool-footer')) {
 						if ( max++ > 4 * 60 ) {
@@ -804,62 +770,62 @@ const changeBackgroundTour = {
 						await sleep(250);
 					}
 				
-					console.log('# 6b - find the input field.');
+					logger.verbose('# 6b - find the input field.');
 					const input = document.querySelector('.artdeco-modal')?.querySelector('input.visually-hidden')
 									?? document.querySelector("input#background-image-cropper__file-upload-input.hidden")
 										?? Array.prototype.slice.call(document.querySelectorAll('input')).filter( x => x.accept === 'image/*' )[0]
 											?? null;
 									 
-					console.log("# 6b - Background picture input", input);
+					logger.verbose("# 6b - Background picture input", input);
 				
 					if ( !input ) {
 						tour.endWithError('Failed changing background (5)', 'Please try again later or change the background manually.');
 						return;
 					}
 
-					console.log('# 7b');
+					logger.verbose('# 7b');
 					(input as any).files = container.files;
 					input.dispatchEvent(new Event('change'));
-					console.log("Background image changed");
+					logger.log("Background image changed");
 				}
 
-				console.log('# 8 - Apply');
+				logger.verbose('# 8 - Apply');
 				await sleep(1250);
 
 				let notFnd = 0;
 				while ( document.querySelector('footer.image-edit-tool-footer') ) {
-					console.log('Getting Apply Button');
+					logger.log('Getting Apply Button');
 					const applyButton = Array.prototype.slice.call(document.querySelector('footer.image-edit-tool-footer')?.querySelectorAll('span'))
 						?.filter(x => x.innerText?.indexOf('Apply') >= 0 )[0]
 							?.parentElement;
-					console.log('Apply Button resolved : ' + (!!applyButton ? 'Yes' : 'No'));
+					logger.log('Apply Button resolved : ' + (!!applyButton ? 'Yes' : 'No'));
 					if ( !applyButton ) {
-						console.error("Apply button not found.");
+						logger.error("Apply button not found.");
 						await sleep(1000);
 						if ( notFnd ++ > 10 ) {
-							console.error("Failed to find Apply button"); // TODO: Show error message to user.
+							logger.error("Failed to find Apply button"); // TODO: Show error message to user.
 							tour.endWithError('Failed to change background', 'Please try setting the background manually');
 							return;
 						} else {
-							console.log("Retrying finding Apply Button");
+							logger.log("Retrying finding Apply Button");
 						}
 						continue;
 					} else {
 						if ( !applyButton ) {
-							console.error("Error - cannot find apply button.");
+							logger.error("Error - cannot find apply button.");
 						}
-						console.log("Clicking Apply button", applyButton);
+						logger.log("Clicking Apply button", applyButton);
 						applyButton?.click();
-						console.log("Clicked the apply button");
+						logger.log("Clicked the apply button");
 					}
 					let cnt = 0;
 					// wait up to 30 seconds.
 					while ( document.querySelector('footer.image-edit-tool-footer') && cnt++ < 30 ) {
-						console.log("Waiting for apply to disappear");
+						logger.log("Waiting for apply to disappear");
 						await sleep(1000);
 					}
 				}
-				console.log('# 10');
+				logger.verbose('# 10');
 
 				tour?.nextStep();
 			},
@@ -889,7 +855,7 @@ const changeBackgroundTour = {
 					registrations.setRegStep(mysome.platform, u, 6).then(() => {
 						tour.done();
 					}).catch((err) => {
-						console.error(err);
+						logger.error(err);
 						tour.endWithError('Failed updating registration', 'Please retry uploading background.');
 					});
 				};
@@ -906,7 +872,7 @@ function showNotVerifiedPopup() {
 		secondary: 'CANCEL',
 		primary_link: getCreateLink(),
 	});
-	storage.set("content-welcome-shown", true).then(() => {}).catch(console.error);
+	storage.set("content-welcome-shown", true).then(() => {}).catch(logger.error);
 }
 
 const validateProofWithProfile = async ({
@@ -958,7 +924,7 @@ function showWelcomePopup() {
 		secondary: 'CANCEL',
 		primary_link: getCreateLink(),
 	});
-	storage.set("content-welcome-shown", true).then(() => {}).catch(console.error);
+	storage.set("content-welcome-shown", true).then(() => {}).catch(logger.error);
 }
 
 const install = async () => {
@@ -991,11 +957,11 @@ const install = async () => {
 	// 
 	const requestToFetchProfile = (await platformRequests.select('li', 'created', 'fetch-profile')) ?? null;
 	(mysome as any).requests = requestToFetchProfile ?? [];
-	console.log("requests", (mysome as any).requests);
+	logger.log("requests", (mysome as any).requests);
 
 	// 
 	const regs = await registrations.fetch();
-	console.log("registrations", regs);
+	logger.log("registrations", regs);
 
 	// 
 	(mysome as any).tours = {
@@ -1003,12 +969,12 @@ const install = async () => {
 	};
 
 	tracking.on('ownProfileUserIdObserved', (userId: string) => {
-		console.log("Own profile name obseved ", userId);
+		logger.log("Own profile name obseved ", userId);
 		mysome.onPlatformObserved(mysome.platform, userId); // when a user has been logging into the platform.
 
 		const reqs = (mysome as any).requests;
 		if ( reqs && reqs.length > 0 ) {
-			console.log("requests", reqs);
+			logger.log("requests", reqs);
 			const req = reqs[0];
 			platformRequests.removeRequests('li').then(() => {
 				showMessagePopup({
@@ -1023,7 +989,7 @@ const install = async () => {
 		}
 
 		const reg = registrations.select('li', userId );
-		console.log("Own Profile registration: ", reg);
+		logger.log("Own Profile registration: ", reg);
 		if ( reg && reg.step === 5 ) {
 			mysome.createTour('li.finalize');
 		}
@@ -1032,7 +998,7 @@ const install = async () => {
 	tracking.on('otherProfileObserved', (userId: string) => {
 		const reg = registrations.select('li', userId );
 		if ( reg && reg.step === 5 ) {
-			console.error("Other profile observed but there is a registration! (this is not supposed to happen)", reg);
+			logger.error("Other profile observed but there is a registration! (this is not supposed to happen)", reg);
 			showMessagePopup({
 				title: 'Warning',
 				message: "You have tried to create a proof for a profile which you dont have access to.<br/><br/>Log in to the profile to finalise the registration.",
@@ -1047,10 +1013,10 @@ const install = async () => {
 		}
 
 		const popups = countPopupsWithClassName('badge-popup');
-		console.log('popups ', popups);
+		logger.log('popups ', popups);
 		
 		if ( popups > 0 ) {
-			console.log("ignored showing popup as one other popup is already shown.");
+			logger.log("ignored showing popup as one other popup is already shown.");
 			return;
 		}
 
@@ -1074,7 +1040,7 @@ const install = async () => {
 		const onOwnProfileOrFeed = trackOnOwnProfileOrFeed.get();
 		const ownUserId = trackOwnProfileUserId.get();
 
-		console.log("Badge clicked", {
+		logger.log("Badge clicked", {
 			ownProfileUserIdbserved: ownUserId,
 			status: profileStatus.get(),
 			u,
@@ -1116,7 +1082,7 @@ const install = async () => {
 
 					if ( step === 5 ) {
 						// Continue the installation process.
-						console.log("Continue the installation process for LinkedIn: " + ownUserId);
+						logger.log("Continue the installation process for LinkedIn: " + ownUserId);
 
 						mysome.createTour('li.finalize');
 						return;
@@ -1153,7 +1119,7 @@ const install = async () => {
 				if ( !welcomeShown && status === 'not-registered' ) {
 					showWelcomePopup();
 				} else {
-					console.log('Show status with info ', goto);
+					logger.log('Show status with info ', goto);
 					showMessagePopup({
 						title: 'Your Profile Status',
 						message: statusMessage,
@@ -1190,11 +1156,11 @@ const install = async () => {
 	});
 
 	tracking.on(trackProofQR.changeEventName, (proof: string | 'no-proof' | 'no-connection' | null) => {
-		console.log('Proof changed : ' + proof);
+		logger.log('Proof changed : ' + proof);
 		const onOwnPageOrFeed = !!tracking.onOwnProfileOrFeed;
 
 		if ( proof && proof !== 'no-connection' && proof !== 'no-proof' ) {
-			console.log('Proof observed', proof);
+			logger.log('Proof observed', proof);
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get();
 			const name = trackCurrentProfileName.get();
@@ -1213,7 +1179,7 @@ const install = async () => {
 				const {
 					status,
 				} = response ?? {};
-				console.log("VERIFY Result ", response );
+				logger.log("VERIFY Result ", response );
 				
 				if ( status === 'valid' ) {
 					shield?.setVerified(proof, onOwnPageOrFeed);
@@ -1224,7 +1190,7 @@ const install = async () => {
 					badge.showAttention('error');
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspecious');	
 				} else {
-					console.error("Failed to evaluate the status of the proof.");
+					logger.error("Failed to evaluate the status of the proof.");
 					messages.failedResolve = defaultMessages.failedResolve;
 					shield?.setFailedResolve(proof, messages.failedResolve);
 					badge.showAttention('warning');
@@ -1232,7 +1198,7 @@ const install = async () => {
 				}
 
 			}).catch(err => {
-				console.error("exception while evaluting status of proof", err);
+				logger.error("exception while evaluting status of proof", err);
 				messages.failedResolve = err?.message ?? defaultMessages.failedResolve;
 				shield?.setFailedResolve(proof, messages.failedResolve);
 				badge.showAttention('warning');
@@ -1263,7 +1229,7 @@ const install = async () => {
 	});
 
 	tracking.on(trackUrl.changeEventName, (url: string) => {
-		console.log("New url : ", url);
+		logger.log("New url : ", url);
 		if ( url.indexOf('/in/') > 0 ) {
 			badge.show();
 		} else if ( url.indexOf('/feed/') > 0 ) {
@@ -1280,7 +1246,7 @@ const install = async () => {
 		// registration.
 		if ( (pathName === '/home' || pathName === '/') && !!document.querySelector('form[data-id="sign-in-form"]') ) {
 			platformRequests.fetch().then(requests => {
-				console.log("requests", requests);
+				logger.log("requests", requests);
 				const foundReq = requests.find(x => {
 					const deltaTime = ((new Date().getTime() - x.created) / 1000);
 					return x.platform === 'li' &&
@@ -1299,20 +1265,20 @@ const install = async () => {
 	});
 
 	tracking.on(trackHeader.changeEventName, (header: HTMLHeadingElement | null) => {
-		verbose("Header: updated");
+		logger.verbose("Header: updated");
 		if ( header ) {
-			verbose("Header: Aquired header");
+			logger.verbose("Header: Aquired header");
 			shield = ensureWidget();
 		} else if ( !header ) {
-			verbose("Header: Lost header");
+			logger.verbose("Header: Lost header");
 			shield?.hide();
 		} else {
-			verbose("Header: changed");
+			logger.verbose("Header: changed");
 		}
 	});
 
 	tracking.on(trackProfileUserId.changeEventName, (profileUserId: string | null) => {
-		console.log("Profile user id changed : ", profileUserId);
+		logger.log("Profile user id changed : ", profileUserId);
 	});
 
 	tracking.on(trackVerifyStatus.changeEventName, (verifyStatus: string | null) => {
@@ -1345,9 +1311,9 @@ const install = async () => {
 			shield.setInitialState();
 		}
 		verifyProfile(profileUserId, backgroundImageUrl, profilePictureUrl).then(({profileUserId, qrResult, connectionError}) => {
-			console.log('Profile verification result ', {qrResult, connectionError});
+			logger.log('Profile verification result ', {qrResult, connectionError});
 
-			verbose("qrResult" , qrResult);
+			logger.verbose("qrResult" , qrResult);
 			if ( trackProfileUserId.get() === profileUserId ) {
 				if ( qrResult ) {
 					connectionError = false;
@@ -1364,14 +1330,13 @@ const install = async () => {
 			}
 
 			// verificationStatus
-		}).catch(console.error);
+		}).catch(logger.error);
 	});
 
 	tracking.on(profileStatus.changeEventName, (ps: ProfileStatus) => {
 		const {page, status} = ps;
-		console.log('Profile status changed ', ps);
+		logger.log('Profile status changed ', ps);
 		if ( status === 'no-connection' ) {
-			// console.log('Status ', status);
 			// badge.showAttention(false); // Make sure that badge is not shown.
 			return;
 		}

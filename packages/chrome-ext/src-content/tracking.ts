@@ -1,6 +1,4 @@
-import {
-	verbose,
-} from './utils';
+import {logger} from '@mysomeid/chrome-ext-shared';
 
 export const tracking: Record<string, any> = {
 };
@@ -25,7 +23,7 @@ tracking.fire = (name: string, value: any) => {
 		try {
 			s && s(value);
 		} catch(e) {
-			console.error(e);
+			logger.error(e);
 		}
 	});
 };
@@ -123,7 +121,7 @@ export function createTracker<T>(args: TrackerArgs<T>): Tracker<T> {
 					const valueBefore = trackerState.value;
 					trackerState.value = value;
 					trackerState.lastChanged = new Date().getTime();
-					verbose(`${name} ${mode === 'normal' ? 'changed' : 'observed'} => `, value);
+					logger.verbose(`${name} ${mode === 'normal' ? 'changed' : 'observed'} => `, value);
 					fnSet && fnSet(value);
 					tracking[name] = value;
 					tracking.fire(`${name}`, value);

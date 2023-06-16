@@ -5,7 +5,7 @@
     ],
     "jsRules": {},
     "rules": {
-        "no-console": false,
+        "no-console": true,
         "no-trailing-whitespace": false,
         "max-classes-per-file": 2,
         "no-shadowed-variable": false,

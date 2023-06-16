@@ -1,3 +1,4 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
 
 import {
 	getMessageHandler
@@ -46,31 +47,6 @@ export async function traverseDomAllWithTimeout(path: string, timeout: number, i
 	}
 	return e;
 }
-
-export const verbose = (s: string, ...rest: any[]) => {
-	console.log('MySoMe: VERBOSE:', ...[s, ...rest]);
-};
-
-export const logger = {
-	info: (s: string, ...rest: any[]) => {
-		console.log('MySoMe:', ...[s, ...rest]);
-	},
-	log: (s: string, ...rest: any[]) => {
-		console.log("MySoMe:", ...[s, ...rest]);
-	},
-	// info: (s: string, ...rest: any[] ) => {},
-	error: (s: string, ...rest: any[]) => {
-		console.error('MySoMe:', ...[s, ...rest]);
-	},
-	// error: (s: string, ...rest: any[] ) => {},
-	verbose: (s: string, ...rest: any[]) => {
-		console.log('MySoMe:', ...[s, ...rest]);
-	},
-	todo: (s: string, ...rest: any[]) => {
-		console.log('TODO:', ...[s, ...rest]);
-	},
-	// verbose: (s: string, ...rest: any[] ) => {},
-};
 
 export function utf8_to_b64(str: string) {
 	return window.btoa(unescape(encodeURIComponent(str)));
@@ -146,12 +122,10 @@ export function base64ToBlob(base64Image: string) {
 export const getUserIdOnPageFeed = (): string | null => {
 	const loc = window.location.pathname === "/feed/";
 	if (!loc) {
-		// console.error("Not on feed url");
 		return null;
 	}
 	const a = document.querySelector(".feed-identity-module")?.querySelector("a");
 	const url = a?.href;
-	// console.error("url tpo get profile name on feed page ", url);
 	return url?.split("/")[4] ?? null;
 }
 
@@ -171,7 +145,6 @@ export const $array = (nodeList: NodeListOf<HTMLElement> | undefined) => {
 export const getUsersNameOnFeed = (): string | null => {
 	const loc = window.location.pathname === "/feed/";
 	if (!loc) {
-		// console.error("Not on feed url");
 		return null;
 	}
 
@@ -249,7 +222,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			return;
 		}
 
-		verbose("username to create proof with ", u);
+		logger.verbose("username to create proof with ", u);
 		const data = encodeURIComponent(utf8_to_b64(JSON.stringify({
 			u,
 			p,
@@ -311,20 +284,20 @@ export const storage = new (class {
 	state: any = null;
 
 	async init() {
-		console.log("Storage: Init");
+		logger.log("Storage: Init");
 		if (this.state !== null) {
-			console.error("Already initialised");
+			logger.error("Already initialised");
 			return;
 		}
 		const {
 			state
 		} = await messageHandler.sendMessageWResponse("background", "get-state", { type: 'get-state', store: 'state' });
-		console.log("Initial storage ", state);
+		logger.log("Initial storage ", state);
 		this.state = state ?? {};
 	}
 
 	async set(key: string, value: any) {
-		console.log("Storage: set ", { key, value });
+		logger.verbose("Storage: set ", { key, value });
 		if (this.state === null) {
 			await this.init();
 		}
@@ -338,7 +311,7 @@ export const storage = new (class {
 	async get(key: string, sync = false): Promise<any> {
 		if (this.state === null || sync) {
 			if (sync) {
-				console.log("Storage: Refreshing storage state");
+				logger.log("Storage: Refreshing storage state");
 				this.state = null;
 			}
 			await this.init();
@@ -354,7 +327,7 @@ export const registrations = new class {
 	async fetch() {
 		const regs = (await storage.get("regs", true)) ?? {};
 		(mysome as any).regs = regs;
-		console.log("Regs", regs);
+		logger.log("Regs", regs);
 		return regs;
 	}
 
@@ -372,7 +345,7 @@ export const registrations = new class {
 			}
 		};
 		mysome.regs = regs; // updated regs
-		console.log("storing new regs", regs);
+		logger.log("storing new regs", regs);
 		await storage.set('regs', regs);
 	}
 }();
@@ -392,11 +365,11 @@ export const platformRequests = new (class {
 		if (this.platformRequests !== null) {
 			return this.platformRequests;
 		}
-		console.log("Storage: Init");
+		logger.log("Storage: Init");
 		const {
 			store
 		} = await messageHandler.sendMessageWResponse("background", "get-state", { type: 'get-state', store: 'platform-requests' });
-		console.log("Platform requests (loaded when initialised) ", store);
+		logger.log("Platform requests (loaded when initialised) ", store);
 		this.platformRequests = store?.array ?? [];
 		if (this.platformRequests === null) {
 			return [];
@@ -425,13 +398,13 @@ export const platformRequests = new (class {
 		const {
 			store
 		} = await messageHandler.sendMessageWResponse("background", "get-state", { type: 'get-state', store: 'platform-requests' });
-		console.log("Platform requests (loaded when initialised) ", store);
+		logger.log("Platform requests (loaded when initialised) ", store);
 		this.platformRequests = store?.array ?? [];
 	}
 
 	async set(value: PlatformRequest[]) {
 		const key = 'array';
-		console.log("Platform requests: set ", { key, value });
+		logger.log("Platform requests: set ", { key, value });
 		if (this.platformRequests === null) {
 			await this.fetch();
 		}
@@ -440,7 +413,7 @@ export const platformRequests = new (class {
 
 	async setState(value: PlatformRequest[]) {
 		const key = 'array';
-		console.log("Platform requests: set ", { key, value });
+		logger.log("Platform requests: set ", { key, value });
 		if (this.platformRequests === null) {
 			await this.fetch();
 		}

@@ -1,8 +1,3 @@
-import {
-	logger,
-	verbose,
-} from './utils';
-
 export type TooltipWidget = {
 	elements: Record<string, HTMLElement>;
 	show: (e: HTMLElement) => void;

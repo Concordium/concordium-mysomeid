@@ -1,3 +1,5 @@
+import { logger } from '@mysomeid/chrome-ext-shared';
+
 import attentionRedSvg from './attention-red.svg';
 import attentionYellowSvg from './attention-yellow.svg';
 
@@ -35,7 +37,7 @@ export const createBadge = ({showAttention: showAttention = false}: {showAttenti
 			try {
 				x(e);
 			} catch(e) {
-				console.error(e);
+				logger.error(e);
 			}
 		} );
 	};

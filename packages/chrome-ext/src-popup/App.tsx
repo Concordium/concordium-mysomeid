@@ -1,3 +1,5 @@
+import { logger } from '@mysomeid/chrome-ext-shared';
+
 import React, { useCallback, useEffect, useState } from "react";
 
 import {
@@ -89,7 +91,7 @@ const Centered = ({children}: {children: any}) => dev ? <Box sx={{
 }}>{children}</Box> : children;
 
 createWidgetMessageHandler((m: any) => {
-  console.log("Widget: on message - todo handle it" , m);
+  logger.log("Widget: on message - todo handle it" , m);
 });
 
 const Welcome = ({gettingStarted}: {gettingStarted: () => void}) => {
@@ -113,11 +115,11 @@ const DebugView = (args: any) => {
   useEffect(() => {
     storage.get('staging').then((value) => {
       setIsStaging(!!value);
-    }).catch(console.error);
+    }).catch(logger.error);
   }, []);
   const toggleStaging = useCallback(() => {
     if ( isStaging === null ) {
-      console.error('Ignored so far.');
+      logger.error('Ignored so far.');
       return;
     }
     storage.set('staging', !isStaging).then(() => {
@@ -127,8 +129,8 @@ const DebugView = (args: any) => {
         } else {
           setIsStaging(false);
         }
-      }).catch(console.error);
-    }).catch(console.error);
+      }).catch(logger.error);
+    }).catch(logger.error);
   }, [isStaging]);
 
   return (
@@ -198,7 +200,7 @@ const App = () => {
     }
     storage.get('staging').then((value) => {
       setIsStaging(!!value);
-    }).catch(console.error);
+    }).catch(logger.error);
   }, [isStaging]);
 
   useEffect(() => {
@@ -208,9 +210,9 @@ const App = () => {
     storage.init().then(() => {
       setInitStorage(true);
       storage.get('debug').then(value => {
-        console.log("debug : " + value);
-      }).catch(console.error);
-    }).catch(console.error);
+        logger.log("debug : " + value);
+      }).catch(logger.error);
+    }).catch(logger.error);
   }, [hasInitStorage]);
 
   useEffect(() => {
@@ -218,9 +220,9 @@ const App = () => {
       return;
     }
     storage.get('shown-popup-welcome').then((value) => {
-      console.log("Has shown welcome : " + value);
+      logger.log("Has shown welcome : " + value);
       setHasShownWelcome(value);
-    }).catch(console.error);
+    }).catch(logger.error);
   }, [hasInitStorage, hasShownWelcome]);
 
   useEffect(() => {
@@ -229,7 +231,7 @@ const App = () => {
     }
     storage.get('linkedin.registered').then((value) => {
       setLinkedInRegistered(value);
-    }).catch(console.error);
+    }).catch(logger.error);
   }, [hasInitStorage, linkedInRegistered]);
   
   const gettingStarted = useCallback(() => {
@@ -242,7 +244,7 @@ const App = () => {
       storage.set('debug', !debugMode).then(() => {
         gDebugMode = !gDebugMode;
         setDebugMode(!debugMode);
-      }).catch(console.error).finally(() => {
+      }).catch(logger.error).finally(() => {
         setSettingDebug(false);
       })
     }
@@ -255,7 +257,7 @@ const App = () => {
     function callback (tab) {
       setTimeout(() => {
         const url = tab?.[0]?.url;
-        console.log("Resolved URL ", url);
+        logger.log("Resolved URL ", url);
         setHasInitUrl(true);
         setUrl(url ?? '');
         setIsOnLinkedIn((url ?? '').indexOf('linkedin.com') >= 0);
