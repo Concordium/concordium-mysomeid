@@ -42,21 +42,6 @@ type ProfileInfo = {
   name: string; 
 };
 
-export function parseNameFromNameString(name: string): {
-  profileFirstName: string,
-  profileSurname: string,
-} {
-  let [
-    profileFirstName,
-    ...profileLastNames
-  ] = (name?.split(' ') ?? []).filter(x => !!x.trim());
-  const profileSurname = profileLastNames?.join(' ');
-  return {
-    profileFirstName: profileFirstName ?? '',
-    profileSurname,
-  };
-}
-
 const connectError = (<>
   You must Connect your Concordium ID to continue.<br />
   <br />
@@ -100,6 +85,8 @@ export default connect(state => ({
     statementInfo,
     profilePicUrl,
   } = useTemplateStore(props, ['proof', 'challenge', 'name', 'statementInfo']);
+
+  const profileName = name;
 
   const dispatch = useDispatch();
 
@@ -150,11 +137,6 @@ export default connect(state => ({
 
   const prevDisabled = connectWithIDLoading;
 
-  const {
-    profileFirstName,
-    profileSurname,
-  } = parseNameFromNameString(name);
-
   const [
     triggerOnNext,
     setTriggerOnNext,
@@ -204,8 +186,6 @@ export default connect(state => ({
     setConnectWithIDLoading(true);
 
     createProofStatement({
-      firstName: profileFirstName,
-      surName: profileSurname,
       platform,
       userData: userId,
       account,
@@ -249,8 +229,7 @@ export default connect(state => ({
     connecting,
     userId,
     proof,
-    profileFirstName,
-    profileSurname,
+    profileName,
     platform,
     account,
     connectWithIDLoading,
@@ -278,8 +257,7 @@ export default connect(state => ({
                   <ProofCreatedConfirmation {...{
                     profileImageUrl: profilePicUrl,
                     userData: userId,
-                    profileFirstName,
-                    profileSurname,
+                    profileName,
                     sx: {
                       width: !lt1130 ? '25%' : '50%',
                     }

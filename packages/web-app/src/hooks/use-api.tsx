@@ -17,6 +17,7 @@ export type VerifyProofResult = 'valid' | 'revoked' | 'invalid' | 'user-data-not
 
 export type APIContextData = {
   verifyProof: (args: VerifyProofArgs) => Promise<VerifyProofResult>;
+  fuzzyNameMatch: (nameToTest: string, proofFirstName: string, proofLastName: string) => Promise<{matching: boolean}>;
 } | null;
 
 const APIContext = React.createContext<APIContextData>(null);
@@ -55,13 +56,12 @@ export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ child
     }
 
     const proofUrlEnc = encodeURIComponent([proofBaseUri, 'v', id, encodeURIComponent(decryptionKey)].join('/'));
-    const firstNameEnc = encodeURIComponent(proofData.firstName);
-    const surNameEnc = encodeURIComponent(proofData.surName);
+    const nameEnc = encodeURIComponent([proofData.firstName, proofData.surName].join(' '));
     const platformEnc = encodeURIComponent(proofData.platform);
     const userDataEnc = encodeURIComponent(proofData.userData);
 
     const responseVerify = await fetch(
-      serviceUrl(`/proof/validate-proof-url?url=${proofUrlEnc}&firstName=${firstNameEnc}&lastName=${surNameEnc}&platform=${platformEnc}&userData=${userDataEnc}`),
+      serviceUrl(`/proof/validate`, {url: proofUrlEnc, name: nameEnc, platform: platformEnc, userData: userDataEnc}, 'v2'),
       {
         method: 'GET',  
         headers: {
@@ -79,10 +79,37 @@ export const APIContextProvider: React.FC<{ children: ReactElement }> = ({ child
     return resultVerify?.status === 'valid' ? 'valid' : 'invalid';
   }, []);
 
+  const fuzzyNameMatch = async (nameTest: string, proofFirstName: string, proofLastName: string): Promise<{matching: boolean}> => {
+    const responseData = await fetch(
+      serviceUrl(`/names/match`, {
+        soMeName: nameTest,
+        idName: [proofFirstName, proofLastName].join(' '),
+      }),
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if ( responseData.status !== 200 ) {
+      throw new Error(`Failed matching name (${responseData.status})`);
+    }
+
+    const response = await responseData.json();
+    
+    return {
+      matching: response.matching,
+    };
+  };
+
   const value: APIContextData = useMemo(() => ({
-    verifyProof
+    verifyProof,
+    fuzzyNameMatch
   }), [
-    verifyProof
+    verifyProof,
+    fuzzyNameMatch,
   ]);
 
   return <APIContext.Provider {...{value}}>{children}</APIContext.Provider>;

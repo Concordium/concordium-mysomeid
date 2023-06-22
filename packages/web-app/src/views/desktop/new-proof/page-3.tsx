@@ -47,21 +47,19 @@ import concordiumLogoSvg from 'src/images/concordium-white-logo.svg';
 import formName, { selector } from './form-props';
 
 import { TrackBox } from './track-box';
-import { parseNameFromNameString } from './page-2';
 import { error } from 'src/slices';
-import { fuzzyMatchNames } from 'src/utils';
 import { InstallExtensions } from './install-extensions';
 import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader } from './page-4';
 import { useTemplateStore } from './template-store';
 import { ErrorAlert } from 'src/components';
+import { useAPI } from 'src/hooks/use-api';
 
 type PlatformProfileRepresentationArgs = {
   userData: string;
   profileImageUrl: string;
   platform: 'li',
-  firstName: string;
-  surname: string;
+  profileName: string;
   nameMatch?: boolean;
 };
 
@@ -69,8 +67,7 @@ export const PlatformProfileRepresentation = ({
   userData,
   profileImageUrl,
   platform,
-  firstName,
-  surname,
+  profileName,
   nameMatch: nameMatch = null,
 }: PlatformProfileRepresentationArgs) => {
   const nameIsInvalid = nameMatch !== null && !nameMatch;
@@ -94,12 +91,7 @@ export const PlatformProfileRepresentation = ({
       }} />
       <Box sx={{ display: 'flex', flexDirection: 'column', marginTop: 'auto', marginBottom: '32px', width: '100%', paddingLeft: '32px', paddingRight: '32px' }}>
         <Box sx={{ display: 'flex' }}>
-          <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">First name</Typography>
-          <Typography variant="h6" display="block" marginLeft="auto" sx={linkedInNameStyle}>{firstName}</Typography>
-        </Box>
-        <Box sx={{ display: 'flex' }}>
-          <Typography variant="h6" display="block" marginRight="12px" fontWeight="400">Surname</Typography>
-          <Typography variant="h6" display="block" marginLeft="auto" sx={linkedInNameStyle}>{surname}</Typography>
+          <Typography variant="h6" display="block" margin="auto" sx={linkedInNameStyle}>{profileName}</Typography>
         </Box>
       </Box>
     </Box>
@@ -138,7 +130,7 @@ export default connect(state => ({
     profilePicUrl,
     backgroundPicUrl,
   } = useTemplateStore(props, ['name', 'userId', 'platform', 'statementInfo', 'proof', 'proofData', 'challenge', 'profilePicUrl', 'backgroundPicUrl']);
-  
+ 
   const [creating, setCreating] = useState(false);
 
   const dispatch = useDispatch();
@@ -150,6 +142,10 @@ export default connect(state => ({
     connect,
     createProofSBNFT,
   } = useCCDContext();
+
+  const {
+    fuzzyNameMatch    
+  } = useAPI();
 
   const [creatingProof, setCreatingProof] = useState(false);
   const [proofCreated, setProofCreated] = useState(!!proofData);
@@ -197,19 +193,27 @@ export default connect(state => ({
     console.error(e);
   }
 
-  const {
-    profileFirstName,
-    profileSurname,
-    // country: profileCountry,
-  } = parseNameFromNameString(name);
-
-  const nameMatch = fuzzyMatchNames(profileFirstName, profileSurname, proofFirstName, proofSurname);
+  const [nameStatus, setNameStatus] = useState<{name: string, matching: boolean | null} | null >(null);
 
   const theme = useTheme();
 
   const lt900 = useMediaQuery(theme.breakpoints.down(900));
 
-  const nextDisabled = state === 'show-connect' || creating || !nameMatch;
+  useEffect(() => {
+    if ( nameStatus?.name !== name ) {
+      setNameStatus({...nameStatus, name, matching: null});
+    }
+
+    if ( nameStatus?.matching === null ) {
+      fuzzyNameMatch(nameStatus?.name, proofFirstName, proofSurname).then(({matching}) => {
+        setNameStatus({...nameStatus, matching});
+      }).catch(() => {
+        dispatch(error("Failed to validate name"));
+      });
+    }
+  }, [name, nameStatus?.name, nameStatus?.matching]);
+
+  const nextDisabled = state === 'show-connect' || creating || !nameStatus?.matching;
 
   const prevDisabled = creatingProof;
 
@@ -230,8 +234,7 @@ export default connect(state => ({
     setCreatingProof(true);
 
     createProofSBNFT({
-      firstName: proofFirstName,
-      surName: proofSurname,
+      profileName: [proofFirstName, proofSurname].join(' '),
       userId: userId,
       challenge,
       platform,
@@ -304,9 +307,8 @@ export default connect(state => ({
                             userData: userId,
                             platform,
                             profileImageUrl,
-                            firstName: profileFirstName,
-                            surname: profileSurname,
-                            nameMatch,
+                            profileName: name,
+                            nameMatch: nameStatus?.matching,
                           }} />
 
                           <Box sx={{ display: 'flex', color: 'white', flexDirection: 'column', alignItems: 'center', marginLeft: '154px', width: '287px' }}>
@@ -337,7 +339,7 @@ export default connect(state => ({
                         : undefined}
                     </Box>
 
-                    {statementInfo && proof && (!nameMatch) ?
+                    {statementInfo && proof && (nameStatus?.matching === false) ?
                     <ErrorAlert sx={{
                       maxWidth: '728px',
                       marginTop: '28px',
@@ -356,7 +358,7 @@ export default connect(state => ({
               {
                 showLoading ?
                   <Box sx={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', position: 'absolute', width: `${width}px`, height: `${height}px` }}>
-                    <WizardLoading title="Creating Proof" subtitle="Accept transaction to create proof" />
+                    <WizardLoading title="Creating Proof" subtitle="Processing transaction to create proof" />
                   </Box>
                   :
                   undefined

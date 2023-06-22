@@ -3,7 +3,7 @@ declare var chrome: any;
 let TEST = false;
 let verbose = false;
 
-const SERVICE_BASE_URL = () => TEST ? 'http://0.0.0.0:8080/v1' : `https://api.mysomeid.dev/v1`;
+const SERVICE_BASE_URL = (ver: 'v1' | 'v2' = 'v1') => (TEST ? 'http://0.0.0.0:8080/' : `https://api.mysomeid.dev/`) + ver;
 
 const stores: Record<string, any> = {};
 
@@ -129,8 +129,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 	if (type === 'validate-proof') {
 		let {
 			proofUrl,
-			firstName,
-			lastName,
+			name,
 			userData,
 		} = request?.payload ?? {};
 
@@ -138,17 +137,17 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 			platform,
 		} = request?.payload ?? {};
 
-		if (platform !== 'li' || !proofUrl || !firstName || !lastName || !userData) {
+		if (platform !== 'li' || !proofUrl || !name || !userData) {
 			sendErrorResponse('invalid args');
 			return;
 		}
-		const base = SERVICE_BASE_URL();
+
 		proofUrl = encodeURIComponent(proofUrl);
-		firstName = encodeURIComponent(firstName);
-		lastName = encodeURIComponent(lastName);
+		name = encodeURIComponent(name);
 		userData = encodeURIComponent(userData);
+
 		const url =
-			`${base}/proof/validate-proof-url?url=${proofUrl}&firstName=${firstName}&lastName=${lastName}&platform=${platform}&userData=${userData}`;
+			`${SERVICE_BASE_URL('v2')}/proof/validate?url=${proofUrl}&name=${name}&platform=${platform}&userData=${userData}`;
 		fetch(url).then(res => {
 			return res.json();
 		}).then(obj => {

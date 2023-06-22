@@ -56,7 +56,6 @@ import {
 import { InstallExtensions } from './install-extensions';
 import { PlatformProfileRepresentation } from './page-3';
 import { useTemplateStore } from './template-store';
-import { parseNameFromNameString } from './page-2';
 
 export { BackgroundEditor };
 
@@ -73,8 +72,7 @@ type ProofCreatedConfirmationArgs = {
   profileImageUrl: string;
   userData: string;
   platform?: 'li',
-  profileFirstName: string;
-  profileSurname: string;
+  profileName: string;
   sx?: any;
 };
 
@@ -82,8 +80,7 @@ export const ProofCreatedConfirmation = ({
   profileImageUrl,
   userData,
   platform: platform = 'li',
-  profileFirstName,
-  profileSurname,
+  profileName,
   sx,
 }: ProofCreatedConfirmationArgs) => {
   return (
@@ -93,8 +90,7 @@ export const ProofCreatedConfirmation = ({
           userData,
           platform,
           profileImageUrl,
-          firstName: profileFirstName,
-          surname: profileSurname,
+          profileName,
         }} />
       </Box>
     </Box>
@@ -176,11 +172,6 @@ export default connect(state => ({
   } catch (e) {
     console.error(e);
   }
-
-  const {
-    profileFirstName,
-    profileSurname,
-  } = parseNameFromNameString(name);
 
   let proofFirstName = "";
   try {
@@ -290,8 +281,7 @@ export default connect(state => ({
                       <ProofCreatedConfirmation {...{
                         profileImageUrl,
                         userData: userId,
-                        profileFirstName: proofFirstName,
-                        profileSurname: proofSurname,
+                        profileName: [proofFirstName, proofSurname].join(' '),
                       }} />
                       <ProofWidget {...{
                         uri,
