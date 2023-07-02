@@ -34,8 +34,7 @@ export type ProofData = {
   platform?: 'li' | string;
   revoked?: 1 | 0;
   created?: number;
-  firstName?: string;
-  lastName?: string;
+  name?: string;
   tx?: string;
   decryptionKey?: string;
   profileImageUrl?: string;
@@ -48,8 +47,7 @@ export type ProofData = {
 };
 
 type CreateProofSBNFTArgs = {
-  firstName: string;
-  surName: string;
+  profileName: string;
   userId: string;
   proof: IdProofOutput;
   platform: "li";
@@ -71,8 +69,6 @@ type CreateProofStatementResult = {
 };
 
 type CreateProofStatementArgs = {
-  firstName: string;
-  surName: string;
   platform: string;
   userData: string;
   account: string;
@@ -442,8 +438,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
   }, [account]);
 
   const createProofSBNFT = useCallback(async ({
-    firstName,
-    surName,
+    profileName,
     userId,
     challenge,
     platform,
@@ -455,14 +450,6 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
       throw new Error('Already creating proof');
     }
 
-    if ( !firstName ) {
-      throw new Error('No first name given');
-    }
-
-    if ( !surName ) {
-      throw new Error('No surname given');
-    }
-
     if ( proof.credential.length !== 96 ) {
       throw new Error('Invalid length of credential');
     }
@@ -470,6 +457,12 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     if (proof.proof.value.proofs.length !== 2) {
       throw new Error('Invalid proof.');
     }
+
+    // This is needed until we make a version of the API that supports
+    // a single name parameter.
+    const comps = profileName.trim().split(' ');
+    const surName = comps.pop();
+    const firstName = comps.join(' ');
 
     // Use this end-point to substidise paying for the nft to be created.
     let response = await fetch(
@@ -533,8 +526,7 @@ export const CCDContextProvider: React.FC<{ children: ReactElement }> = ({ child
     const newProof: ProofData = {
       id: event.tokenId,
       platform,
-      firstName,
-      lastName: surName,
+      name: profileName,
       userData: userId,
       proof,
       decryptionKey,

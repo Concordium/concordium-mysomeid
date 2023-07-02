@@ -40,6 +40,7 @@ import { AppTheme } from "src/themes";
 import { makeStyles } from "@mui/styles";
 import { defaultFontFamily } from "src/themes/theme";
 import { formatHexStringToHexStringComponents, numberToLittleEndianHexString } from "src/utils";
+import { serviceUrl } from "src/constants";
 
 const useStyles = makeStyles((theme: AppTheme) => {
   return ({
@@ -208,9 +209,7 @@ export function MyProofs({}) {
             return;
           }
            
-          // TODO: fetch from constants.
-          const apiBaseUrl = process.env.REACT_APP_SERVICE_BASE ?? "https://api.mysomeid.dev/v1"; 
-          fetch(`${apiBaseUrl}/proof/${rowData.id}/qr`, {
+          fetch(serviceUrl(`/proof/${rowData.id}/qr`), {
             method: 'GET',
             headers: {
               'Access-Control-Allow-Origin': '*',

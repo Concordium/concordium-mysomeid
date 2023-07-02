@@ -209,7 +209,7 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
       return;
     }
     if (proofData.id === undefined) {
-      throw new Error('Invalid prood id');
+      throw new Error('Invalid proof id');
     }
     const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
     console.log("proofs before ", {proofs});
