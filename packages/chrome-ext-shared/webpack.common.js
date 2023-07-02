@@ -5,10 +5,9 @@ const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPl
 const devMode = process.env.NODE_ENV !== 'production';
 
 const opts = {
-  'LOG_NORMAL': devMode || process.env.LOG_NORMAL || process.env.LOG_DEBUG ? true : false,
-  'LOG_INFO': devMode || process.env.LOG_INFO || process.env.LOG_DEBUG ? true : false,
-  'LOG_WARN': devMode || process.env.LOG_WARN || process.env.LOG_DEBUG ? true : false,
-  'LOG_VERBOSE': devMode || process.env.LOG_VERBOSE || process.env.LOG_DEBUG ? true : false,
+  'LOG_INFO': ['info', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
+  'LOG_WARN': ['warn', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
+  'LOG_VERBOSE': ['verbose', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
 };
 
 module.exports = {

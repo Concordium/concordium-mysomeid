@@ -49,7 +49,7 @@ export const getRootWidget = (): RootWidget => {
 };
 
 export const createRootWidget = (): RootWidget => {
-	logger.log("creating root");
+	logger.info("creating root");
 	if ( instance ) {
 		return instance;
 	}
@@ -82,7 +82,7 @@ export const createRootWidget = (): RootWidget => {
 	};
 
 	(window as any).mysomeid = instance;
-	logger.log("Created root");
+	logger.info("Created root");
 
 	return instance;
 };

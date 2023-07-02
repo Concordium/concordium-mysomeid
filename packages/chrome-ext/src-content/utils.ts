@@ -284,7 +284,7 @@ export const storage = new (class {
 	state: any = null;
 
 	async init() {
-		logger.log("Storage: Init");
+		logger.info("Storage: Init");
 		if (this.state !== null) {
 			logger.error("Already initialised");
 			return;
@@ -292,7 +292,7 @@ export const storage = new (class {
 		const {
 			state
 		} = await messageHandler.sendMessageWResponse("background", "get-state", { type: 'get-state', store: 'state' });
-		logger.log("Initial storage ", state);
+		logger.info("Initial storage ", state);
 		this.state = state ?? {};
 	}
 
@@ -311,7 +311,7 @@ export const storage = new (class {
 	async get(key: string, sync = false): Promise<any> {
 		if (this.state === null || sync) {
 			if (sync) {
-				logger.log("Storage: Refreshing storage state");
+				logger.info("Storage: Refreshing storage state");
 				this.state = null;
 			}
 			await this.init();
@@ -327,7 +327,7 @@ export const registrations = new class {
 	async fetch() {
 		const regs = (await storage.get("regs", true)) ?? {};
 		(mysome as any).regs = regs;
-		logger.log("Regs", regs);
+		logger.info("Regs", regs);
 		return regs;
 	}
 
@@ -345,7 +345,7 @@ export const registrations = new class {
 			}
 		};
 		mysome.regs = regs; // updated regs
-		logger.log("storing new regs", regs);
+		logger.info("storing new regs", regs);
 		await storage.set('regs', regs);
 	}
 }();
@@ -365,11 +365,11 @@ export const platformRequests = new (class {
 		if (this.platformRequests !== null) {
 			return this.platformRequests;
 		}
-		logger.log("Storage: Init");
+		logger.info("Storage: Init");
 		const {
 			store
 		} = await messageHandler.sendMessageWResponse("background", "get-state", { type: 'get-state', store: 'platform-requests' });
-		logger.log("Platform requests (loaded when initialised) ", store);
+		logger.info("Platform requests (loaded when initialised) ", store);
 		this.platformRequests = store?.array ?? [];
 		if (this.platformRequests === null) {
 			return [];
@@ -398,13 +398,13 @@ export const platformRequests = new (class {
 		const {
 			store
 		} = await messageHandler.sendMessageWResponse("background", "get-state", { type: 'get-state', store: 'platform-requests' });
-		logger.log("Platform requests (loaded when initialised) ", store);
+		logger.info("Platform requests (loaded when initialised) ", store);
 		this.platformRequests = store?.array ?? [];
 	}
 
 	async set(value: PlatformRequest[]) {
 		const key = 'array';
-		logger.log("Platform requests: set ", { key, value });
+		logger.info("Platform requests: set ", { key, value });
 		if (this.platformRequests === null) {
 			await this.fetch();
 		}
@@ -413,7 +413,7 @@ export const platformRequests = new (class {
 
 	async setState(value: PlatformRequest[]) {
 		const key = 'array';
-		logger.log("Platform requests: set ", { key, value });
+		logger.info("Platform requests: set ", { key, value });
 		if (this.platformRequests === null) {
 			await this.fetch();
 		}

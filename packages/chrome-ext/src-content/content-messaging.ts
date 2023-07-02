@@ -33,7 +33,7 @@ export const createContentMessageHandler = (): ContentMessageHandler => {
             return;
         }
 
-        logger.log("onMessage", data);
+        logger.info("onMessage", data);
 
         if ( data.type === "validate-proof-response" ) {
            // debugger;
@@ -65,19 +65,19 @@ export const createContentMessageHandler = (): ContentMessageHandler => {
         }
 
         if ( to === 'injected' ) {
-            logger.log("Message to injected ingored by content message handler.");
+            logger.info("Message to injected ingored by content message handler.");
             return;
         }
 
-        logger.log('MYSOMEID-Content: Content scripts: get message ', {...data} );
+        logger.info('MYSOMEID-Content: Content scripts: get message ', {...data} );
 
         if ( to === 'background' ) {
-            logger.log("MYSOMEID-Content: Content scripts: forwarding message to extension.", data);
+            logger.info("MYSOMEID-Content: Content scripts: forwarding message to extension.", data);
 
             chrome.runtime
                 .sendMessage(data)
                 .then((response: any) => {
-                    logger.log("MYSOMEID-Content: Content scripts. got response (BRIDGING IT).", response);
+                    logger.info("MYSOMEID-Content: Content scripts. got response (BRIDGING IT).", response);
                     // debugger;
                     window.postMessage(response, '*');
                 })
@@ -91,19 +91,19 @@ export const createContentMessageHandler = (): ContentMessageHandler => {
             return;
         } 
         else if ( to === "content" && type === 'forward' ) {
-            logger.log("Forwarding message to " + data.payload?.to, {message: data.payload} );
+            logger.info("Forwarding message to " + data.payload?.to, {message: data.payload} );
 
             if (['popup', 'background'].indexOf(data.payload?.to) >= 0) {
                 // send to background!
                 chrome.runtime.sendMessage(data.payload)
                     .then((response: any) => {
-                        logger.log("MYSOMEID-Content: Content scripts. got response.", response);
+                        logger.info("MYSOMEID-Content: Content scripts. got response.", response);
                         if (response?.error !== undefined) {
-                            logger.log("MYSOMEID-Content: Response is an error: thrown as error");
+                            logger.info("MYSOMEID-Content: Response is an error: thrown as error");
                             // If an error is thrown in the background script, propagate it to inject.
                             throw new Error(response.error ?? undefined);
                         }
-                        logger.log("TODO: send response back to origin. ", response);
+                        logger.info("TODO: send response back to origin. ", response);
                     })
                     .catch((e: Error) => {
                         logger.error(e);
@@ -154,12 +154,12 @@ export const createContentMessageHandler = (): ContentMessageHandler => {
 
     // Propagate events from content script extension -> inject
     chrome.runtime.onMessage.addListener((data: any) => {
-        logger.log("MYSOMEID-Content: Got message from extension ", {data});
+        logger.info("MYSOMEID-Content: Got message from extension ", {data});
         if (!isMySOMEIDMessage(data)) {
-            logger.log("MYSOMEID-Content: Not a MYSOMEID message");
+            logger.info("MYSOMEID-Content: Not a MYSOMEID message");
             return;
         }
-        logger.log("MYSOMEID-Content: Forwarding message to content messageHandler");
+        logger.info("MYSOMEID-Content: Forwarding message to content messageHandler");
         window.postMessage(data, "*"); // Forward message.
     });
 
@@ -214,7 +214,7 @@ export const createContentMessageHandler = (): ContentMessageHandler => {
             if ( to === 'background' ) {
                 return new Promise<any> (resolve  => {
                     chrome.runtime.sendMessage(data, (result: any) => {
-                        logger.log("background returned result: ", result);
+                        logger.info("background returned result: ", result);
                         resolve(result);
                     });
                 });

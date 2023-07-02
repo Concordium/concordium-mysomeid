@@ -49,7 +49,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 		});
 
 		const url = response.payload.url + route;
-		logger.log("url ", url);
+		logger.info("url ", url);
 
 		const e = document.createElement('div');
 		// let destroyed = false;  
@@ -76,7 +76,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 		const overlayClicked = (e: any) => {
 			if (!closeOnBgClick)
 				return;
-			logger.log("Overlay clicked");
+			logger.info("Overlay clicked");
 			mysome.widgets[id].destroy();
 		};
 
@@ -116,7 +116,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 			}
 		};
 		mysome.widgets[id].setCreated = () => {
-			logger.log("widget now created");
+			logger.info("widget now created");
 			created = true;
 			mysome.widgets[id].created = true;
 			mysome.widgets[id].creating = false;

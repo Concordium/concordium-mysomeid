@@ -107,7 +107,7 @@ export const createTourWidget = (): TourWidget => {
 	let target: HTMLElement | null = null;
 	const setTarget = (element: HTMLElement): void => {
 		target = element;
-		logger.log("set target" , target );
+		logger.info("set target" , target );
 	};
 
 	const maskArea = {

@@ -4,13 +4,8 @@
  */
 export const logger = {
 	info: (s: any, ...rest: any[]) => {
-/// #if LOG_NORMAL
-		console.log('MySoMe:', ...[s, ...rest]);
-/// #endif
-	},
-	log: (s: any, ...rest: any[]) => {
 /// #if LOG_INFO
-		console.log("MySoMe:", ...[s, ...rest]);
+		console.log('MySoMe:', ...[s, ...rest]);
 /// #endif
 	},
 	error: (s: any, ...rest: any[]) => {

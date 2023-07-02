@@ -16,10 +16,10 @@ export function createWidgetMessageHandler(fn: (e: any) => void) {
 
     const onMessage = (msg: any) => {
         const data = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
-        logger.log('Injected Widget: onMessage', data);
+        logger.info('Injected Widget: onMessage', data);
                 
         if ( !data || data.origin !== 'mysome' ) {
-            logger.log('Injected Widget: onMessage - ignored its not a mysomeid message');
+            logger.info('Injected Widget: onMessage - ignored its not a mysomeid message');
             return;
         }
 
@@ -39,7 +39,7 @@ export function createWidgetMessageHandler(fn: (e: any) => void) {
             payload,
             origin: 'mysome',
         };
-        logger.log("Widget: Sending message", msg);
+        logger.info("Widget: Sending message", msg);
 
         if ( to === 'injected-widget' ) { // For testing purposes.
             setTimeout(() => {

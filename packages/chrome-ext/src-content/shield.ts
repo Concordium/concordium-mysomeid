@@ -173,7 +173,7 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 
 		created = true;
 	} else {
-		logger.log('Shield: Root element already existed');
+		logger.info('Shield: Root element already existed');
 	}
 
 	const root = document.getElementById('mysome-shield-root');

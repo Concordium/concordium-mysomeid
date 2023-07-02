@@ -10,12 +10,12 @@ const stores: Record<string, any> = {};
 
 const initStore = async (storeName: string): Promise<void> => {
 	storeName = storeName ?? 'state';
-	logger.log("initStore ", { storeName });
+	logger.info("initStore ", { storeName });
 	return new Promise<void>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
-			logger.log(`Init ${storeName} store`, result?.[storeName]);
+			logger.info(`Init ${storeName} store`, result?.[storeName]);
 			if (!result?.[storeName]) {
-				logger.log("Creating empty store");
+				logger.info("Creating empty store");
 			}
 			stores[storeName] = result?.[storeName] ?? {};
 			resolve();
@@ -25,7 +25,7 @@ const initStore = async (storeName: string): Promise<void> => {
 
 const fetchStore = async (storeName: string, allowCached = false) => {
 	storeName = storeName ?? 'state';
-	logger.log("fetchStore ", { storeName, allowCached });
+	logger.info("fetchStore ", { storeName, allowCached });
 	if (allowCached && stores[storeName] !== undefined) {
 		return stores[storeName];
 	}
@@ -45,9 +45,9 @@ const fetchStore = async (storeName: string, allowCached = false) => {
 
 const saveStore = async (storeName: string, value: any) => {
 	storeName = storeName ?? 'state';
-	logger.log("saveStore ", { storeName, value });
+	logger.info("saveStore ", { storeName, value });
 	return new Promise<void>(resolve => {
-		// logger.log("setting registration");
+		logger.verbose("setting registration");
 		chrome.storage.local.set({ [storeName]: value }, () => {
 			stores[storeName] = value;
 			resolve();
@@ -62,7 +62,7 @@ const getCachedStore = (storeName: string) => {
 
 const upsertStore = async (storeName: string, data: any) => {
 	storeName = storeName ?? 'state';
-	logger.log("upsertStore ", { storeName, data });
+	logger.info("upsertStore ", { storeName, data });
 	return new Promise<any>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
 			const store = {
@@ -79,7 +79,7 @@ const upsertStore = async (storeName: string, data: any) => {
 };
 
 chrome.runtime.onInstalled.addListener(() => {
-	logger.log("ChromeExtension: Installed");
+	logger.info("ChromeExtension: Installed");
 	chrome.tabs.query({}, (tabs: any) => {
 		tabs.map((tab: any) => ({ tabId: tab.id, tabUrl: tab.url }))
 			.forEach(({ tabId, tabUrl }: any) => {
@@ -239,7 +239,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 				responseTo: s,
 				origin: 'mysome'
 			});
-			logger.log("Updated registrations ", state.regs);
+			logger.info("Updated registrations ", state.regs);
 		})().then().catch(logger.error);
 		return true;
 	}
@@ -338,7 +338,7 @@ initStore('state').then(() => {
 		stores.state['staging'] = false;
 	}
 	TEST = stores.state ? stores.state['staging'] : null;
-	logger.log("Config: Test ", TEST);
+	logger.info("Config: Test ", TEST);
 });
 
 initStore('platform-requests');

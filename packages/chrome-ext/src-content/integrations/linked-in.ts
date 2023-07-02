@@ -150,7 +150,7 @@ const fetchQRFromImage = async (url: string): Promise<{
 	qr: string | null,
 	connectionError: boolean,
 }> => {
-	logger.log("Getting QR code from url : " + url );
+	logger.info("Getting QR code from url : " + url );
 	if ( !url ) {
 		throw new Error('No url provided');
 	}
@@ -158,7 +158,7 @@ const fetchQRFromImage = async (url: string): Promise<{
 	try {
 		const base = SERVICE_BASE_URL();
 		const validateUrl = `${base}/qr/validate?url=${encodeURIComponent(url)}`;
-		logger.log("Getting QR code for : " + url );
+		logger.info("Getting QR code for : " + url );
 		const qr = await fetch(validateUrl)
 			.then(response => {
 				if (response.status >= 200 && response.status < 300) {
@@ -198,11 +198,11 @@ const verifyProfile = async (profileUserId: string, backgroundUrl: string | null
 	let connectionError = false;
 
 	if ( backgroundUrl === 'default' ) {
-		logger.log("Background is the default and contains no QR.");
+		logger.info("Background is the default and contains no QR.");
 	}
 
 	if ( profilePictureUrl === 'default' || profilePictureUrl === 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' ) {
-		logger.log("Profile picture is the default and contains no QR.");
+		logger.info("Profile picture is the default and contains no QR.");
 	}
 
 	// First see if the background image contains a QR code.
@@ -267,7 +267,7 @@ const ensureWidget = () => {
 
 	const widget = createShieldWidget(nameElement.parentElement, {
 		onClicked: (state: string, proofUrl: string) => {
-			logger.log('Shield clicked', {state, proofUrl});
+			logger.info('Shield clicked', {state, proofUrl});
 			(mysome as any).badgeClickHandler &&
 			(mysome as any).badgeClickHandler({
 				origin: 'shield',
@@ -287,7 +287,7 @@ const ensureWidget = () => {
 (async () => {
 	const staging = (await storage.get("staging", true)) ?? false;
 	TEST = !!staging;
-	logger.log("test ", TEST);
+	logger.info("test ", TEST);
 })().then().catch(logger.error);
 
 const trackProofQR = createTracker<string | null>({
@@ -447,8 +447,8 @@ const createHeartbeat = () => {
 				trackOwnProfileUserId.get() === null,
 			],
 			query: () => {
-				logger.log('ownProfile value : ' + trackOwnProfileUserId.get() );
-				logger.log('ownProfile new Value : ' + profileUserId );
+				logger.info('ownProfile value : ' + trackOwnProfileUserId.get() );
+				logger.info('ownProfile new Value : ' + profileUserId );
 				return profileUserId;
 			},
 		});
@@ -786,7 +786,7 @@ const changeBackgroundTour = {
 					logger.verbose('# 7b');
 					(input as any).files = container.files;
 					input.dispatchEvent(new Event('change'));
-					logger.log("Background image changed");
+					logger.info("Background image changed");
 				}
 
 				logger.verbose('# 8 - Apply');
@@ -794,11 +794,11 @@ const changeBackgroundTour = {
 
 				let notFnd = 0;
 				while ( document.querySelector('footer.image-edit-tool-footer') ) {
-					logger.log('Getting Apply Button');
+					logger.info('Getting Apply Button');
 					const applyButton = Array.prototype.slice.call(document.querySelector('footer.image-edit-tool-footer')?.querySelectorAll('span'))
 						?.filter(x => x.innerText?.indexOf('Apply') >= 0 )[0]
 							?.parentElement;
-					logger.log('Apply Button resolved : ' + (!!applyButton ? 'Yes' : 'No'));
+					logger.info('Apply Button resolved : ' + (!!applyButton ? 'Yes' : 'No'));
 					if ( !applyButton ) {
 						logger.error("Apply button not found.");
 						await sleep(1000);
@@ -807,21 +807,21 @@ const changeBackgroundTour = {
 							tour.endWithError('Failed to change background', 'Please try setting the background manually');
 							return;
 						} else {
-							logger.log("Retrying finding Apply Button");
+							logger.info("Retrying finding Apply Button");
 						}
 						continue;
 					} else {
 						if ( !applyButton ) {
 							logger.error("Error - cannot find apply button.");
 						}
-						logger.log("Clicking Apply button", applyButton);
+						logger.info("Clicking Apply button", applyButton);
 						applyButton?.click();
-						logger.log("Clicked the apply button");
+						logger.info("Clicked the apply button");
 					}
 					let cnt = 0;
 					// wait up to 30 seconds.
 					while ( document.querySelector('footer.image-edit-tool-footer') && cnt++ < 30 ) {
-						logger.log("Waiting for apply to disappear");
+						logger.info("Waiting for apply to disappear");
 						await sleep(1000);
 					}
 				}
@@ -957,11 +957,11 @@ const install = async () => {
 	// 
 	const requestToFetchProfile = (await platformRequests.select('li', 'created', 'fetch-profile')) ?? null;
 	(mysome as any).requests = requestToFetchProfile ?? [];
-	logger.log("requests", (mysome as any).requests);
+	logger.info("requests", (mysome as any).requests);
 
 	// 
 	const regs = await registrations.fetch();
-	logger.log("registrations", regs);
+	logger.info("registrations", regs);
 
 	// 
 	(mysome as any).tours = {
@@ -969,12 +969,12 @@ const install = async () => {
 	};
 
 	tracking.on('ownProfileUserIdObserved', (userId: string) => {
-		logger.log("Own profile name obseved ", userId);
+		logger.info("Own profile name obseved ", userId);
 		mysome.onPlatformObserved(mysome.platform, userId); // when a user has been logging into the platform.
 
 		const reqs = (mysome as any).requests;
 		if ( reqs && reqs.length > 0 ) {
-			logger.log("requests", reqs);
+			logger.info("requests", reqs);
 			const req = reqs[0];
 			platformRequests.removeRequests('li').then(() => {
 				showMessagePopup({
@@ -989,7 +989,7 @@ const install = async () => {
 		}
 
 		const reg = registrations.select('li', userId );
-		logger.log("Own Profile registration: ", reg);
+		logger.info("Own Profile registration: ", reg);
 		if ( reg && reg.step === 5 ) {
 			mysome.createTour('li.finalize');
 		}
@@ -1013,10 +1013,10 @@ const install = async () => {
 		}
 
 		const popups = countPopupsWithClassName('badge-popup');
-		logger.log('popups ', popups);
+		logger.info('popups ', popups);
 		
 		if ( popups > 0 ) {
-			logger.log("ignored showing popup as one other popup is already shown.");
+			logger.info("ignored showing popup as one other popup is already shown.");
 			return;
 		}
 
@@ -1040,7 +1040,7 @@ const install = async () => {
 		const onOwnProfileOrFeed = trackOnOwnProfileOrFeed.get();
 		const ownUserId = trackOwnProfileUserId.get();
 
-		logger.log("Badge clicked", {
+		logger.info("Badge clicked", {
 			ownProfileUserIdbserved: ownUserId,
 			status: profileStatus.get(),
 			u,
@@ -1082,7 +1082,7 @@ const install = async () => {
 
 					if ( step === 5 ) {
 						// Continue the installation process.
-						logger.log("Continue the installation process for LinkedIn: " + ownUserId);
+						logger.info("Continue the installation process for LinkedIn: " + ownUserId);
 
 						mysome.createTour('li.finalize');
 						return;
@@ -1119,7 +1119,7 @@ const install = async () => {
 				if ( !welcomeShown && status === 'not-registered' ) {
 					showWelcomePopup();
 				} else {
-					logger.log('Show status with info ', goto);
+					logger.info('Show status with info ', goto);
 					showMessagePopup({
 						title: 'Your Profile Status',
 						message: statusMessage,
@@ -1156,11 +1156,11 @@ const install = async () => {
 	});
 
 	tracking.on(trackProofQR.changeEventName, (proof: string | 'no-proof' | 'no-connection' | null) => {
-		logger.log('Proof changed : ' + proof);
+		logger.info('Proof changed : ' + proof);
 		const onOwnPageOrFeed = !!tracking.onOwnProfileOrFeed;
 
 		if ( proof && proof !== 'no-connection' && proof !== 'no-proof' ) {
-			logger.log('Proof observed', proof);
+			logger.info('Proof observed', proof);
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get();
 			const name = trackCurrentProfileName.get();
@@ -1179,7 +1179,7 @@ const install = async () => {
 				const {
 					status,
 				} = response ?? {};
-				logger.log("VERIFY Result ", response );
+				logger.info("VERIFY Result ", response );
 				
 				if ( status === 'valid' ) {
 					shield?.setVerified(proof, onOwnPageOrFeed);
@@ -1229,7 +1229,7 @@ const install = async () => {
 	});
 
 	tracking.on(trackUrl.changeEventName, (url: string) => {
-		logger.log("New url : ", url);
+		logger.info("New url : ", url);
 		if ( url.indexOf('/in/') > 0 ) {
 			badge.show();
 		} else if ( url.indexOf('/feed/') > 0 ) {
@@ -1246,7 +1246,7 @@ const install = async () => {
 		// registration.
 		if ( (pathName === '/home' || pathName === '/') && !!document.querySelector('form[data-id="sign-in-form"]') ) {
 			platformRequests.fetch().then(requests => {
-				logger.log("requests", requests);
+				logger.info("requests", requests);
 				const foundReq = requests.find(x => {
 					const deltaTime = ((new Date().getTime() - x.created) / 1000);
 					return x.platform === 'li' &&
@@ -1278,7 +1278,7 @@ const install = async () => {
 	});
 
 	tracking.on(trackProfileUserId.changeEventName, (profileUserId: string | null) => {
-		logger.log("Profile user id changed : ", profileUserId);
+		logger.info("Profile user id changed : ", profileUserId);
 	});
 
 	tracking.on(trackVerifyStatus.changeEventName, (verifyStatus: string | null) => {
@@ -1311,7 +1311,7 @@ const install = async () => {
 			shield.setInitialState();
 		}
 		verifyProfile(profileUserId, backgroundImageUrl, profilePictureUrl).then(({profileUserId, qrResult, connectionError}) => {
-			logger.log('Profile verification result ', {qrResult, connectionError});
+			logger.info('Profile verification result ', {qrResult, connectionError});
 
 			logger.verbose("qrResult" , qrResult);
 			if ( trackProfileUserId.get() === profileUserId ) {
@@ -1335,7 +1335,7 @@ const install = async () => {
 
 	tracking.on(profileStatus.changeEventName, (ps: ProfileStatus) => {
 		const {page, status} = ps;
-		logger.log('Profile status changed ', ps);
+		logger.info('Profile status changed ', ps);
 		if ( status === 'no-connection' ) {
 			// badge.showAttention(false); // Make sure that badge is not shown.
 			return;

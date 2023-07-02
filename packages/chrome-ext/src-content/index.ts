@@ -1,6 +1,6 @@
 import {logger} from '@mysomeid/chrome-ext-shared';
 /* eslint-disable */
-logger.log("MySoMe extension");
+logger.info("MySoMe extension");
 import injectLinkedInSnippet from './integrations/linked-in';
 import injectTestPageSnippet from './integrations/test';
 import injectMySoMeIdAPI from './integrations/mysome-api';
@@ -21,7 +21,7 @@ const platform = detectPlatform();
 (window as any).mysome = mysome;
 
 if ( platform !== null ) {
-	logger.log("Creating message handler");
+	logger.info("Creating message handler");
 	const messageHandler = getMessageHandler();
 	messageHandler.addMessageHandler((data: any) => {
 		const {
@@ -37,7 +37,7 @@ if ( platform !== null ) {
 			break;
 			case 'redirect':
 				if ( payload?.url ) {
-					logger.log("Redirecting url ", {url: payload?.url});
+					logger.info("Redirecting url ", {url: payload?.url});
 					window.location.href = payload.url;
 				} else {
 					logger.error('Redirect requested - but no url given : ', payload);
@@ -46,7 +46,7 @@ if ( platform !== null ) {
 			case 'open-url': 
 			{
 				if ( payload?.url ) {
-					logger.log("Opening url ", {url: payload.url});
+					logger.info("Opening url ", {url: payload.url});
 					window.open(payload.url, '_blank');
 				} else {
 					logger.error('Open url requested - but no url given : ', payload);
@@ -96,7 +96,7 @@ if ( platform !== null ) {
 			logger.info("MySoMeId: Injecting plugin into LinkedIn!");
 			await injectLinkedInSnippet();
 		} else if ( platform === 'test' ) {
-			logger.log("MySoMeId: Injecting plugin into Test page!");
+			logger.info("MySoMeId: Injecting plugin into Test page!");
 			await injectTestPageSnippet();
 		}
 	})().then().catch(logger.error);

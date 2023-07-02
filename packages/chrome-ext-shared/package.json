@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "webpack --config webpack.prod.js",
-    "build:dev": "webpack --config webpack.dev.js"
+    "build:dev": "DEBUG=1 webpack --config webpack.dev.js"
   },
   "browserslist": {
     "production": [

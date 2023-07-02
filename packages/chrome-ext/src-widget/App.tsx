@@ -330,13 +330,13 @@ const App = () => {
 
     // not for me.
     if (to !== 'injected-widget') {
-      logger.log("Ignored message ", msg);
+      logger.info("Ignored message ", msg);
       return;
     }
 
     if (type === 'widget-create') {
       const { id } = payload;
-      logger.log("set widget id " + id);
+      logger.info("set widget id " + id);
       setId(id);
       messageHandler.sendMessage("widget-created", 'content', { id });
     }
