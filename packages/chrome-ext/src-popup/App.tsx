@@ -269,7 +269,7 @@ const App = () => {
     function callback (tab) {
       setTimeout(() => {
         const url = tab?.[0]?.url ?? '';
-        console.log("Resolved URL ", url);
+        logger.verbose("Resolved URL ", url);
         setHasInitUrl(true);
         setUrl(url);
         setIsOnLinkedInForMYSOME(isUrlMatchingRulesForEmbeddedPopup(url));
