@@ -6,12 +6,10 @@ import {
   useContext,
   ReactElement,
   useState,
-  useCallback
+  useCallback,
+  useEffect
 } from 'react';
 
-import {
-  useInterval
-} from 'use-interval';
 import { ProofData } from './use-ccd-context';
 
 type Registration = {
@@ -63,36 +61,49 @@ type MySoMeAPI = {
 
 const ExtensionContext = createContext<ExtensionData>(null);
 
+const getSDK = () => {
+  const mysomeSDKObject = (window as any).mysome as MySoMeAPI;
+  return mysomeSDKObject;
+};
+
 export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) => {
   const [installed, setInstalled] = useState(null);
-  const [tsCreated, setTSCreated] = useState(new Date().getTime());
-  const [mysome, setMySoMeAPI] = useState<MySoMeAPI | null>(null);
+  const [tsCreated] = useState(new Date().getTime());
 
-  // Use interval to detect when/if the plugin installs itself.
-  useInterval(() => {
-    const v = !!(window as any).mysome;
-    if ( !v && (new Date().getTime() - tsCreated < 500) ) {
-      // Wait for a little while to ensure that plugin gets time to be created.
-      return;
-    }
-    if ( v !== installed ) {
-      setInstalled(v);
-      if ( v ) {
-        setMySoMeAPI((window as any).mysome as MySoMeAPI);
+  // Use interval to detect when/if the plugin/mysome SDK has been installed into the page.
+  useEffect(() => {
+    const intervalFunc = setInterval(() => {
+      const mysomeSDKObject = getSDK();
+
+      // Wait for a little while to ensure that extension injects the mysome SDK.
+      if ( !mysomeSDKObject && (new Date().getTime() - tsCreated < 500) ) {
+        return;
       }
-    }
-  }, 100);
+
+      if ( installed && !mysomeSDKObject ) {
+        console.warn("MYSOME SDK object lost");
+      }
+
+      if ( !installed && mysomeSDKObject ) {
+        console.log("MYSOME SDK object aquired");
+        setInstalled(true);
+      }
+    }, 100);
+
+    return () => clearInterval(intervalFunc);
+  }, [installed, tsCreated]);
 
   const setQRUrl = useCallback( (platform: string, profileId: string, url: string) => {
-    if ( !mysome ) {
+    if ( !getSDK() ) {
+      console.error("Cannot find mysome.id extension.");
       return;
     }
-    mysome.sendMessage('background', 'set-proof-info', {
+    getSDK().sendMessage('background', 'set-proof-info', {
       url,
       platform,
       profileId,
     });
-  }, [mysome] );
+  }, [] );
 
   const updateRegistration = useCallback(async (reg: Registration): Promise<boolean> => {
     console.log("Updated registration ", reg);
@@ -104,50 +115,50 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
       console.error(e);
     }
 
-    if ( !mysome ) {
+    if ( !getSDK() ) {
       console.error("Cannot find mysome.id extension.");
       return false;
     }
 
-    await mysome.updateReg(reg);
+    await getSDK().updateReg(reg);
 
-    return !!mysome;
-  }, [mysome]);
+    return !!getSDK();
+  }, []);
 
-  const getRegistrations = async (): Promise<any> => {
-    if ( !mysome ) {
+  const getRegistrations = useCallback(async (): Promise<any> => {
+    if ( !getSDK() ) {
       console.error("Cannot find mysome.id extension.");
       return null;
     }
 
-    const result = await mysome.getRegistrations();
+    const result = await getSDK().getRegistrations();
     return result;
-  };
+  }, []);
 
   const reloadTabs = useCallback(async (args: {contains: string}): Promise<any> => {
-    if ( !mysome ) {
+    if ( !getSDK() ) {
       console.error("Cannot find mysome extension.");
       return null;
     }
 
-    const result = await mysome.reloadTabs(args);
+    const result = await getSDK().reloadTabs(args);
     return result;
-  }, [mysome]);
+  }, []);
 
   const sendMessage = (to: string, type: string, payload: any) => {
-    if ( !mysome ) {
+    if ( !getSDK() ) {
       console.error("Cannot find mysome.id extension.");
       return;
     }
-    mysome.sendMessage(to, type, payload);
+    getSDK().sendMessage(to, type, payload);
   };
  
   const sendMessageWResponse = async (to: string, type: string, payload: any): Promise<any> => {
-    if ( !mysome ) {
+    if ( !getSDK() ) {
       console.error("Cannot find mysome.id extension.");
       return;
     }
-    return mysome.sendMessage(to, type, payload);
+    return getSDK().sendMessage(to, type, payload);
   };
 
   const startRegistration = (platformInfo: {platform: string}) => {
@@ -157,13 +168,12 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     }
 
     (async () => {
-      await mysome.createPlatformRequest(platformInfo?.platform, 'fetch-profile');
+      await getSDK().createPlatformRequest(platformInfo?.platform, 'fetch-profile');
     })();
     
     setTimeout(() => {
       window.location.href = 'https://linkedin.com';
     }, 1000);
-
   };
 
   const openLinkedInSinceRegistrationIsDone = (profilePageUrl: string) => {
@@ -177,65 +187,67 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
 
   const getStoredProofs = useCallback(async (): Promise<ProofMap> => {
     let cnt = 0;
-    while( !mysome && cnt ++ < 3 ) {
+    while( !getSDK() && cnt ++ < 3 ) {
       await new Promise<void>(resolve => setTimeout(resolve, 1000));
     }
-    if ( !mysome ) {
+    if ( !getSDK() ) {
+      console.error("failed to get stored proods, no mysome extension found.");
       return {};
     }
-    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    const proofs = await getSDK().getStateValue('proofs', 'set') ?? {};
     return proofs as ProofMap;     
-  }, [mysome]);
+  }, []);
 
   const getStoredProof = useCallback(async (id: string): Promise<ProofData | null> => {
     let cnt = 0;
-    while( !mysome && cnt ++ < 3 ) {
+    while( !getSDK() && cnt ++ < 3 ) {
       await new Promise<void>(resolve => setTimeout(resolve, 1000));
     }
-    if ( !mysome ) {
+    if ( !getSDK() ) {
+      console.error("Failed to get stored proof - cannot find mysome sdk");
       return null;
     }
-    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    const proofs = await getSDK().getStateValue('proofs', 'set') ?? {};
     const proof = proofs[id] ?? null;
     return proof as ProofMap | null;
-  }, [mysome]);
+  }, []);
 
   const storeProof = useCallback( async (proofData: ProofData) => {
     let cnt = 0;
-    while( !mysome && cnt ++ < 3 ){
+    while( !getSDK() && cnt ++ < 3 ){
       await new Promise<void>(resolve => setTimeout(resolve, 1000));
     }
-    if ( !mysome ) {
+    if ( !getSDK() ) {
+      console.error("Failed to store proof - cannot find mysome sdk");
       return;
     }
     if (proofData.id === undefined) {
       throw new Error('Invalid proof id');
     }
-    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    const proofs = await getSDK().getStateValue('proofs', 'set') ?? {};
     console.log("proofs before ", {proofs});
     proofs[proofData.id] = proofData;
     console.log("proofs after ", {proofs});
-    await mysome.setStateValue('proofs', 'set', proofs);
-  }, [mysome]);
+    await getSDK().setStateValue('proofs', 'set', proofs);
+  }, []);
 
   const updateProofProperty = useCallback(async (id: string, key: string, value: any) => {
     let cnt = 0;
-    while( !mysome && cnt ++ < 3 ){
+    while( !getSDK() && cnt ++ < 3 ){
       await new Promise<void>(resolve => setTimeout(resolve, 1000));
     }
-    if ( !mysome ) {
+    if ( !getSDK() ) {
       return;
     }
-    const proofs = await mysome.getStateValue('proofs', 'set') ?? {};
+    const proofs = await getSDK().getStateValue('proofs', 'set') ?? {};
     const proof = proofs[id] ?? {};
     proof[key] = value;
     proofs[id] = proof;
-    await mysome.setStateValue('proofs', 'set', proofs);
-  }, [mysome]);
+    await getSDK().setStateValue('proofs', 'set', proofs);
+  }, []);
 
   const value: ExtensionData = useMemo(() => ({
     installed,
-    mysome,
     setQRUrl,
     updateRegistration,
     getRegistrations,
@@ -250,7 +262,6 @@ export const ExtensionProvider: FC<{ children: ReactElement }> = ({ children }) 
     reloadTabs,
   }), [
     installed,
-    mysome,
     setQRUrl,
     updateRegistration,
     getRegistrations,

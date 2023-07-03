@@ -180,7 +180,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 		chrome.tabs.query({}, (tabs: any) => {
 			tabs.map((tab: any) => ({ tabId: tab.id, tabUrl: tab.url }))
 				.forEach(({ tabId, tabUrl }: any) => {
-					if (tabUrl.toLowerCase().indexOf(contains?.toLowerCase())) {
+					if (tabUrl.toLowerCase().indexOf(contains?.toLowerCase()) >= 0) {
 						chrome.tabs.reload(tabId);
 					}
 				});
