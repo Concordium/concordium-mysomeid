@@ -316,6 +316,7 @@ const ensureWidget = () => {
 	const staging = (await storage.get("staging", true)) ?? false;
 	TEST = !!staging;
 	logger.info("test ", TEST);
+
 	const uid = await storage.get("uid", true);
 	analytics.setUniqueId(uid);
 })().then().catch(logger.error);
