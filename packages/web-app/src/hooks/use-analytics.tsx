@@ -19,7 +19,12 @@ const AnalyticsContext = React.createContext<AnalyticsContextData>(null);
 
 type AvailableAnalyticsEvents =
 	AnalyticsEvent<'uninstalled'> |
-	AnalyticsEvent<'click-tell-improve'>
+	AnalyticsEvent<'click-tell-improve'> |
+	AnalyticsEvent<'scan-proof-mobile'> |
+	AnalyticsEvent<'create-proof-step', {stepNumber: number}> |
+	AnalyticsEvent<'view-my-proof-desktop'> |
+	AnalyticsEvent<'view-other-proof-desktop'> |
+	AnalyticsEvent<'download-proof-again'>;
 
 const analytics = createAnalytics<AvailableAnalyticsEvents>('web-app-');
 

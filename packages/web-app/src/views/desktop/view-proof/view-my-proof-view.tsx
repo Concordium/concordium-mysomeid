@@ -5,6 +5,8 @@ import { ViewContainer } from "src/components";
 import { Navi } from "src/components/navi";
 import { paperSX } from "src/themes";
 import { ViewProof } from "./view-proof";
+import { useAnalytics } from "src/hooks/use-analytics";
+import { useEffect } from "react";
 
 export const ViewMyProofView = ({ }) => {
     const {
@@ -18,6 +20,12 @@ export const ViewMyProofView = ({ }) => {
     // const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
     const ltmd = useMediaQuery(theme.breakpoints.down('md'));
 
+    const analytics = useAnalytics();
+
+    useEffect(() => {
+      analytics.track({t: 'view-my-proof-desktop'});
+    }, []);
+  
     return (
         <ViewContainer title={'Your Proof'}
             subtitle={<Navi path={[['Home', '/home'], ['Proof']]} />}

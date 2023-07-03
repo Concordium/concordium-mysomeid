@@ -53,7 +53,9 @@ import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader } from './page-4';
 import { useTemplateStore } from './template-store';
 import { ErrorAlert } from 'src/components';
+
 import { useAPI } from 'src/hooks/use-api';
+import { useAnalytics } from 'src/hooks/use-analytics';
 
 type PlatformProfileRepresentationArgs = {
   userData: string;
@@ -137,6 +139,8 @@ export default connect(state => ({
 
   const navigate = useNavigate();
 
+  const analytics = useAnalytics();
+
   const {
     isConnected,
     connect,
@@ -156,6 +160,10 @@ export default connect(state => ({
       return;
     }
   }, [userId, platform, name, statementInfo, proof]);
+
+  useEffect(() => {
+    analytics.track({t: 'create-proof-step', a: {stepNumber: 3}});
+  }, []);
 
   let state = !creatingProof ?
     !isConnected ?

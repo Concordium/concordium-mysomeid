@@ -56,6 +56,7 @@ import {
 import { InstallExtensions } from './install-extensions';
 import { PlatformProfileRepresentation } from './page-3';
 import { useTemplateStore } from './template-store';
+import { useAnalytics } from 'src/hooks/use-analytics';
 
 export { BackgroundEditor };
 
@@ -144,6 +145,12 @@ export default connect(state => ({
 
   const uri = [proofBaseUri, 'v', proofData?.id, encodeURIComponent(proofData?.decryptionKey)].join('/');
   const [editorContentElement, setEditorContentElement] = useState(null);
+
+  const analytics = useAnalytics();
+
+  useEffect(() => {
+    analytics.track({type: 'create-proof-step', options: {stepNumber: 4}});
+  }, []);
 
   useEffect(() => {
     if (!userId || !platform || !name|| !statementInfo) {
