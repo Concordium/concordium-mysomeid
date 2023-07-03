@@ -22,11 +22,23 @@ import {storage} from './utils';
 
 declare var chrome: any;
 
+// Returns true if the url matches a pattern where the popup gets shown embedded into the content
+// of the current page rather than a traditional page.
+const isUrlMatchingRulesForEmbeddedPopup = (url: string): boolean => {
+  return url.includes('linkedin.com') && !/\/\??$/.test(url);
+};
+
+// Returns true if the url matches the mysome website.
+const isUrlOnMYSOME = (url: string, isStaging: boolean) =>
+  url.indexOf('app.mysomeid.dev') >= 0 || url.indexOf('app.testnet.mysome.id') >= 0 || url.indexOf('app.mysome.id') >= 0 || ( isStaging && (url ?? '').indexOf('http://localhost:3000') >= 0);
+
 // When the popup is shown the the current page is linkedin we dont actually show anythign but we just send
 // a message to the page to open up a popup on the page.
 chrome.tabs.query({ active: true, currentWindow: true }, (tab) => {
-  const url = tab?.[0]?.url;
-  if ((url ?? '').indexOf('linkedin.com') >= 0 ) {
+  const url = tab?.[0]?.url ?? '';
+  if ( isUrlMatchingRulesForEmbeddedPopup(url) ) {
+    // Hide the 'native' browser popup and send a message to the 
+    // content to show an embedded popup.
     chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
       const activeTab = tabs[0];
       const message = createMessage('content', 'show-content-widget', {});
@@ -188,7 +200,7 @@ const App = () => {
   const [debugMode, setDebugMode] = useState(false);
   const [settingDebug, setSettingDebug] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
-  const [isOnLinkedIn, setIsOnLinkedIn] = useState<boolean | null>(null);
+  const [isOnLinkedInForMYSOME, setIsOnLinkedInForMYSOME] = useState<boolean | null>(null);
   const [isOnMySOMEUrl, setIsOnMySOMEUrl] = useState<boolean | null>(null);
   const [isStaging, setIsStaging] = useState<boolean | null>(null)
 
@@ -254,19 +266,19 @@ const App = () => {
     }
     function callback (tab) {
       setTimeout(() => {
-        const url = tab?.[0]?.url;
+        const url = tab?.[0]?.url ?? '';
         console.log("Resolved URL ", url);
         setHasInitUrl(true);
-        setUrl(url ?? '');
-        setIsOnLinkedIn((url ?? '').indexOf('linkedin.com') >= 0);
-        setIsOnMySOMEUrl((url ?? '').indexOf('app.mysomeid.dev') >= 0 || (url ?? '').indexOf('app.testnet.mysome.id') >= 0 || (url ?? '').indexOf('app.mysome.id') >= 0 || ( isStaging && (url ?? '').indexOf('http://localhost:3000') >= 0));
+        setUrl(url);
+        setIsOnLinkedInForMYSOME(isUrlMatchingRulesForEmbeddedPopup(url));
+        setIsOnMySOMEUrl(isUrlOnMYSOME(url, !!isStaging));
       }, 1);
     };
     chrome.tabs.query({ active: true, currentWindow: true }, callback);
   }, [hasInitUrl, isStaging]);
 
   const loading = !hasInitStorage || !hasInitUrl;
-  const isOnKnownUrl = isOnLinkedIn || isOnMySOMEUrl;
+  const isOnKnownUrl = isOnLinkedInForMYSOME || isOnMySOMEUrl;
   return (
     <Centered>
       <Box sx={{display: 'flex', flexDirection: 'column', width: '366px', padding: '3px', height: '575px', background: themeSX.colors.panelBG, borderRadius: themeSX.size.s1}}>
