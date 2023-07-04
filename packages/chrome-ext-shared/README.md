@@ -8,7 +8,7 @@ In the project directory, you can run:
 
 ### `yarn build`
 
-Builds the shared libery for production use.
+Builds the shared library for production use.
 
 ### `yarn build:dev`
 
