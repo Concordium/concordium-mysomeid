@@ -11,7 +11,7 @@ Builds all components of the extension and stores it in build.
 
 ## Dependencies
 
-The extension component projects use the shard library chrome-ext-shared which has to be build before the chrome-ext is build.
+The extension component projects use the shard library chrome-ext-shared which has to be built before the chrome-ext is built.
 
 The chrome-ext-shared library is shared as a local yarn mono repository package.
 
