@@ -58,6 +58,7 @@ const analytics = createAnalytics<
 		n: string;
 	}> |
 	AnalyticsEvent<'get-profile-info-shown'> |
+	AnalyticsEvent<'err-register-wrong-account'> |
 	AnalyticsEvent<'err-register-wrong-platform'>
 >('ext-', {p: 'li'});
 
