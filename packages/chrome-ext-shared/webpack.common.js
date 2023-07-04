@@ -6,7 +6,7 @@ const devMode = process.env.NODE_ENV !== 'production';
 
 const opts = {
   'LOG_INFO': ['info', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
-  'LOG_WARN': ['warn', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
+  'LOG_WARN': ['warn', 'info', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
   'LOG_VERBOSE': ['verbose', 'debug'].indexOf(process.env.LOG_LEVEL) >= 0 || process.env.DEBUG,
 };
 
