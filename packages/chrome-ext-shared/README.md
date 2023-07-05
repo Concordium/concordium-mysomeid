@@ -12,15 +12,15 @@ Builds the shared library for production use.
 
 ### `yarn build:dev`
 
-Builds the shared library with source mapping, development level code minification etc.
+Builds the shared library with source mapping, development level code minification, etc.
 
 ## Configuration
 
-The shared library can be build with diffirent configuraion.
+The shared library can be built with diffirent configuration.
 
 ### Logger
 
-The logger component can be build with diffirent log levels enabled this is done by setting the environment variable LOG_LEVEL at compilation time.
+The logger component can be built with different log levels enabled this is done by setting the environment variable LOG_LEVEL at compilation time.
 
 Anything but errors are disabled unless for development purposes.
 
@@ -35,4 +35,3 @@ Example:
 
 LOG_LEVEL="debug" yarn build
 ```
-
