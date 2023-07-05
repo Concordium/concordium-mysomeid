@@ -1,3 +1,4 @@
+import { logger } from '@mysomeid/chrome-ext-shared';
 
 import { getMessageHandler } from './content-messaging';
 
@@ -19,7 +20,7 @@ export const countPopupsWithClassName = (className: string): number => {
 
 export const createPopup = (src: string, route: string = '#/home', options?: any, className=''): any => {
 	if (numPopups > 0) {
-		console.error("Showing more than one popup.");
+		logger.error("Showing more than one popup.");
 	}
 	numPopups++;
 	const {
@@ -48,7 +49,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 		});
 
 		const url = response.payload.url + route;
-		console.log("url ", url);
+		logger.info("url ", url);
 
 		const e = document.createElement('div');
 		// let destroyed = false;  
@@ -75,7 +76,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 		const overlayClicked = (e: any) => {
 			if (!closeOnBgClick)
 				return;
-			console.log("Overlay clicked");
+			logger.info("Overlay clicked");
 			mysome.widgets[id].destroy();
 		};
 
@@ -87,7 +88,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 		let interval: any | undefined;
 		interval = setInterval(() => {
 			if (cnt++ > 30) {
-				console.error('Timed out opening window - this happens if you close the popup before its fully shown.');
+				logger.error('Timed out opening window - this happens if you close the popup before its fully shown.');
 				clearInterval(interval);
 				return;
 			}
@@ -106,7 +107,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 			numPopups--;
 			const parent = e.parentElement as HTMLElement;
 			if (!parent) {
-				console.error("no parent element of widget.");
+				logger.error("no parent element of widget.");
 			}
 			overlay?.removeEventListener("click", overlayClicked);
 			parent?.removeChild(e);
@@ -115,7 +116,7 @@ export const createPopup = (src: string, route: string = '#/home', options?: any
 			}
 		};
 		mysome.widgets[id].setCreated = () => {
-			console.log("widget now created");
+			logger.info("widget now created");
 			created = true;
 			mysome.widgets[id].created = true;
 			mysome.widgets[id].creating = false;

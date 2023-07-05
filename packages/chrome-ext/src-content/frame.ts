@@ -1,6 +1,7 @@
 import {
-	logger,
-	verbose,
+	logger
+} from '@mysomeid/chrome-ext-shared';
+import {
 	utf8_to_b64,
 	// isOnLinkedInProfileUrl,
 	getPlatform,
@@ -22,19 +23,8 @@ export const createFrameWidget = (url: string): FrameWidget => {
 	let created = false;
 	let setup = false;
 
-	const iframeContent = url; /* "data:text/html;base64," + utf8_to_b64(`
-		<head>
-			<script type="text/javascript">
-				console.log("iframe content");
-			</script>
-		</head>
-		<body>
-			<div>
-				sadasdsa
-			</div>
-		</body>
-	`);*/
-	
+	const iframeContent = url;
+
 	if ( !document.getElementById("mysome-frame-root") ) {
 		const elem = document.createElement('div');
 		elem.id = "mysome-frame-root";

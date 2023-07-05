@@ -1,4 +1,4 @@
-// declare var chrome: any;
+import {logger} from '@mysomeid/chrome-ext-shared';
 
 import {
 	getWebAppBaseUrl 
@@ -42,28 +42,6 @@ export async function traverseDomAllWithTimeout(path: string, timeout: number, i
 	return e;
 }
 
-export const verbose = (s: string, ...rest: any[] ) => {
-	console.log('MySoMe: VERBOSE:', ...[s, ...rest]);
-};
-
-export const logger = {
-	info: (s: string, ...rest: any[] ) => {
-		console.log('MySoMe:', ...[s, ...rest]);
-	},
-	// info: (s: string, ...rest: any[] ) => {},
-	error: (s: string, ...rest: any[] ) => {
-		console.error('MySoMe:', ...[s, ...rest]);
-	},
-	// error: (s: string, ...rest: any[] ) => {},
-	verbose: (s: string, ...rest: any[] ) => {
-		console.log('MySoMe:', ...[s, ...rest]);
-	},
-	todo: (s: string, ...rest: any[] ) => {
-		console.log('TODO:', ...[s, ...rest]);
-	},
-	// verbose: (s: string, ...rest: any[] ) => {},
-};
-
 export function utf8_to_b64(str: string) {
 	return window.btoa(unescape(encodeURIComponent(str)));
 }
@@ -105,7 +83,7 @@ export const getUrlToCreateProof = (platform: 'li' | 'test' | null = 'li') => {
 			return;
 		}
 
-		verbose("username to create proof with ", u);
+		logger.verbose("username to create proof with ", u);
 		const data = encodeURIComponent(utf8_to_b64(JSON.stringify({
 			u,
 			p,
@@ -157,46 +135,3 @@ export const onOwnLinkedInProfileOrFeedUrl = () => {
 	const ok = onFeed || (onProfilePage && foundEditIntroElement);
 	return ok;
 };
-
-/* export const storage = new (class {
-	state: any = null;
-
-	async init() {
-		if ( this.state !== null ) {
-			console.error("Alreadty initialised");
-			return;
-		}
-		return new Promise<void>(resolve => {
-			chrome.runtime.sendMessage({method: "get-state"}, ({state}: any) => {
-				this.state = state;
-				resolve();
-			});
-		});
-	}
-
-	async set(key: string, value: any) {
-		return new Promise<void>(resolve => {
-			chrome.runtime.sendMessage({method: "set-state", args: {key, value}}, () => {
-				this.state = {
-					...(this.state ?? {}),
-					[key]: value,
-				};
-				resolve();
-			});
-		});
-	}
-
-	async get(key: string): Promise<any> {
-		return new Promise<void>(resolve => {
-			if ( this.state === null ) {
-				this.init().then(() => {
-					resolve(this.state[key]);
-				});
-			} else {
-				resolve(this.state[key]);
-			}
-		});
-	}
-
-});
-*/

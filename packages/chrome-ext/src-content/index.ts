@@ -1,11 +1,11 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
 /* eslint-disable */
-console.log("MySoMe extension");
+logger.info("MySoMe extension");
 import injectLinkedInSnippet from './integrations/linked-in';
 import injectTestPageSnippet from './integrations/test';
 import injectMySoMeIdAPI from './integrations/mysome-api';
 import {
 	detectPlatform,
-	logger,
 	storage,
 } from './utils';
 import {
@@ -21,7 +21,7 @@ const platform = detectPlatform();
 (window as any).mysome = mysome;
 
 if ( platform !== null ) {
-	console.log("Creating message handler");
+	logger.info("Creating message handler");
 	const messageHandler = getMessageHandler();
 	messageHandler.addMessageHandler((data: any) => {
 		const {
@@ -37,19 +37,19 @@ if ( platform !== null ) {
 			break;
 			case 'redirect':
 				if ( payload?.url ) {
-					console.log("Redirecting url ", {url: payload?.url});
+					logger.info("Redirecting url ", {url: payload?.url});
 					window.location.href = payload.url;
 				} else {
-					console.error('Redirect requested - but no url given : ', payload);
+					logger.error('Redirect requested - but no url given : ', payload);
 				}
 			break;
 			case 'open-url': 
 			{
 				if ( payload?.url ) {
-					console.log("Opening url ", {url: payload.url});
+					logger.info("Opening url ", {url: payload.url});
 					window.open(payload.url, '_blank');
 				} else {
-					console.error('Open url requested - but no url given : ', payload);
+					logger.error('Open url requested - but no url given : ', payload);
 				}
 			}
 			break;
@@ -61,7 +61,7 @@ if ( platform !== null ) {
 					result,
 				} = payload;
 				if ( !mysome.widgets[id]  ) {
-					console.error("Error finding widget with id " + id );
+					logger.error("Error finding widget with id " + id );
 					return;
 				};
 				mysome.widgets[id].onResult &&
@@ -76,7 +76,7 @@ if ( platform !== null ) {
 					id
 				} = payload;
 				if ( !mysome.widgets[id]  ) {
-					console.error("No widget exists with : " + id);
+					logger.error("No widget exists with : " + id);
 					return;
 				};
 				mysome.widgets[id].setCreated();
@@ -96,10 +96,10 @@ if ( platform !== null ) {
 			logger.info("MySoMeId: Injecting plugin into LinkedIn!");
 			await injectLinkedInSnippet();
 		} else if ( platform === 'test' ) {
-			logger.log("MySoMeId: Injecting plugin into Test page!");
+			logger.info("MySoMeId: Injecting plugin into Test page!");
 			await injectTestPageSnippet();
 		}
-	})().then().catch(console.error);
+	})().then().catch(logger.error);
 }
 
 

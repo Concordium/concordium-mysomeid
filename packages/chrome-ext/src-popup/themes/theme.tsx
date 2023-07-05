@@ -38,8 +38,6 @@ const themeValues = {
   switchBg: "#FCFCFC",
 };
 
-// console.log('fontFaces ', fontFaces);
-
 export const appTheme = responsiveFontSizes(
   createTheme(
     {

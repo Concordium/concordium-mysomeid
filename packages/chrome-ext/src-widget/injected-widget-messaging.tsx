@@ -1,3 +1,4 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
 
 let messageHandler: {
     sendMessage: (type: string, to: 'content' | 'injected' | 'injected-widget', payload: any) => void;
@@ -15,10 +16,10 @@ export function createWidgetMessageHandler(fn: (e: any) => void) {
 
     const onMessage = (msg: any) => {
         const data = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
-        console.log('Injected Widget: onMessage', data);
+        logger.info('Injected Widget: onMessage', data);
                 
         if ( !data || data.origin !== 'mysome' ) {
-            console.log('Injected Widget: onMessage - ignored its not a mysomeid message');
+            logger.info('Injected Widget: onMessage - ignored its not a mysomeid message');
             return;
         }
 
@@ -26,7 +27,6 @@ export function createWidgetMessageHandler(fn: (e: any) => void) {
         fn(data);
     };
 
-    // console.log("subscribing to messages");
     window.addEventListener("message", onMessage, false);
 
     const sendMessage = (type: string, to: 'content' | 'injected' | 'injected-widget', payload: any) => {
@@ -39,7 +39,7 @@ export function createWidgetMessageHandler(fn: (e: any) => void) {
             payload,
             origin: 'mysome',
         };
-        console.log("Widget: Sending message", msg);
+        logger.info("Widget: Sending message", msg);
 
         if ( to === 'injected-widget' ) { // For testing purposes.
             setTimeout(() => {

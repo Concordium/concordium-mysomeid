@@ -1,7 +1,6 @@
 import {
 	logger,
-	// verbose,
-} from './utils';
+} from '@mysomeid/chrome-ext-shared';
 
 export type ShieldWidget = {
 	elements: Record<string, HTMLElement>;
@@ -25,13 +24,7 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 		const check = document.getElementById('mysome-shield-check');
 		const tooltip = document.getElementById('mysome-shield-tooltip');
 		const exclaim = document.getElementById('mysome-shield-exclaim');
-		/*console.log({
-			container,
-			shield,
-			dots,
-			check,
-			tooltip,
-		});*/
+
 		if ( !container || !dots || !shield || !check || !tooltip || !exclaim ) {
 			throw new Error('mysomeid: Failed to inject the mysome.id extension to profile page');
 		}

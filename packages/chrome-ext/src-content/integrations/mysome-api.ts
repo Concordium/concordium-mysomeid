@@ -1,9 +1,11 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
+
 declare var chrome: any;
 
 let apiCreated = false;
 
 const fnc = () => {
-	console.log("Injecting MySoMe API");
+	logger.info("Injecting MySoMe API");
 	if ( apiCreated ) {
 		throw new Error('API already created');
 	}

@@ -1,3 +1,5 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
+
 declare var chrome: any;
 
 export async function traverseDomWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
@@ -37,28 +39,6 @@ export async function traverseDomAllWithTimeout(path: string, timeout: number, i
 	}
 	return e;
 }
-
-export const verbose = (s: string, ...rest: any[] ) => {
-	console.log('MySoMe: VERBOSE:', ...[s, ...rest]);
-};
-
-export const logger = {
-	info: (s: string, ...rest: any[] ) => {
-		console.log('MySoMe:', ...[s, ...rest]);
-	},
-	// info: (s: string, ...rest: any[] ) => {},
-	error: (s: string, ...rest: any[] ) => {
-		console.error('MySoMe:', ...[s, ...rest]);
-	},
-	// error: (s: string, ...rest: any[] ) => {},
-	verbose: (s: string, ...rest: any[] ) => {
-		console.log('MySoMe:', ...[s, ...rest]);
-	},
-	todo: (s: string, ...rest: any[] ) => {
-		console.log('TODO:', ...[s, ...rest]);
-	},
-	// verbose: (s: string, ...rest: any[] ) => {},
-};
 
 export function utf8_to_b64(str: string) {
 	return window.btoa(unescape(encodeURIComponent(str)));
@@ -146,11 +126,11 @@ export const storage = new (class {
 
 	async init() {
 		if ( !chrome?.runtime?.sendMessage ) {
-			console.error("Not running as chrome extension - ignoring init storage.");
+			logger.error("Not running as chrome extension - ignoring init storage.");
 			return;
 		}
 		if ( this.state !== null ) {
-			console.error("Alreadty initialised");
+			logger.error("Alreadty initialised");
 			return;
 		}
 		return new Promise<void>(resolve => {

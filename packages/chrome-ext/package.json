@@ -11,6 +11,7 @@
     "@mui/styles": "^5.9.3",
     "@mui/x-data-grid": "^5.7.0",
     "@mui/x-date-pickers": "^5.0.0-beta.1",
+    "@mysomeid/chrome-ext-shared": "*",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -30,8 +31,7 @@
     "react-scripts": "5.0.1",
     "svg-inline-react": "^3.2.1",
     "typescript": "^4.9.3",
-    "web-vitals": "^2.1.4",
-    "@mysomeid/chrome-ext-shared": "*"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "nodemon --watch 'src/**/*' -e 'tsx,ts,js' --exec yarn build",
@@ -42,7 +42,7 @@
     "build:popup": "INLINE_RUNTIME_CHUNK=false PUBLIC_URL=/popup/ react-app-rewired build",
     "build:content": "webpack --config webpack.content.config.js",
     "build:widget": "webpack --config webpack.widget.config.js",
-    "build:background": "tsc --project tsconfig-background.json",
+    "build:background": "webpack --config webpack.background.config.js",
     "build:injected": "webpack --config webpack.injected.config.js",
     "watch:widget": "nodemon --watch src-widget/**/* -e 'tsx,ts,js' --exec yarn build:widget",
     "test": "react-app-rewired test",
@@ -73,6 +73,7 @@
     "@effortlessmotion/html-webpack-inline-source-plugin": "^1.0.3",
     "@svgr/webpack": "^6.5.1",
     "@types/crypto-js": "^4.1.1",
+    "babel-loader": "^9.1.2",
     "base64-inline-loader": "^2.0.1",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.0",

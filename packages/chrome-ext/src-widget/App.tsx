@@ -1,3 +1,4 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
 /* eslint-disable react-hooks/rules-of-hooks */
 import React, { useCallback, useState } from "react";
 import {
@@ -329,13 +330,13 @@ const App = () => {
 
     // not for me.
     if (to !== 'injected-widget') {
-      console.log("Ignored message ", msg);
+      logger.info("Ignored message ", msg);
       return;
     }
 
     if (type === 'widget-create') {
       const { id } = payload;
-      console.log("set widget id " + id);
+      logger.info("set widget id " + id);
       setId(id);
       messageHandler.sendMessage("widget-created", 'content', { id });
     }

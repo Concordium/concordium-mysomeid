@@ -1,4 +1,6 @@
-console.log("Installing MySoMeId Injected.");
+import {logger} from '@mysomeid/chrome-ext-shared';
+
+logger.info("Installing MySoMeId Injected.");
 
 type MessageTypes = 'show-popup' | 'create-tour' | 'reload-tabs' | 'create-badge' | 'get-state' | 'set-state' | 'update-registration' | 'create-popup' | 'widget-create' | 'get-url';
 type ToTypes = 'content' | 'popup' | 'background' | 'injected-widget';
@@ -7,7 +9,7 @@ const messageContexts: Record<number, any> = {};
 
 class InjectedMessageHandler {
   constructor() {
-    console.log("InjectedWidget: subscribe to messages");
+    logger.info("InjectedWidget: subscribe to messages");
     window.addEventListener('message', this.onMessage);
   }
 
@@ -34,7 +36,7 @@ class InjectedMessageHandler {
       }
 
       if ( !iframe?.contentWindow ) {
-        console.error('No iframe content window for iframe #' + id );
+        logger.error('No iframe content window for iframe #' + id );
       }
 
       target = iframe?.contentWindow;
@@ -50,8 +52,6 @@ class InjectedMessageHandler {
       origin: 'mysome',
       payload,
     });
-
-    // console.log("sending ", data);
 
     const resolvers: ((msg: any) => void)[] = [];
     messageContexts[serial] = {
@@ -72,7 +72,6 @@ class InjectedMessageHandler {
   };
 
   onMessage = (message: any) => {
-    // console.log("Injected: onMessage" , msg);
     if ( message?.data?.origin !== 'mysome' ) {
       return;
     }
@@ -88,14 +87,14 @@ class InjectedMessageHandler {
       payload
     } = data;
 
-    console.log("Injected: message ", data);
+    logger.info("Injected: message ", data);
 
     if ( from === 'injected' ) { // Dont process message from self!
       return;
     }
 
     if ( to === 'background' ) {
-      console.log("Injected: forwarding message (routing through content) ", data);
+      logger.info("Injected: forwarding message (routing through content) ", data);
 
       // Route to content in order for content to send to background.
       window.postMessage({
@@ -111,7 +110,7 @@ class InjectedMessageHandler {
     }
 
     if ( to !== 'injected' ) {
-      console.log("Injected: ignored message ", data);
+      logger.info("Injected: ignored message ", data);
       return;
     }
     
@@ -126,11 +125,11 @@ class InjectedMessageHandler {
     }
 
     if (type === 'console.log') {
-      console.log(payload.text, ...(payload?.more ?? {}));
+      logger.info(payload.text, ...(payload?.more ?? {}));
       return;
     }
     else if (type === 'console.error') {
-      console.error(payload.text, ...(payload?.more ?? {}));
+      logger.error(payload.text, ...(payload?.more ?? {}));
       return;
     } else if ( type === 'redirect' ) {
       const {
@@ -186,13 +185,13 @@ const setStateValue = async (store: string, key: string, value: any): Promise<an
 const getPlatformRequests = async () => {
   const response = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'platform-requests'});
   const requests = response?.store?.array ?? [];
-  console.log("getPlatform requests (state) ", requests );
+  logger.info("getPlatform requests (state) ", requests );
   return requests?.store?.array ?? [];
 };
 
 const createPlatformRequest = async (platform: string, requestType: string) => {
   const response = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'platform-requests' });
-  console.log("createPlatformRequest requests (before adding) ", response?.store?.array );
+  logger.info("createPlatformRequest requests (before adding) ", response?.store?.array );
   const value = [
     ...(response?.store?.array ?? []),
     {
@@ -207,9 +206,9 @@ const createPlatformRequest = async (platform: string, requestType: string) => {
 };
 
 const getRegistrations = async () => {
-  console.log("getRegistrations");
+  logger.info("getRegistrations");
   const state = await messageHandler.sendMessageWResponse("background", "get-state", {store: 'state'});
-  console.log("getRegistrations return ", {state} );
+  logger.info("getRegistrations return ", {state} );
   return state?.state?.['regs'] ?? null;
 };
 

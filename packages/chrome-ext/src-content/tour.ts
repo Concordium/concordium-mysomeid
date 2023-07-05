@@ -1,10 +1,11 @@
 import {
-	logger,
+	logger
+} from '@mysomeid/chrome-ext-shared';
 
-} from './utils';
 import {
 	mysome
 } from './root';
+
 import {
 	showMessagePopup
 } from './popup';
@@ -106,7 +107,7 @@ export const createTourWidget = (): TourWidget => {
 	let target: HTMLElement | null = null;
 	const setTarget = (element: HTMLElement): void => {
 		target = element;
-		console.log("set target" , target );
+		logger.info("set target" , target );
 	};
 
 	const maskArea = {
@@ -117,7 +118,7 @@ export const createTourWidget = (): TourWidget => {
 	};
 
 	const update = () => {
-		// console.log("update ");
+		// logger.log("update ");
 		if ( target ) {
 			const domRect: DOMRect = target.getBoundingClientRect();	
 			maskArea.x = domRect.x;	
@@ -264,7 +265,7 @@ export const createTour = (type: string): void => {
 		type,
 		cancel: () => {
 			context.deactivate &&
-				context.deactivate((mysome as any).tour).then().catch(console.error);			
+				context.deactivate((mysome as any).tour).then().catch(logger.error);			
 			onTourCancel((mysome as any).tour);
 			onTourDone((mysome as any).tour);
 			context = null;
@@ -272,7 +273,7 @@ export const createTour = (type: string): void => {
 		},
 		done: () => {
 			context.deactivate &&
-				context.deactivate((mysome as any).tour).then().catch(console.error);			
+				context.deactivate((mysome as any).tour).then().catch(logger.error);			
 			onTourDone((mysome as any).tour);
 			context = null;
 			(mysome as any).tour = null;
@@ -286,16 +287,16 @@ export const createTour = (type: string): void => {
 		endWithError: (title: string, message: string) => {
 			try {
 				context.deactivate &&
- 					context.deactivate((mysome as any).tour).then().catch(console.error);			
+ 					context.deactivate((mysome as any).tour).then().catch(logger.error);			
 				onTourDone((mysome as any).tour);
 				context = null;
 			} catch(e) {
-				console.error(e);
+				logger.error(e);
 			}
 			try {
 				onTourError((mysome as any).tour);
 			} catch(e) {
-				console.error(e);
+				logger.error(e);
 			}
 			(mysome as any).tour = null;
 			showMessagePopup({title, message});
@@ -304,13 +305,13 @@ export const createTour = (type: string): void => {
 	onTourStart((mysome as any).tour);
 	context.activate &&
 		context.activate((mysome as any).tour).then().catch((e: any) => {
-			console.error(e);
+			logger.error(e);
 			context?.onActivateException((mysome as any).tour);
 		});
 	let next: any;
 	context.next = next = () => {
 		context.deactivate &&
-			context.deactivate((mysome as any).tour).then().catch(console.error);
+			context.deactivate((mysome as any).tour).then().catch(logger.error);
 		if ( ++step >= steps.length) {
 			onTourDone((mysome as any).tour);
 			context = null;
@@ -321,7 +322,7 @@ export const createTour = (type: string): void => {
 			(mysome as any).tour.step = step;
 			context.activate &&
 				context.activate((mysome as any).tour).then().catch((e: any) => {
-					console.error(e);
+					logger.error(e);
 					context?.onActivateException((mysome as any).tour);
 				});
 		}		

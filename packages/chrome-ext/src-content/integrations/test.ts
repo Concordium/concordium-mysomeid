@@ -1,6 +1,6 @@
 import {
 	logger,
-} from '../utils';
+} from '@mysomeid/chrome-ext-shared';
 
 import {
 	createRootWidget,

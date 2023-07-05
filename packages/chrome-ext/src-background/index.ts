@@ -1,7 +1,8 @@
+import {logger} from '@mysomeid/chrome-ext-shared';
+
 declare var chrome: any;
 
 let TEST = false;
-let verbose = false;
 
 const SERVICE_BASE_URL = (ver: 'v1' | 'v2' = 'v1') => (TEST ? 'http://0.0.0.0:8080/' : `https://api.mysomeid.dev/`) + ver;
 
@@ -9,12 +10,12 @@ const stores: Record<string, any> = {};
 
 const initStore = async (storeName: string): Promise<void> => {
 	storeName = storeName ?? 'state';
-	console.log("initStore ", { storeName });
+	logger.info("initStore ", { storeName });
 	return new Promise<void>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
-			console.log(`Init ${storeName} store`, result?.[storeName]);
+			logger.info(`Init ${storeName} store`, result?.[storeName]);
 			if (!result?.[storeName]) {
-				console.log("Creating empty store");
+				logger.info("Creating empty store");
 			}
 			stores[storeName] = result?.[storeName] ?? {};
 			resolve();
@@ -24,7 +25,7 @@ const initStore = async (storeName: string): Promise<void> => {
 
 const fetchStore = async (storeName: string, allowCached = false) => {
 	storeName = storeName ?? 'state';
-	console.log("fetchStore ", { storeName, allowCached });
+	logger.info("fetchStore ", { storeName, allowCached });
 	if (allowCached && stores[storeName] !== undefined) {
 		return stores[storeName];
 	}
@@ -44,9 +45,9 @@ const fetchStore = async (storeName: string, allowCached = false) => {
 
 const saveStore = async (storeName: string, value: any) => {
 	storeName = storeName ?? 'state';
-	console.log("saveStore ", { storeName, value });
+	logger.info("saveStore ", { storeName, value });
 	return new Promise<void>(resolve => {
-		// console.log("setting registration");
+		logger.verbose("setting registration");
 		chrome.storage.local.set({ [storeName]: value }, () => {
 			stores[storeName] = value;
 			resolve();
@@ -61,7 +62,7 @@ const getCachedStore = (storeName: string) => {
 
 const upsertStore = async (storeName: string, data: any) => {
 	storeName = storeName ?? 'state';
-	console.log("upsertStore ", { storeName, data });
+	logger.info("upsertStore ", { storeName, data });
 	return new Promise<any>(resolve => {
 		chrome.storage.local.get(storeName, (result: any) => {
 			const store = {
@@ -78,7 +79,7 @@ const upsertStore = async (storeName: string, data: any) => {
 };
 
 chrome.runtime.onInstalled.addListener(() => {
-	console.log("ChromeExtension: Installed");
+	logger.info("ChromeExtension: Installed");
 	chrome.tabs.query({}, (tabs: any) => {
 		tabs.map((tab: any) => ({ tabId: tab.id, tabUrl: tab.url }))
 			.forEach(({ tabId, tabUrl }: any) => {
@@ -93,11 +94,11 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImpl: (what: any) => void) => {
 	const sendResponse: (what: any) => void = (what: any) => {
-		verbose && console.log("Sending message ", what);
+		logger.verbose("Sending message ", what);
 		return sendResponseImpl(what);
 	};
 
-	verbose && console.log("onMessage", {
+	logger.verbose("onMessage", {
 		request,
 		sender,
 		sendResponse,
@@ -122,7 +123,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 	};
 
 	const sendAck = () => {
-		verbose && console.log('send ack');
+		logger.verbose('send ack');
 		sendResponse({});
 	};
 
@@ -237,15 +238,15 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 				responseTo: s,
 				origin: 'mysome'
 			});
-			console.log("Updated registrations ", state.regs);
-		})().then().catch(console.error);
+			logger.info("Updated registrations ", state.regs);
+		})().then().catch(logger.error);
 		return true;
 	}
 
 	else if (type === "get-url") {
 		const file = request?.payload?.file ?? '';
 		if (!file) {
-			console.error("No file given");
+			logger.error("No file given");
 			sendErrorResponse('No file given');
 			return;
 		}
@@ -253,8 +254,8 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 		let url: string | undefined;
 		try {
 			url = chrome.runtime.getURL(file);
-		} catch (e) {
-			console.error(e);
+		} catch (err) {
+			logger.error(err);
 		}
 
 		const payload = {
@@ -326,7 +327,7 @@ chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImp
 		return true;
 
 	} else {
-		console.warn("Sending default not recognised ack : " + type);
+		logger.warn("Sending default not recognised ack : " + type);
 		sendResponse({});
 	}
 });
@@ -336,7 +337,7 @@ initStore('state').then(() => {
 		stores.state['staging'] = false;
 	}
 	TEST = stores.state ? stores.state['staging'] : null;
-	console.log("Config: Test ", TEST);
+	logger.info("Config: Test ", TEST);
 });
 
 initStore('platform-requests');
