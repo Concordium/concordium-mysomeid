@@ -81,12 +81,17 @@ export function b64_to_utf8(str: string) {
 }
 
 export const isOnLinkedInProfileUrl = () => {
-	const ok = window.location.host.indexOf("linkedin.com") >= 0 && window.location.href.indexOf("/in/") >= 0;
+	const ok = window.location.host.indexOf("linkedin.com") >= 0 &&
+		window.location.href.indexOf("/in/") >= 0 &&
+		window.location.href.indexOf('linkedin.com/authwall') === -1;
 	return ok;
 };
 
 export const isOnLinkedInFeedUrl = () => {
-	const ok = window.location.host.indexOf("linkedin.com") >= 0 && window.location.href.indexOf("/feed/") >= 0;
+	const ok = window.location.host.indexOf("linkedin.com") >= 0 &&
+		window.location.href.indexOf("/feed/") >= 0 &&
+		window.location.href.indexOf("/update/") === -1 &&
+		window.location.href.indexOf('linkedin.com/authwall') === -1;
 	return ok;
 }
 
