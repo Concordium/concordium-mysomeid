@@ -25,7 +25,11 @@ declare var chrome: any;
 // Returns true if the url matches a pattern where the popup gets shown embedded into the content
 // of the current page rather than a traditional page.
 const isUrlMatchingRulesForEmbeddedPopup = (url: string): boolean => {
-  return url.includes('linkedin.com') && !/\/\??$/.test(url);
+  return (url.indexOf('linkedin.com/feed') >= 0 || // show embedded popups for own feed
+    url.indexOf('linkedin.com/in/') >= 0) && // show embedded popup for profiles such  as linkedin.com/in/XXX
+    url.indexOf('linkedin.com/feed/update') === -1 && // do NOT show for updates on feed for other people.
+    url.indexOf('linkedin.com/authwall') === -1 && // Authwall url may contain the feed or profile url so need to add it here as an exception.
+    url.indexOf('https://www.linkedin.com/?') === -1; // Do not show for home, some parameters look like it can contain redirect urls such as the profile url.
 };
 
 // Returns true if the url matches the mysome website.
