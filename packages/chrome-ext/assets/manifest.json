@@ -2,7 +2,7 @@
   "short_name": "mysome.id",
   "name": "mysome.id",
   "description": "Validate the authenticity of your social media profiles with the mysome.id browser extension.",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "manifest_version": 3,
 
   "content_scripts": [
