@@ -876,6 +876,40 @@ function showNotVerifiedPopup() {
 	storage.set("content-welcome-shown", true).then(() => {}).catch(logger.error);
 }
 
+/**
+ * Returns true if the url is a percentage encoded url. Needed to ensure that we dont pass
+ * already percentage encoded urls as the mysome backend will not do more than one percentage
+ * decoding then a uri component is decoded.
+ *
+ * See: https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
+ */
+const isProofUrlKeyComponentValid = (urlString: string): boolean => {
+	try {
+		const url = new URL(urlString); // throws if url is invalid.
+		const path = url.pathname.split('/').filter(x => !!x);
+		const keyComponent = path?.[1] ?? null;
+		if ( !keyComponent ) {
+			logger.error('Url contained no key', urlString);
+			return false;
+		}
+
+		// Since base64 can contain a / character we need to decode
+		// the component to test it.
+		const decodedKeyComponent = decodeURIComponent(keyComponent);
+
+		const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+		if ( !base64Regex.test(decodedKeyComponent) ) {
+			logger.error('Url contained no base64 encoded key', urlString);
+			return false;
+		}
+
+		return true;
+	} catch(e) {
+		logger.warn("Attempting to decode url failed", e);
+		return false;
+	}
+}
+
 const validateProofWithProfile = async ({
 	name,
 	proofUrl,
@@ -887,7 +921,10 @@ const validateProofWithProfile = async ({
 	userData: string;
 	platform: 'li';
 }): Promise<{status: string | null}> => {
-	proofUrl = encodeURIComponent(proofUrl);
+	if ( isProofUrlKeyComponentValid(proofUrl) ) {
+		logger.error('Proof is invalid', proofUrl);
+		throw new Error('Proof is invalid');
+	}
 	name = encodeURIComponent(name);
 	userData = encodeURIComponent(userData);
 	const url =
@@ -1125,7 +1162,6 @@ const install = async () => {
 						...goto,
 					});
 				}
-
 	
 			} else if ( !welcomeShown ) {
 				showWelcomePopup();
@@ -1161,7 +1197,6 @@ const install = async () => {
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get() ?? '';
 			const name = trackCurrentProfileName.get() ?? '';
-
 			validateProofWithProfile({
 				name,
 				proofUrl: state.proofUrl,
