@@ -877,7 +877,7 @@ function showNotVerifiedPopup() {
 }
 
 /**
- * Returns true if the url is a percentage encoded url. Needed to ensure that we dont pass
+ * Returns true if the url is a percentage encoded url. Needed to ensure that we don't pass
  * already percentage encoded urls as the mysome backend will not do more than one percentage
  * decoding then a uri component is decoded.
  *
