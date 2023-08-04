@@ -2,13 +2,13 @@ import {logger} from '@mysomeid/chrome-ext-shared';
 
 import {
 	getMessageHandler
-} from './content-messaging';
+} from '../content-messaging';
 
-import { WEBSITE_BASE_URL } from './integrations/linked-in';
+import { WEBSITE_BASE_URL } from '../integrations/linked-in';
 
 import {
 	mysome,
-} from './root';
+} from '../root';
 
 export async function traverseDomWithTimeout(path: string, timeout: number, interval = 100, throwIfNotFound = true): Promise<any> {
 	let e: any = null;

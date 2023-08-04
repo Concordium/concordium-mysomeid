@@ -20,14 +20,11 @@
     "isolatedModules": false,
     "noEmit": false,
     "outDir": "build/content",
-    "types": ["content", "node"],
+    "types": ["content", "node", "jest", "@types/jest", "test"],
     "typeRoots": ["types", "@types"]
   },
   "include": [
     "src-content",
     "src-content/custom.d.ts"
-  ],
-  "exclude": [
-    "src-content/**/*.test.ts"
   ]
 }

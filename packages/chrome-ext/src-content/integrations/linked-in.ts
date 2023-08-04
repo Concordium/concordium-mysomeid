@@ -13,6 +13,7 @@ import {
 	getUsersNameOnProfile,
 	getUsersNameOnFeed,
 	registrations,
+	isProofUrlDecryptionKeyValid,
 } from '../utils';
 import {
 	ShieldWidget,
@@ -877,58 +878,41 @@ function showNotVerifiedPopup() {
 }
 
 /**
- * Returns true if the url is a percentage encoded url. Needed to ensure that we don't pass
- * already percentage encoded urls as the mysome backend will not do more than one percentage
- * decoding then a uri component is decoded.
- *
- * See: https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
+ * Invokes the mysome.id API to check if the provided name, proof-url, userData and platform
+ * is valid.
+ * 
+ * When called from the extension with the info scraped it validates the autenticity of
+ * the profile.
  */
-const isProofUrlKeyComponentValid = (urlString: string): boolean => {
-	try {
-		const url = new URL(urlString); // throws if url is invalid.
-		const path = url.pathname.split('/').filter(x => !!x);
-		const keyComponent = path?.[1] ?? null;
-		if ( !keyComponent ) {
-			logger.error('Url contained no key', urlString);
-			return false;
-		}
-
-		// Since base64 can contain a / character we need to decode
-		// the component to test it.
-		const decodedKeyComponent = decodeURIComponent(keyComponent);
-
-		const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-		if ( !base64Regex.test(decodedKeyComponent) ) {
-			logger.error('Url contained no base64 encoded key', urlString);
-			return false;
-		}
-
-		return true;
-	} catch(e) {
-		logger.warn("Attempting to decode url failed", e);
-		return false;
-	}
-}
-
 const validateProofWithProfile = async ({
-	name,
-	proofUrl,
-	userData,
-	platform,
+	name, // Name of the profile as displayed on the profile.
+	proofUrl, // Url of the QR code embedded in the profile.
+	userData, // Unique User Id of the user on LinkedIn this is part of the profile page url.
+	platform, // Platform of the profile.
 }: {
 	name: string;
 	proofUrl: string;
 	userData: string;
-	platform: 'li';
+	platform: 'li'; // Only platform available currently is LinkedIn.
 }): Promise<{status: string | null}> => {
-	if ( isProofUrlKeyComponentValid(proofUrl) ) {
+	// Check that the proof is correctly formed or throw an error if not.
+	// The error will should handled on the same level as an error captured
+	// from the api.
+	if ( !isProofUrlDecryptionKeyValid(proofUrl) ) {
 		logger.error('Proof is invalid', proofUrl);
 		throw new Error('Proof is invalid');
 	}
-	name = encodeURIComponent(name);
-	userData = encodeURIComponent(userData);
-	const url =
-		`${SERVICE_BASE_URL('v2')}/proof/validate?url=${proofUrl}&name=${name}&platform=${platform}&userData=${userData}`;
+
+	// Construct the URL and percentage encode the search params.
+	const url = new URL(`${SERVICE_BASE_URL('v2')}/proof/validate`);
+	Object.entries({
+		url: proofUrl,
+		name,
+		platform,
+		userData,
+	}).forEach(([key, value]) => {
+		value !== undefined && url.searchParams.append(key, value);
+	});
 
 	return fetch(url).then(res => {
 		return res.json();
