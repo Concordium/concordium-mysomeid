@@ -8,31 +8,31 @@ describe('isProofUrlDecryptionKeyValid', () => {
 		expect(result).toBe(true);
 	});
 
-	it('can detect if the decryption key is not percentage encoded', () => {
+	it('will detect if the decryption key is not percentage encoded and containing a / character', () => {
 		const validEncryptionKey = '/d3FqHZ7VLtmDRenZAtZGvQxt3MZJ4fUV2mkMDEF+3I=';
-		const invalidUrl = `https://mysome.id/v/${validEncryptionKey}`;
+		const invalidUrl = `https://mysome.id/v/69/${validEncryptionKey}`;
 		const result = isProofUrlDecryptionKeyValid(invalidUrl);
 		expect(result).toBe(false);
 	});
 
 	it('can detect an invalid character in percentage encoded string', () => {
 		const invalidDecryptionKey = 'U29tZSB2YWxpZCBiYXNlNjQgZGF0YQ==!';
-		const validUrl = `https://mysome.id/v/69/${invalidDecryptionKey}`;
+		const validUrl = `https://mysome.id/v/69/${encodeURIComponent(invalidDecryptionKey)}`;
 		const result = isProofUrlDecryptionKeyValid(validUrl)
 		expect(result).toBe(false);
 	});
 
 	it('can detect invalid padding', () => {
 		const invalidDeryptionKey = 'U29tZSB2YWxpZCBiYXNlNjQgZGF0YQ=';
-		const validUrl = `https://mysome.id/v/69/${invalidDeryptionKey}`;
+		const validUrl = `https://mysome.id/v/69/${encodeURIComponent(invalidDeryptionKey)}`;
 		const result = isProofUrlDecryptionKeyValid(validUrl);
 		expect(result).toBe(false);
 	});
 
-	it('can detect an invalid formed url', () => {
+	it('can detect when url is missing the proof id', () => {
 		const decryptionKey = 'HmFk4N0K7PnOIji3u2nDNMbzt0LdwxDxoIF9lh8j1Uw=';
-		const invalidUrl = `https://mysome.id/v/${decryptionKey}`;
-		const result = isProofUrlDecryptionKeyValid(invalidUrl);
+		const urlWithMissingProofId = `https://mysome.id/v/${encodeURIComponent(decryptionKey)}`;
+		const result = isProofUrlDecryptionKeyValid(urlWithMissingProofId);
 		expect(result).toBe(false);
 	});
 

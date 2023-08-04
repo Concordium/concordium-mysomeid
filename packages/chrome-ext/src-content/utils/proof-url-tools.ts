@@ -1,6 +1,37 @@
 import { logger } from '@mysomeid/chrome-ext-shared';
 import { toByteArray } from 'base64-js';
 
+type ProofUrlComponents = {	
+	view: string;
+	proofId: string;
+	pctEncodedDecryptionKey: string;
+};
+
+/**
+ * Parses a proof url into the components that it represents.
+ */
+const parseProofUrl = (urlString: string): ProofUrlComponents => {
+	const url = new URL(urlString); // throws if url is invalid.
+	const path = url.pathname.split('/');
+	if ( path.length !== 4 ) {
+		throw new Error('Url is malformed');
+	}
+
+	const view = path[1];
+	const proofId = path[2];
+	const pctEncodedDecryptionKey = path[3];
+
+	if (!pctEncodedDecryptionKey) {
+		throw new Error('Url contained no decryption key : ' + urlString);
+	}
+
+	return {
+		view,
+		proofId,
+		pctEncodedDecryptionKey,
+	};
+}
+
 /**
  * Returns true if the url contains a percentage encoded base64 encoded encryption key in the pathname.
  * 
@@ -10,26 +41,16 @@ import { toByteArray } from 'base64-js';
  * Example url: 
  * https://app.mysome.id/v/61/HmFk4N0K7PnOIji3u2nDNMbzt0LdwxDxoIF9lh8j1Uw%3D
  *
- * See: https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
  */
 export const isProofUrlDecryptionKeyValid = (urlString: string): boolean => {
 	try {
-		const url = new URL(urlString); // throws if url is invalid.
-		const path = url.pathname.split('/');
-		if (path.length !== 4) {
-			logger.error('Url pathname must follow the format /<page>/<id>/<decryptionKey>', urlString);
-			return false;
-		}
-
-		const decryptionKey = path?.[3] ?? null;
-		if (!decryptionKey) {
-			logger.error('Url contained no decryption key', urlString);
-			return false;
-		}
-
+		const {
+			pctEncodedDecryptionKey,
+		} = parseProofUrl(urlString);
+		
 		// Since base64 can contain / and = characters the decryptionKey
 		// is percentage encoded.
-		const decodedKeyComponent = decodeURIComponent(decryptionKey);
+		const decodedKeyComponent = decodeURIComponent(pctEncodedDecryptionKey);
 
 		// Decode the string to see if it's not valid base64.
 		const validBase64 = ((str: string): boolean => {

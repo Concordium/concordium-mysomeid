@@ -12,7 +12,7 @@ on:
   workflow_dispatch: # allows manual trigger
 
 jobs:
-  lint_chrome_ext:
+  lint_and_test_chrome_ext:
 
     runs-on: ubuntu-latest
 
@@ -29,6 +29,8 @@ jobs:
     - name: Install Yarn
       run: npm install -g yarn
     - name: Install Dependencies
-      run: yarn install
+      run: cd ../chrome-ext-shared && yarn && yarn run build && cd ../chrome-ext && yarn install
     - name: Linting
       run: yarn run lint
+    - name: Running unit tests
+      run: yarn run test

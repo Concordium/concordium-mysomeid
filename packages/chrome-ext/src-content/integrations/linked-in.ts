@@ -883,17 +883,22 @@ function showNotVerifiedPopup() {
  * 
  * When called from the extension with the info scraped it validates the autenticity of
  * the profile.
+ * 
+ * @param name Name of the profile as displayed on the profile.
+ * @param proofUrl Url of the QR code embedded in the profile.
+ * @param userData Unique User Id of the user on LinkedIn; this is part of the profile page URL.
+ * @param platform Platform of the profile. (Only platform available currently is LinkedIn.)
  */
 const validateProofWithProfile = async ({
-	name, // Name of the profile as displayed on the profile.
-	proofUrl, // Url of the QR code embedded in the profile.
-	userData, // Unique User Id of the user on LinkedIn this is part of the profile page url.
-	platform, // Platform of the profile.
+	name,
+	proofUrl,
+	userData,
+	platform,
 }: {
 	name: string;
 	proofUrl: string;
 	userData: string;
-	platform: 'li'; // Only platform available currently is LinkedIn.
+	platform: 'li';
 }): Promise<{status: string | null}> => {
 	// Check that the proof is correctly formed or throw an error if not.
 	// The error will should handled on the same level as an error captured
