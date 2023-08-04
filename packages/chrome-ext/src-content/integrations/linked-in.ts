@@ -901,7 +901,7 @@ const validateProofWithProfile = async ({
 	platform: 'li';
 }): Promise<{status: string | null}> => {
 	// Check that the proof is correctly formed or throw an error if not.
-	// The error will should handled on the same level as an error captured
+	// The error will be handled on the same level as an error captured
 	// from the api.
 	if ( !isProofUrlDecryptionKeyValid(proofUrl) ) {
 		logger.error('Proof is invalid', proofUrl);
