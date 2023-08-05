@@ -13,6 +13,7 @@ import {
 	getUsersNameOnProfile,
 	getUsersNameOnFeed,
 	registrations,
+	isProofUrlDecryptionKeyValid,
 } from '../utils';
 import {
 	ShieldWidget,
@@ -876,6 +877,18 @@ function showNotVerifiedPopup() {
 	storage.set("content-welcome-shown", true).then(() => {}).catch(logger.error);
 }
 
+/**
+ * Invokes the mysome.id API to check if the provided name, proof-url, userData and platform
+ * is valid.
+ * 
+ * When called from the extension with the info scraped it validates the autenticity of
+ * the profile.
+ * 
+ * @param name Name of the profile as displayed on the profile.
+ * @param proofUrl Url of the QR code embedded in the profile.
+ * @param userData Unique User Id of the user on LinkedIn; this is part of the profile page URL.
+ * @param platform Platform of the profile. (Only platform available currently is LinkedIn.)
+ */
 const validateProofWithProfile = async ({
 	name,
 	proofUrl,
@@ -887,11 +900,24 @@ const validateProofWithProfile = async ({
 	userData: string;
 	platform: 'li';
 }): Promise<{status: string | null}> => {
-	proofUrl = encodeURIComponent(proofUrl);
-	name = encodeURIComponent(name);
-	userData = encodeURIComponent(userData);
-	const url =
-		`${SERVICE_BASE_URL('v2')}/proof/validate?url=${proofUrl}&name=${name}&platform=${platform}&userData=${userData}`;
+	// Check that the proof is correctly formed or throw an error if not.
+	// The error will be handled on the same level as an error captured
+	// from the api.
+	if ( !isProofUrlDecryptionKeyValid(proofUrl) ) {
+		logger.error('Proof is invalid', proofUrl);
+		throw new Error('Proof is invalid');
+	}
+
+	// Construct the URL and percentage encode the search params.
+	const url = new URL(`${SERVICE_BASE_URL('v2')}/proof/validate`);
+	Object.entries({
+		url: proofUrl,
+		name,
+		platform,
+		userData,
+	}).forEach(([key, value]) => {
+		value !== undefined && url.searchParams.append(key, value);
+	});
 
 	return fetch(url).then(res => {
 		return res.json();
@@ -1125,7 +1151,6 @@ const install = async () => {
 						...goto,
 					});
 				}
-
 	
 			} else if ( !welcomeShown ) {
 				showWelcomePopup();
@@ -1161,7 +1186,6 @@ const install = async () => {
 			state.proofUrl = proof;
 			const userId = trackProfileUserId.get() ?? '';
 			const name = trackCurrentProfileName.get() ?? '';
-
 			validateProofWithProfile({
 				name,
 				proofUrl: state.proofUrl,
