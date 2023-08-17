@@ -38,7 +38,7 @@ export const MobileViewProofView = ({ }) => {
     const analytics = useAnalytics();
 
     useEffect(() => {
-        analytics.track({t: 'scan-proof-mobile'});
+        analytics.track({type: 'scan-proof-mobile'});
     }, []);
 
     const {

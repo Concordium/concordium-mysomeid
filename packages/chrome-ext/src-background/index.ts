@@ -3,7 +3,6 @@ import {
 	logger,
 	createAnalytics,
 	AnalyticsEvent,
-	logger,
 } from '@mysomeid/chrome-ext-shared';
 
 const analytics = createAnalytics<

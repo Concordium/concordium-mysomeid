@@ -88,7 +88,7 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
       canvasHeight: 400,
       backgroundColor: 'white',
     }).then((dataUrl) => {
-      analytics.track({t: 'download-proof-again'});
+      analytics.track({type: 'download-proof-again'});
       downloadBase64File(dataUrl, 'mysomeid-linkedin-proof-' + id + '.png');
     });
   }, [refShadow?.current, id, refShadow]);

@@ -30,7 +30,7 @@ export const UninstalledView = () => {
         if ( notified || !uid ) {
             return;
         }
-        analytics.track({t: 'uninstalled'});
+        analytics.track({type: 'uninstalled'});
         setNotified(true);
     }, [notified, uid]);
 
@@ -62,7 +62,7 @@ export const UninstalledView = () => {
                 marginTop: '32px',
                 marginBottom: '32px',
             }} onClick={() => {
-                analytics.track({t: 'click-tell-improve'});
+                analytics.track({type: 'click-tell-improve'});
                 window.open(process.env.REACT_APP_UNINSTALL_SURVEY ?? 'https://j0nt81fw3f5.typeform.com/to/FgIQWsTt', '_self');
             }} >
                 Tell us how to improve

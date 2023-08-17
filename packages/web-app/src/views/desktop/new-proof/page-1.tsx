@@ -90,7 +90,7 @@ export default connect(state => ({
   const analytics = useAnalytics();
 
   useEffect(() => {
-    analytics.track({t: 'create-proof-step', a: {stepNumber: 1}});
+    analytics.track({type: 'create-proof-step', options: {stepNumber: 1}});
   }, []);
 
   const {

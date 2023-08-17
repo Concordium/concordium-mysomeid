@@ -23,7 +23,7 @@ export const ViewProofView = ({ }) => {
     const analytics = useAnalytics();
 
     useEffect(() => {
-      analytics.track({t: 'view-other-proof-desktop'});
+      analytics.track({type: 'view-other-proof-desktop'});
     }, []);
 
     return (

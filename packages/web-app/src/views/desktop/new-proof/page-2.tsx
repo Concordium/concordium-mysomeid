@@ -128,7 +128,7 @@ export default connect(state => ({
   const analytics = useAnalytics();
 
   useEffect(() => {
-    analytics.track({t: 'create-proof-step', a: {stepNumber: 2}});
+    analytics.track({type: 'create-proof-step', options: {stepNumber: 2}});
   }, []);
 
   const nextDisabled = !userId || !platform || !valid || isConnecting || connectWithIDLoading;

@@ -162,7 +162,7 @@ export default connect(state => ({
   }, [userId, platform, name, statementInfo, proof]);
 
   useEffect(() => {
-    analytics.track({t: 'create-proof-step', a: {stepNumber: 3}});
+    analytics.track({type: 'create-proof-step', options: {stepNumber: 3}});
   }, []);
 
   let state = !creatingProof ?
