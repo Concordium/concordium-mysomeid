@@ -220,6 +220,19 @@ pub fn fuzzy_match_names(
     Ok(get_matching_intervals(a, &b, allowed_substitutions, allowed_titles)?.is_some())
 }
 
+/**
+ * Split a SOME name string into tokens to be compared with a list of other tokens.
+ */
+fn tokenize_string(s: &str) -> Vec<&str> {
+    // The regex consists of several parts:
+    // 1. \([^)]+\) matches the content inside parentheses.
+    // 2. [^\s,]+ matches words separated by whitespace or commas.
+    let re = Regex::new(r"\([^)]+\)|[^\s,]+").unwrap();
+    re.find_iter(s)
+        .map(|mat| mat.as_str())
+        .collect()
+}
+
 /// Fuzzily match names `a` and `b`. If they do not match according to the rules
 /// described for the function `fuzzy_match_names`, returns `None`. Otherwise,
 /// returns a vector of intervals of all words in `a` that match words in `b`,
@@ -233,13 +246,14 @@ pub fn get_matching_intervals(
 ) -> Result<Option<Vec<(usize, usize)>>, regex::Error> {
     let a = a.to_lowercase();
     let b = b.to_lowercase();
+    
     // Generate vector a_words of all nonempty words in the string a, excluding
     // allowed titles and emojis, together with a vector of the byte indices
     // corresponding to the beginning (inclusive) and end (exclusive) of the word in
     // the string a.
     let mut a_words: Vec<&str> = Vec::new();
     let mut a_word_indices: Vec<(usize, usize)> = Vec::new();
-    for word in a.split(|c: char| c.is_whitespace() || c == ',') {
+    for word in tokenize_string(a.as_str()) {
         if !word.is_empty()
             && !allowed_titles.contains(word)
             && !is_allowed_emoji_word(word)
@@ -298,11 +312,12 @@ fn check_inclusion(
 ) -> Result<bool, regex::Error> {
     // vector of words in b
     let mut b_words: Vec<&str> = Vec::new();
-    for word in b.split(|c: char| c.is_whitespace() || c == ',') {
+    for word in tokenize_string(b) {
         if !word.is_empty() {
             b_words.push(word);
         }
     }
+
     // Prevent denial of service.
     if a_words.len() > 50 || b_words.len() > 50 {
         return Ok(false);
@@ -764,6 +779,105 @@ mod tests {
         assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
     }
 
+    /**
+     * Nickname support improved (20230814)
+     * 
+     * Tokenize string must return the expected number of tokens.
+     */
+    #[test]
+    fn test_tokenize_string() -> anyhow::Result<()> {
+        // Regular name without nicknames.
+        assert_eq!(
+            tokenize_string("firstname lastname"),
+            vec!["firstname", "lastname"],
+            "Failed for 'firstname lastname'"
+        );
+
+        // nickname can be contained in a parenthesis with inner spaces.
+        assert_eq!(
+            tokenize_string("firstname (test test.   ) lastname"),
+            vec!["firstname", "(test test.   )", "lastname"],
+            "Failed for 'firstname (test test.   ) lastname'."
+        );
+
+        // dash is not a delimiter
+        assert_eq!(
+            tokenize_string("first-name (test test.   ) last-name"),
+            vec!["first-name", "(test test.   )", "last-name"],
+            "Failed for 'first-name (test test.   ) last-name'."
+        );
+
+        // Regular name with nickname without spaces.
+        assert_eq!(
+            tokenize_string("first(name) test"),
+            vec!["first(name)", "test"],
+            "Failed for 'first(name) test'"
+        );
+
+
+        // Regular name with nickname in the middle.
+        assert_eq!(
+            tokenize_string("first(name) is test"),
+            vec!["first(name)", "is", "test"],
+            "Failed for 'first(name) is test'."
+        );
+
+        // Tokenize will not care about delimiters inside parenthesis".
+        assert_eq!(
+            tokenize_string("one ( two.- æøå two; two.  ) three four"),
+            vec!["one", "( two.- æøå two; two.  )", "three", "four"],
+            "Failed for 'one ( two.- æøå two; two.  ) three four'."
+        );
+
+        // tokenize_string works with emojis
+        assert_eq!(
+            tokenize_string("Dr. John 🚀 Doe 🚀"),
+            vec!["Dr.", "John", "🚀", "Doe", "🚀"],
+            "Failed for 'Dr. John 🚀 Doe 🚀'."
+        );
+
+        // Test case for tab and comma as delimiters.
+        assert_eq!(
+            tokenize_string("word1\tword2,word3"),
+            vec!["word1", "word2", "word3"],
+            "Failed for 'word1\tword2,word3'."
+        );
+
+        // Test case multiple consecutive delimiters is the same as just one
+        assert_eq!(
+            tokenize_string("word1, (word2) word3"),
+            vec!["word1", "(word2)", "word3"],
+            "Failed for 'word1, (word2) word3'."
+        );
+
+        Ok(())
+    }
+
+    /**
+     * Test nicknames (added 20230814)
+     * 
+     * Test that fuzzy_name_matching supporting nicknames in parenthesis with inner spaces.
+     */
+    #[test]
+    fn test_valid_nicknames_in_parenthesis() -> anyhow::Result<()> {
+        let allowed_substitutions = get_test_allowed_substitutions();
+        let allowed_titles = get_allowed_titles();
+
+        // nickname can be contained in a parenthesis with inner spaces.
+        let a = "Michael ( super ) Joel";
+        let b1 = "Michael";
+        let b2 = "Joel";
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+        // nickname can be contained in a parenthesis with any number of inner spaces, and chinese characters, alfa-numeric and ".,;-".
+        let a = "Michael (aa12 bbg24 cchg, dd33 eefr ff. gg; hh i j 读写汉字 - 学中文     ) Joel";
+        let b1 = "Michael";
+        let b2 = "Joel";
+        assert!(fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+        Ok(())
+    }
+
     #[test]
     /// Test `get_matching_intervals` function, both positive and negative
     /// tests.
@@ -1016,5 +1130,36 @@ mod tests {
         let b1 = "John";
         let b2 = "Doe";
         assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+    }
+
+    /**
+     * test nicknames (added 20230814)
+     * supporting nicknames in parenthesis with space)
+     */
+    #[test]
+    fn test_invalid_nicknames_in_parenthesis() -> anyhow::Result<()> {
+        let allowed_substitutions = get_test_allowed_substitutions();
+        let allowed_titles = get_allowed_titles();
+
+        // nick name inside parenthesis needs to be surrounded by spaces
+        let a = "Michael(superman)Joel";
+        let b1 = "Michael";
+        let b2 = "Joel";
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+        // nick name inside parenthesis needs to be surrounded by spaces even if there are inner spaces
+        let a = "Michael( super  man )Joel";
+        let b1 = "Michael";
+        let b2 = "Joel";
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+        // valid nick name placed between a component of the name will not make the name valid.
+        let a = "Mi ( super  man ) chael Joel";
+        let b1 = "Michael";
+        let b2 = "Joel";
+        assert!(!fuzzy_match_names(a, b1, b2, &allowed_substitutions, &allowed_titles).unwrap());
+
+        Ok(())
     }
 }
