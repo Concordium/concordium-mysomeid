@@ -44,7 +44,7 @@ import { request } from 'http';
 const analytics = createAnalytics<
 	AnalyticsEvent<'badge-click', {
 		status: "registered" | "not-registered" | "suspecious" | "no-connection" | "failed-resolve" | 'unknown';
-		action: 'show-view-proof' | 'show-not-registered' | 'finalize' | 'no-longer-verified' | 'ignored';
+		action: 'show-view-proof' | 'show-not-registered' | 'finalize' | 'no-longer-verified' | 'ignore';
 		page: 'own' | 'other' | 'unknown';
 	}> |
 	AnalyticsEvent<'upload-background'> |
@@ -1214,7 +1214,7 @@ const install = async () => {
 	
 			}
 		} else {
-			analytics.track({type: 'badge-click', options: {status: 'unknown', page: 'unknown', action: 'ignored'}});
+			analytics.track({type: 'badge-click', options: {status: 'unknown', page: 'unknown', action: 'ignore'}});
 
 		}
 	};
