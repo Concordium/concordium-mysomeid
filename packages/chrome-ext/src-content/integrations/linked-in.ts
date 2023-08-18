@@ -1146,7 +1146,6 @@ const install = async () => {
 
 		} else if ( onOwnProfileOrFeed ) {
 			if ( ownUserId !== null && profileStatus !== null ) {
-				const tmp = profileStatus.get();
 				const status = profileStatus.get()?.status ?? null;
 
 				if ( status === 'not-registered' ) {
