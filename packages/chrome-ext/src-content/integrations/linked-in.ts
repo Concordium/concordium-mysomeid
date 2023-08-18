@@ -1146,7 +1146,7 @@ const install = async () => {
 
 		} else if ( onOwnProfileOrFeed ) {
 			if ( ownUserId !== null && profileStatus !== null ) {
-				const status = profileStatus.get()?.status ?? null;
+				const status = profileStatus.get()?.status ?? 'unknown';
 
 				if ( status === 'not-registered' ) {
 					const reg = registrations.select(mysome.platform, ownUserId);
