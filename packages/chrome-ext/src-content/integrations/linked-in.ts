@@ -1148,7 +1148,6 @@ const install = async () => {
 
 		} else if ( onOwnProfileOrFeed ) {
 			if ( ownUserId !== null && profileStatus !== null ) {
-				const tmp = profileStatus.get();
 				const status = profileStatus.get()?.status ?? 'unknown';
 
 				if ( status === 'not-registered' ) {
@@ -1217,7 +1216,6 @@ const install = async () => {
 			}
 		} else {
 			analytics.track({type: 'badge-click', options: {status: 'unknown', page: 'unknown', action: 'ignore'}});
-
 		}
 	};
 	const badge = mysome.createBadge({showAttention: false});
