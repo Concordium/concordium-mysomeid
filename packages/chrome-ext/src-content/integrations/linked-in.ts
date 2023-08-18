@@ -1214,7 +1214,6 @@ const install = async () => {
 			}
 		} else {
 			analytics.track({type: 'badge-click', options: {status: 'unknown', page: 'unknown', action: 'ignore'}});
-
 		}
 	};
 	const badge = mysome.createBadge({showAttention: false});
