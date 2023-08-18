@@ -14,6 +14,7 @@ import {
   AspectBox
 } from './aspect-box';
 import { Command, createCommand } from '../view-proof/view-proof';
+import { useAnalytics } from 'src/hooks/use-analytics';
 
 function px_pct_s(v: number, d: number): string {
   return ((v / d) * 100).toFixed(2) + '%';
@@ -77,6 +78,7 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
   const [/*dragOffset*/, setDragOffset] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
   const [shadowScale] = useState(1.6);
+  const analytics = useAnalytics();
 
   const saveAndDownloadImpl = useCallback(() => {
     htmlToImage.toPng(refShadow?.current, {
@@ -86,6 +88,7 @@ function BackgroundEditorCanvas({ saveAndDl, getPic, id, bgImg, uri, widgetColor
       canvasHeight: 400,
       backgroundColor: 'white',
     }).then((dataUrl) => {
+      analytics.track({type: 'download-proof-again'});
       downloadBase64File(dataUrl, 'mysomeid-linkedin-proof-' + id + '.png');
     });
   }, [refShadow?.current, id, refShadow]);

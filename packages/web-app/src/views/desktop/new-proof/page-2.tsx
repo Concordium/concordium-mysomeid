@@ -30,6 +30,7 @@ import { minLayoutBoxHeight } from './form-consts';
 import { FormSubstepHeader, ProofCreatedConfirmation } from './page-4';
 import { useTemplateStore } from './template-store';
 import { ErrorAlert } from 'src/components';
+import { useAnalytics } from 'src/hooks/use-analytics';
 
 function capitalize(s: string) {
   if (!s?.length) {
@@ -123,6 +124,12 @@ export default connect(state => ({
     connectAsync,
     account,
   } = useCCDContext();
+
+  const analytics = useAnalytics();
+
+  useEffect(() => {
+    analytics.track({type: 'create-proof-step', options: {stepNumber: 2}});
+  }, []);
 
   const nextDisabled = !userId || !platform || !valid || isConnecting || connectWithIDLoading;
   const opacity = isConnecting || connectWithIDLoading ? 0.1 : 1;

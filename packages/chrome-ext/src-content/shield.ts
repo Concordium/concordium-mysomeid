@@ -8,7 +8,7 @@ export type ShieldWidget = {
 	setOwnProfileNotVerified: () => void;
 	setOtherProfileNotVerified: () => void;
 	setVerified: (proofUrl: string, ownProfile: boolean) => void;
-	setSuspeciousProfile: (_url: string) => void;
+	setSuspiciousProfile: (_url: string) => void;
 	setFailedResolve: (_url: string, errMsg?: string) => void;
 	setNoConnection: () => void;
 	hide: () => void;
@@ -56,7 +56,7 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 	const tooltipTextOwnProfileNotVerified = 'mysome.id</br></br>You are not secured</br></br>Click to get started';
 	const tooltipTextOtherProfileNotVerified = 'mysome.id</br></br>This profile is not verified.</br>';
 	const tooltipTextNoConnection = 'mysome.id</br></br>No Connection</br>';
-	let state: 'none' | 'failed-resolve' | 'no-connection' | 'verified' | 'own-profile-not-verified' | 'other-profile-not-verified' | 'suspecious';
+	let state: 'none' | 'failed-resolve' | 'no-connection' | 'verified' | 'own-profile-not-verified' | 'other-profile-not-verified' | 'suspicious';
 	let created = false;
 	let proofUrl = '';
 
@@ -264,8 +264,8 @@ export const createShieldWidget = (nameElement: HTMLElement, {onClicked}: {onCli
 			const el = document.getElementById('mysome-shield-tooltip-text');
 			if ( el ) el.innerHTML = ownProfile ? tooltipTextOwnProfileVerified : tooltipTextVerified;
 		},
-		setSuspeciousProfile: (_proofUrl: string) => {
-			state = 'suspecious';
+		setSuspiciousProfile: (_proofUrl: string) => {
+			state = 'suspicious';
 			proofUrl = _proofUrl;
 			shield.style.backgroundColor = shieldColorRed;
 			dots.style.display = 'none';

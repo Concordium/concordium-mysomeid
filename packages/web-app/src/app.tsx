@@ -28,6 +28,9 @@ import {
   HomeView
 } from 'src/views/desktop/home';
 import {
+  UninstalledView
+} from 'src/views/desktop/uninstalled';
+import {
   NewProofView
 } from 'src/views/desktop/new-proof';
 import {
@@ -73,6 +76,7 @@ function App() {
             <Route path="/home" element={<>
               <HomeView />
             </>} />
+            <Route path="/uninstalled" element={<UninstalledView />} />
             <Route path="/start" element={<Navigate to="/create/1"/>} />
             <Route path="/create" element={<Navigate to="/create/1" />} />
             <Route path="/create/:step" element={

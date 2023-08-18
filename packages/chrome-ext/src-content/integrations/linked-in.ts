@@ -1,4 +1,9 @@
-import { logger } from '@mysomeid/chrome-ext-shared';
+import {
+	createAnalytics,
+	AnalyticsEvent,
+	logger,
+} from '@mysomeid/chrome-ext-shared';
+
 import {
 	storage,
 	platformRequests,
@@ -35,6 +40,28 @@ import { createTourWidget } from '../tour';
 import {tracking, createTracker} from '../tracking';
 import { getMessageHandler } from '../content-messaging';
 import { request } from 'http';
+
+const analytics = createAnalytics<
+	AnalyticsEvent<'badge-click', {
+		status: "registered" | "not-registered" | "suspicious" | "no-connection" | "failed-resolve" | "unknown";
+		action: 'show-view-proof' | 'show-not-registered' | 'finalize' | 'no-longer-verified' | 'ignore';
+		page: 'own' | 'other' | 'unknown';
+	}> |
+	AnalyticsEvent<'upload-background'> |
+	AnalyticsEvent<'get-profile-info-not-logged-in'> |
+	AnalyticsEvent<'err-upload-background', {
+		step: '1' | '2' | '3' | '4a' | '4b' | '5' | '6';
+	}> |
+	AnalyticsEvent<'upload-background-success'> |
+	AnalyticsEvent<'err-upload-background-store-result'> |
+	AnalyticsEvent<'platform-visits', {
+		count: string;
+	}> |
+	AnalyticsEvent<'get-profile-info-shown'> |
+	AnalyticsEvent<'err-register-wrong-account'> |
+	AnalyticsEvent<'err-register-wrong-platform'>
+>('ext-', {p: 'li'});
+
 let nvisit = 0;
 let root: RootWidget = null as any as RootWidget;
 const state = {
@@ -48,7 +75,7 @@ const SERVICE_BASE_URL = (version: 'v1' | 'v2' = 'v1') => (DEV ? 'http://0.0.0.0
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
-type ProfileStatusCode = 'not-registered' | 'registered' | 'suspecious' | 'no-connection' | 'failed-resolve' | null;
+type ProfileStatusCode = 'not-registered' | 'registered' | 'suspicious' | 'no-connection' | 'failed-resolve' | 'unknown';
 type ProfileStatusPageTypes = 'feed' | 'profile' | 'other';
 type ProfileStatusUserType = 'own' | 'other';
 type ProfileStatus = {
@@ -62,7 +89,7 @@ const defaultMessages = {
 	noConnection: 'No connection to the mysome.id service',
 	notRegistered: 'This person\'s profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.',
 	registered: 'This person\'s profile is verified by mysome.id',
-	suspecious: 'This person\'s profile is not verified or suspicious',
+	suspicious: 'This person\'s profile is not verified or suspicious',
 	statusUnknown: 'This profile status is unknown',
 };
 
@@ -79,9 +106,11 @@ const statusToStatusMessage = (status: ProfileStatusCode) =>
 			messages.notRegistered :
 		status === 'registered' ?
 			messages.registered :
-		status === 'suspecious' ?
-			messages.suspecious :
-		messages.statusUnknown;
+		status === 'suspicious' ?
+			messages.suspicious :
+		status === 'unknown' ?
+			messages.statusUnknown :
+		'';
 
 const profileStatus = createTracker<ProfileStatus>({
 	name: 'profileStatus',
@@ -100,7 +129,7 @@ const profileStatus = createTracker<ProfileStatus>({
 
 function setPageStatus(page: ProfileStatusPageTypes, type: ProfileStatusUserType,) {
 	const ps = profileStatus.get() ?? {
-		status: null,
+		status: 'unknown',
 		page,
 		type,
 	};
@@ -290,6 +319,9 @@ const ensureWidget = () => {
 	const staging = (await storage.get("staging", true)) ?? false;
 	TEST = !!staging;
 	logger.info("test ", TEST);
+
+	const uid = await storage.get("uid", true);
+	analytics.setUniqueId(uid);
 })().then().catch(logger.error);
 
 const trackProofQR = createTracker<string | null>({
@@ -624,6 +656,7 @@ const changeBackgroundTour = {
 		{
 			activate: async (tour: any) => {
 				// Resolve the params that we want to open the popup
+				analytics.track({type: 'upload-background'});
 				const context = showFinalizePopup({
 					u: getUserIdInUrl() ?? getUserIdOnPageFeed() ?? '',
 					p: mysome.platform,
@@ -686,6 +719,7 @@ const changeBackgroundTour = {
 				userId = getUserIdInUrl();
 				if ( !userId ) {
 					logger.verbose('# 2g');
+					analytics.track({type: 'err-upload-background', options: {step: '1'}});
 					tour.endWithError('Failed changing background (1)', 'Please try again later or change the background manually.');
 					return;
 				}
@@ -693,6 +727,7 @@ const changeBackgroundTour = {
 				const reg = registrations.select(mysome.platform, userId);
 				logger.verbose('# 2g');
 				if ( !reg ) {
+					analytics.track({type: 'err-upload-background', options: {step: '2'}});
 					tour.endWithError('Failed changing background (2)', 'Please try again later or change the background manually.');
 					return;
 				}
@@ -701,6 +736,7 @@ const changeBackgroundTour = {
 				const editBgButton = document.querySelector(".profile-topcard-background-image-edit")?.querySelector("button");
 									 // document.querySelector<HTMLElement>(".profile-topcard-background-image-edit")?.querySelector<HTMLElement>("button");
 				if ( !editBgButton ) {
+					analytics.track({type: 'err-upload-background', options: {step: '3'}});
 					tour.endWithError('Failed changing background (3)', 'Please try again later or change the background manually.');
 					return;
 				}
@@ -754,7 +790,8 @@ const changeBackgroundTour = {
 						logger.verbose('# 7a');
 						await sleep(1000);
 						if ( max++ > 30 ) {
-							tour.endWithError('Failed changing background (4)', 'Please try again later or change the background manually.');	
+							tour.endWithError('Failed changing background (4a)', 'Please try again later or change the background manually.');	
+							analytics.track({type: 'err-upload-background', options: {step: '4a'}});
 							return;
 						}
 					}
@@ -766,7 +803,8 @@ const changeBackgroundTour = {
 					let max = 0;
 					while (!document.querySelector('footer.image-edit-tool-footer')) {
 						if ( max++ > 4 * 60 ) {
-							tour.endWithError('Failed changing background (4)', 'Please try again later or change the background manually.');
+							tour.endWithError('Failed changing background (4b)', 'Please try again later or change the background manually.');
+							analytics.track({type: 'err-upload-background', options: {step: '4b'}});
 							return;
 						}
 						await sleep(250);
@@ -782,6 +820,7 @@ const changeBackgroundTour = {
 				
 					if ( !input ) {
 						tour.endWithError('Failed changing background (5)', 'Please try again later or change the background manually.');
+						analytics.track({type: 'err-upload-background', options: {step: '5'}});
 						return;
 					}
 
@@ -805,7 +844,8 @@ const changeBackgroundTour = {
 						logger.error("Apply button not found.");
 						await sleep(1000);
 						if ( notFnd ++ > 10 ) {
-							logger.error("Failed to find Apply button"); // TODO: Show error message to user.
+							logger.error("Failed to find Apply button");
+							analytics.track({type: 'err-upload-background', options: {step: '6'}});
 							tour.endWithError('Failed to change background', 'Please try setting the background manually');
 							return;
 						} else {
@@ -828,6 +868,7 @@ const changeBackgroundTour = {
 					}
 				}
 				logger.verbose('# 10');
+				analytics.track({type: 'upload-background-success'});
 
 				tour?.nextStep();
 			},
@@ -858,6 +899,7 @@ const changeBackgroundTour = {
 						tour.done();
 					}).catch((err) => {
 						logger.error(err);
+						analytics.track({type: 'err-upload-background-store-result'});
 						tour.endWithError('Failed updating registration', 'Please retry uploading background.');
 					});
 				};
@@ -977,6 +1019,9 @@ const install = async () => {
 		'li.nvisit': nvisit + 1,
 	};
 
+	// How many times a person have visited with the plugin installed.
+	analytics.track({type: 'platform-visits', options: {count: `${nvisit + 1}`}});
+
 	// 
 	const requestToFetchProfile = (await platformRequests.select('li', 'created', 'fetch-profile')) ?? null;
 	(mysome as any).requests = requestToFetchProfile ?? [];
@@ -1000,6 +1045,7 @@ const install = async () => {
 			logger.info("requests", reqs);
 			const req = reqs[0];
 			platformRequests.removeRequests('li').then(() => {
+				analytics.track({type: 'get-profile-info-shown'});
 				showMessagePopup({
 					title: 'Get Profile Info',
 					message: 'Do you want to secure your profile?',
@@ -1022,6 +1068,7 @@ const install = async () => {
 		const reg = registrations.select('li', userId );
 		if ( reg && reg.step === 5 ) {
 			logger.error("Other profile observed but there is a registration! (this is not supposed to happen)", reg);
+			analytics.track({type: 'err-register-wrong-platform'});
 			showMessagePopup({
 				title: 'Warning',
 				message: "You have tried to create a proof for a profile which you dont have access to.<br/><br/>Log in to the profile to finalise the registration.",
@@ -1075,7 +1122,7 @@ const install = async () => {
 		// on another users profile page.
 		if ( onProfilePage && !onOwnProfileOrFeed ) {
 			if ( profileStatus.get() !== null ) {
-				const status = profileStatus?.get()?.status ?? null;
+				const status = profileStatus?.get()?.status ?? "unknown";
 				const statusMessage = statusToStatusMessage(status);
 
 				const goto = status === 'registered' ? {
@@ -1091,12 +1138,18 @@ const install = async () => {
 					primary: (status !== 'registered' ? 'Okay' : ''),
 					...goto,
 				});
+
+				analytics.track({type: 'badge-click', options: {
+					status: status ?? 'unknown',
+					action: status === 'registered' ? 'show-view-proof' : 'show-not-registered',
+					page: 'other'
+				}});
 			}
 
 		} else if ( onOwnProfileOrFeed ) {
 			if ( ownUserId !== null && profileStatus !== null ) {
-				const tmp = profileStatus.get();
-				const status = profileStatus.get()?.status ?? null;
+				const status = profileStatus.get()?.status ?? 'unknown';
+
 				if ( status === 'not-registered' ) {
 					const reg = registrations.select(mysome.platform, ownUserId);
 					const {
@@ -1108,6 +1161,7 @@ const install = async () => {
 						logger.info("Continue the installation process for LinkedIn: " + ownUserId);
 
 						mysome.createTour('li.finalize');
+						analytics.track({type: 'badge-click', options: {status, action: 'finalize', page: 'own'}});
 						return;
 
 					} else if ( step > 5 ) {
@@ -1121,10 +1175,14 @@ const install = async () => {
 							secondary: 'CANCEL',
 							primary_link: createLink,
 						});
+						analytics.track({type: 'badge-click', options: {status, action: 'no-longer-verified', page: 'own'}});
+
 						return;
 
 					} else if ( !reg ) {
 						showNotVerifiedPopup();
+						analytics.track({type: 'badge-click', options: {status,  action: 'show-not-registered', page: 'own'}});
+
 						return;
 
 					}
@@ -1157,7 +1215,7 @@ const install = async () => {
 	
 			}
 		} else {
-		
+			analytics.track({type: 'badge-click', options: {status: 'unknown', page: 'unknown', action: 'ignore'}});
 		}
 	};
 	const badge = mysome.createBadge({showAttention: false});
@@ -1201,10 +1259,10 @@ const install = async () => {
 					shield?.setVerified(proof, onOwnPageOrFeed);
 					badge.showAttention(false);
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'registered');	
-				} else if (status === 'invalid' || status === 'suspecious' ) {
-					shield?.setSuspeciousProfile(proof);
+				} else if (status === 'invalid' || status === 'suspicious' ) {
+					shield?.setSuspiciousProfile(proof);
 					badge.showAttention('error');
-					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspecious');	
+					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspicious');	
 				} else {
 					logger.error("Failed to evaluate the status of the proof.");
 					messages.failedResolve = defaultMessages.failedResolve;
@@ -1275,6 +1333,7 @@ const install = async () => {
 						message: 'Log in to secure your profile with mysome.id',
 						primary: 'Okay'
 					});
+					analytics.track({type: 'get-profile-info-not-logged-in'});
 				}
 			});
 		}
@@ -1356,7 +1415,7 @@ const install = async () => {
 			// badge.showAttention(false); // Make sure that badge is not shown.
 			return;
 		}
-		// badge.showAttention(page !== 'other' && (status === 'not-registered' || status === 'suspecious'));
+		// badge.showAttention(page !== 'other' && (status === 'not-registered' || status === 'suspicious'));
 	});
 
 	const check = createHeartbeat();

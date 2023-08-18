@@ -15,6 +15,7 @@ import { linkedInProfileBaseUrl, proofBaseUri } from 'src/constants';
 import { AspectBox } from "src/views/desktop/new-proof/aspect-box";
 import { MobileHeader } from './mobile-header';
 import { Button } from 'src/components';
+import { useAnalytics } from "src/hooks/use-analytics";
 
 export const MobileViewProofView = ({ }) => {
     const {
@@ -34,6 +35,11 @@ export const MobileViewProofView = ({ }) => {
     const [loadingProof, setLoadingProof] = useState(false);
     const [failedLoadingProof, setFailedLoadingProof] = useState(false);
     const [w, setWidth] = useState(0);
+    const analytics = useAnalytics();
+
+    useEffect(() => {
+        analytics.track({type: 'scan-proof-mobile'});
+    }, []);
 
     const {
         loadProof,

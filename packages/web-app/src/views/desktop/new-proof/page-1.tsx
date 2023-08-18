@@ -51,6 +51,7 @@ import {
 import {
   useTemplateStore
 } from './template-store';
+import { useAnalytics } from 'src/hooks/use-analytics';
 
 export default connect(state => ({
   name: selector(state, 'name'),
@@ -86,6 +87,11 @@ export default connect(state => ({
   const [searchParams] = useSearchParams();
   const {lastLocation} = useLastLocation();
   const previousFailed = searchParams.get('previousFailed');
+  const analytics = useAnalytics();
+
+  useEffect(() => {
+    analytics.track({type: 'create-proof-step', options: {stepNumber: 1}});
+  }, []);
 
   const {
     platform,

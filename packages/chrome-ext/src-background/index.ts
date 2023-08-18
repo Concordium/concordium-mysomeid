@@ -1,4 +1,13 @@
-import {logger} from '@mysomeid/chrome-ext-shared';
+import {
+	uuidv4,
+	logger,
+	createAnalytics,
+	AnalyticsEvent,
+} from '@mysomeid/chrome-ext-shared';
+
+const analytics = createAnalytics<
+	AnalyticsEvent<'installed'>
+>('ext-');
 
 declare var chrome: any;
 
@@ -88,8 +97,9 @@ chrome.runtime.onInstalled.addListener(() => {
 					chrome.tabs.reload(tabId);
 				}
 			}
-			);
+		);
 	});
+	analytics.track({type: 'installed'});
 });
 
 chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponseImpl: (what: any) => void) => {
@@ -336,6 +346,16 @@ initStore('state').then(() => {
 	if (stores.state['staging'] === undefined) {
 		stores.state['staging'] = false;
 	}
+	
+	let uid = stores.state['uid'];
+	if (!uid) {
+		uid = stores.state['uid'] = uuidv4();
+		analytics.setUniqueId(uid);
+		saveStore("state", stores.state);
+	}
+
+	chrome.runtime.setUninstallURL(`https://app.mysome.id/uninstalled?uid=${uid}`);
+
 	TEST = stores.state ? stores.state['staging'] : null;
 	logger.info("Config: Test ", TEST);
 });

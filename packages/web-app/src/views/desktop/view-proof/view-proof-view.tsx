@@ -5,6 +5,8 @@ import { ViewContainer } from "src/components";
 import { Navi } from "src/components/navi";
 import { paperSX } from "src/themes";
 import { ViewProof } from "./view-proof";
+import { useEffect } from "react";
+import { useAnalytics } from "src/hooks/use-analytics";
 
 export const ViewProofView = ({ }) => {
     const {
@@ -17,6 +19,12 @@ export const ViewProofView = ({ }) => {
     const theme = useTheme();
     const ltsm = useMediaQuery(theme.breakpoints.down('sm'));
     const ltmd = useMediaQuery(theme.breakpoints.down('md'));
+
+    const analytics = useAnalytics();
+
+    useEffect(() => {
+      analytics.track({type: 'view-other-proof-desktop'});
+    }, []);
 
     return (
         <ViewContainer title={'Proof of Ownership'}
