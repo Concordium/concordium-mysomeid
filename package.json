@@ -9,7 +9,8 @@
     "packages": [
       "packages/portal",
       "packages/chrome-ext",
-      "packages/chrome-ext-shared"
+      "packages/chrome-ext-shared",
+      "packages/web-app"
     ],
     "nohoist": [
       "ansi-html-community",
