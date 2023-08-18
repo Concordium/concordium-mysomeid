@@ -43,7 +43,7 @@ import { request } from 'http';
 
 const analytics = createAnalytics<
 	AnalyticsEvent<'badge-click', {
-		status: "registered" | "not-registered" | "suspecious" | "no-connection" | "failed-resolve" | 'unknown';
+		status: "registered" | "not-registered" | "suspicious" | "no-connection" | "failed-resolve" | "unknown";
 		action: 'show-view-proof' | 'show-not-registered' | 'finalize' | 'no-longer-verified' | 'ignore';
 		page: 'own' | 'other' | 'unknown';
 	}> |
@@ -55,7 +55,7 @@ const analytics = createAnalytics<
 	AnalyticsEvent<'upload-background-success'> |
 	AnalyticsEvent<'err-upload-background-store-result'> |
 	AnalyticsEvent<'platform-visits', {
-		n: string;
+		count: string;
 	}> |
 	AnalyticsEvent<'get-profile-info-shown'> |
 	AnalyticsEvent<'err-register-wrong-account'> |
@@ -75,7 +75,7 @@ const SERVICE_BASE_URL = (version: 'v1' | 'v2' = 'v1') => (DEV ? 'http://0.0.0.0
 
 let welcomeShown: boolean | null = null;
 let shield: ShieldWidget | null = null;
-type ProfileStatusCode = 'not-registered' | 'registered' | 'suspecious' | 'no-connection' | 'failed-resolve' | null;
+type ProfileStatusCode = 'not-registered' | 'registered' | 'suspicious' | 'no-connection' | 'failed-resolve' | 'unknown';
 type ProfileStatusPageTypes = 'feed' | 'profile' | 'other';
 type ProfileStatusUserType = 'own' | 'other';
 type ProfileStatus = {
@@ -89,7 +89,7 @@ const defaultMessages = {
 	noConnection: 'No connection to the mysome.id service',
 	notRegistered: 'This person\'s profile is not yet verified.<br/><br/>If you know them you can reach out to them and tell them how to secure their profile using mysome.id.',
 	registered: 'This person\'s profile is verified by mysome.id',
-	suspecious: 'This person\'s profile is not verified or suspicious',
+	suspicious: 'This person\'s profile is not verified or suspicious',
 	statusUnknown: 'This profile status is unknown',
 };
 
@@ -106,9 +106,11 @@ const statusToStatusMessage = (status: ProfileStatusCode) =>
 			messages.notRegistered :
 		status === 'registered' ?
 			messages.registered :
-		status === 'suspecious' ?
-			messages.suspecious :
-		messages.statusUnknown;
+		status === 'suspicious' ?
+			messages.suspicious :
+		status === 'unknown' ?
+			messages.statusUnknown :
+		'';
 
 const profileStatus = createTracker<ProfileStatus>({
 	name: 'profileStatus',
@@ -127,7 +129,7 @@ const profileStatus = createTracker<ProfileStatus>({
 
 function setPageStatus(page: ProfileStatusPageTypes, type: ProfileStatusUserType,) {
 	const ps = profileStatus.get() ?? {
-		status: null,
+		status: 'unknown',
 		page,
 		type,
 	};
@@ -1018,7 +1020,7 @@ const install = async () => {
 	};
 
 	// How many times a person have visited with the plugin installed.
-	analytics.track({type: 'platform-visits', options: {n: `${nvisit + 1}`}});
+	analytics.track({type: 'platform-visits', options: {count: `${nvisit + 1}`}});
 
 	// 
 	const requestToFetchProfile = (await platformRequests.select('li', 'created', 'fetch-profile')) ?? null;
@@ -1120,7 +1122,7 @@ const install = async () => {
 		// on another users profile page.
 		if ( onProfilePage && !onOwnProfileOrFeed ) {
 			if ( profileStatus.get() !== null ) {
-				const status = profileStatus?.get()?.status ?? null;
+				const status = profileStatus?.get()?.status ?? "unknown";
 				const statusMessage = statusToStatusMessage(status);
 
 				const goto = status === 'registered' ? {
@@ -1147,7 +1149,7 @@ const install = async () => {
 		} else if ( onOwnProfileOrFeed ) {
 			if ( ownUserId !== null && profileStatus !== null ) {
 				const tmp = profileStatus.get();
-				const status = profileStatus.get()?.status ?? null;
+				const status = profileStatus.get()?.status ?? 'unknown';
 
 				if ( status === 'not-registered' ) {
 					const reg = registrations.select(mysome.platform, ownUserId);
@@ -1160,7 +1162,7 @@ const install = async () => {
 						logger.info("Continue the installation process for LinkedIn: " + ownUserId);
 
 						mysome.createTour('li.finalize');
-						analytics.track({type: 'badge-click', options: {status: status ?? 'unknown', action: 'finalize', page: 'own'}});
+						analytics.track({type: 'badge-click', options: {status, action: 'finalize', page: 'own'}});
 						return;
 
 					} else if ( step > 5 ) {
@@ -1174,13 +1176,13 @@ const install = async () => {
 							secondary: 'CANCEL',
 							primary_link: createLink,
 						});
-						analytics.track({type: 'badge-click', options: {status: status ?? 'unknown', action: 'no-longer-verified', page: 'own'}});
+						analytics.track({type: 'badge-click', options: {status, action: 'no-longer-verified', page: 'own'}});
 
 						return;
 
 					} else if ( !reg ) {
 						showNotVerifiedPopup();
-						analytics.track({type: 'badge-click', options: {status: status ?? 'unknown',  action: 'show-not-registered', page: 'own'}});
+						analytics.track({type: 'badge-click', options: {status,  action: 'show-not-registered', page: 'own'}});
 
 						return;
 
@@ -1259,10 +1261,10 @@ const install = async () => {
 					shield?.setVerified(proof, onOwnPageOrFeed);
 					badge.showAttention(false);
 					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'registered');	
-				} else if (status === 'invalid' || status === 'suspecious' ) {
-					shield?.setSuspeciousProfile(proof);
+				} else if (status === 'invalid' || status === 'suspicious' ) {
+					shield?.setSuspiciousProfile(proof);
 					badge.showAttention('error');
-					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspecious');	
+					setProfileStatusResolved( 'profile', onOwnPageOrFeed ? 'own' : 'other', 'suspicious');	
 				} else {
 					logger.error("Failed to evaluate the status of the proof.");
 					messages.failedResolve = defaultMessages.failedResolve;
@@ -1415,7 +1417,7 @@ const install = async () => {
 			// badge.showAttention(false); // Make sure that badge is not shown.
 			return;
 		}
-		// badge.showAttention(page !== 'other' && (status === 'not-registered' || status === 'suspecious'));
+		// badge.showAttention(page !== 'other' && (status === 'not-registered' || status === 'suspicious'));
 	});
 
 	const check = createHeartbeat();

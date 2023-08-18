@@ -29,24 +29,11 @@ type AvailableAnalyticsEvents =
 const analytics = createAnalytics<AvailableAnalyticsEvents>('web-app-');
 
 export const AnalyticsContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
-
-	const track = (e: AvailableAnalyticsEvents) => {
-		analytics.track(e);
-	}
-
-	const setUniqueId = (uid: string) => {
-		analytics.setUniqueId(uid);
-	};
-
 	const value: AnalyticsContextData = useMemo(() => ({
-		track,
-		setUniqueId,
-	}), [
-		track,
-		setUniqueId,
-	]);
+		...analytics
+	}), []);
 
-	return <AnalyticsContext.Provider {...{ value }}>{children}</AnalyticsContext.Provider>;
+	return <AnalyticsContext.Provider {...{value}}>{children}</AnalyticsContext.Provider>;
 };
 
 export const useAnalytics = () => {

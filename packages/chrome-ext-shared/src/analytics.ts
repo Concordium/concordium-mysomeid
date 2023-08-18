@@ -1,3 +1,7 @@
+import {
+    logger
+} from './logger';
+
 export type AnalyticsEvent <Type extends string, TOptions extends Record<string, any> = never> = {
 	type: Type;
 	options?: TOptions;
@@ -45,9 +49,9 @@ export const createAnalytics = <T extends AnalyticsEvent<string, Record<string, 
             fetch(url.toString(),{
                 mode: 'no-cors',
             }).then(response => {
-                console.log("analytics response " + response.status);
+                logger.verbose("analytics response " + response.status);
             }).catch(err => {
-                console.error(err);
+                logger.error(err);
             });
         },
     };
