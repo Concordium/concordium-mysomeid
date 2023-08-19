@@ -237,6 +237,17 @@ fn tokenize_string(s: &str) -> Result<Vec<&str>, regex::Error> {
         .collect())
 }
 
+/**
+ * Method used to detect if we have invalid formatted some name string with more than one
+ * nickname defined in the string.
+ */
+fn count_nickname_delimiters(s: &str) -> usize {
+    s.replace("(", "\"")
+        .replace(")", "\"")
+        .replace("“", "\"")
+        .replace("”", "\"").as_str().chars().filter(|&ch| ch == '"').count()
+}
+
 /// Fuzzily match names `a` and `b`. If they do not match according to the rules
 /// described for the function `fuzzy_match_names`, returns `None`. Otherwise,
 /// returns a vector of intervals of all words in `a` that match words in `b`,
@@ -250,27 +261,19 @@ pub fn get_matching_intervals(
 ) -> Result<Option<Vec<(usize, usize)>>, regex::Error> {
     let a = a.to_lowercase();
     let b = b.to_lowercase();
-    
+
+    // Only one nickname is allowed (2 delimiters results in one nickname)
+    if count_nickname_delimiters(&a) > 2 {
+        return Ok(None);
+    }
+
     // Generate vector a_words of all nonempty words in the string a, excluding
     // allowed titles and emojis, together with a vector of the byte indices
     // corresponding to the beginning (inclusive) and end (exclusive) of the word in
     // the string a.
     let mut a_words: Vec<&str> = Vec::new();
     let mut a_word_indices: Vec<(usize, usize)> = Vec::new();
-    let tokens: Vec<&str> = tokenize_string(a.as_str())?;
-    let nick_names = tokens.iter().filter(|&&word| is_nickname(word));
-    let number_of_nicknames = nick_names.clone().count();
-    let number_of_nicknames_with_embedded_nicknames = nick_names
-        .filter(|&&word| {
-            tokenize_string(trim_nick_name_chars(word))
-                .unwrap()
-                .iter()
-                .filter(|&&inner_word| is_nickname(inner_word))
-                .count()
-                > 0
-        })
-        .count();
-
+    let tokens: Vec<&str> = tokenize_string(a.as_str())?;    
     for word in tokens {
         if !word.is_empty()
             && !allowed_titles.contains(word)
@@ -286,20 +289,11 @@ pub fn get_matching_intervals(
         }
     }
 
-    // Only 1 nickname is allowed in a name.
-    if number_of_nicknames > 1 {
-        return Ok(None);
-    }
-
-    // Recusive embedding of nicknames not allowed.
-    if number_of_nicknames_with_embedded_nicknames > 0 {
-        return Ok(None);
-    }
-
     // require at least two matching names
     if a_words.len() < 2 {
         return Ok(None);
     }
+
     // finally check whether all relevant words in a are contained in b
     if check_inclusion(&a_words, &b, allowed_substitutions)? {
         return Ok(Some(a_word_indices));
@@ -818,6 +812,8 @@ mod tests {
      * Nickname support improved (20230814)
      * 
      * Tokenize string must return the expected number of tokens.
+     * 
+     * Note: that this method doesnt support tokenizing "nested" nicknames.
      */
     #[test]
     fn test_tokenize_string() -> anyhow::Result<()> {
@@ -919,8 +915,27 @@ mod tests {
             vec!["word1\"nick\"", "word2", "word3"],
             "Failed for 'word1\"nick\" word2 word3'."
         );
+
+        // Nested nicknames are treated as a nickname
+        assert_eq!(
+            tokenize_string("John (John (Doe) Doe")?,
+            vec!["John", "(John (Doe)", "Doe"],
+            "Failed for 'John (John (Doe) Doe'."
+        );
         
         Ok(())
+    }
+
+    #[test]
+    fn test_count_nicknames() {
+        let count = count_nickname_delimiters("He said ( Hi ), \"Hello\", “Goodbye” and Sayonara (This is a test (nested with a (nested) ) example) and \"Another (nested) “nested” one\" to test, “yeah (nested) \"nested\"”");
+        assert_eq!(count, 24, "count_nicknames must return 12 nickname formations in the input string.");   
+
+        let count = count_nickname_delimiters("He said \" Hi \", \"Hello\", \"Goodbye\" and Sayonara \"This is a test \"nested with a \"nested\" \" example\" and \"Another \"nested\" \"nested\" one\" to test, \"yeah \"nested\" \"nested\"\"");
+        assert_eq!(count, 24, "count_nicknames must return 12 nickname formations in the input string.");
+
+        let count = count_nickname_delimiters("He said \" \" Hi \", \"Hello\", \"Goodbye\" and Sayonara \"This is a test \"nested with a \"nested\" \" example\" and \"Another \"nested\" \"nested\" one\" to test, \"yeah \"nested\" \"nested\"\"");
+        assert_eq!(count, 25, "count_nicknames must return 12 nickname formations in the input string.");
     }
 
     /**
@@ -978,7 +993,7 @@ mod tests {
             Ok(Some([(4, 8), (14, 17)].to_vec()))
         );
 
-        // Recursive nicknames are not allowed.
+        // Nested nicknames are not allowed.
         assert_eq!(
             get_matching_intervals(
                 "John (John (Doe)) Doe",
@@ -987,7 +1002,7 @@ mod tests {
                 &allowed_titles
             ),
             Ok(None),
-            "Nicknames with embedded nicknames are not allowed."
+            "Nicknames with nested nicknames are not allowed."
         );
 
          // Multiple nicknames are not allowed.
@@ -1000,6 +1015,18 @@ mod tests {
             ),
             Ok(None),
             "Multiple nicknames are not allowed."
+        );
+
+        // Nested nicknames are not allowed.
+        assert_eq!(
+            get_matching_intervals(
+                "John (John (James)) Doe",
+                "John Doe",
+                &allowed_substitutions,
+                &allowed_titles
+            ),
+            Ok(None),
+            "Nested nicknames are not allowed."
         );
         
         Ok(())
