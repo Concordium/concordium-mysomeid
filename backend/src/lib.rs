@@ -321,11 +321,6 @@ fn is_nickname(word: &str) -> bool {
         || (word.starts_with('(') && word.ends_with(')'))
 }
 
-fn trim_nick_name_chars(word: &str) -> &str {
-    word.trim_start_matches(&['(', '"', '“'][..])
-     .trim_end_matches(&[')', '"', '”'][..])
-}
-
 /// Check whether all words in `a_words` are contained in the string `b`,
 /// ignoring the order but ensuring multiplicity is respected. Names in `b` can
 /// also occur abbreviated in `a`, either as a single grapheme or as one
