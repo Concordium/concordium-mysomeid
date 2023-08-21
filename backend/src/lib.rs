@@ -242,10 +242,7 @@ fn tokenize_string(s: &str) -> Result<Vec<&str>, regex::Error> {
  * nickname defined in the string.
  */
 fn count_nickname_delimiters(s: &str) -> usize {
-    s.replace("(", "\"")
-        .replace(")", "\"")
-        .replace("“", "\"")
-        .replace("”", "\"").as_str().chars().filter(|&ch| ch == '"').count()
+    s.replace(['(', ')', '“', '”'], "\"").as_str().chars().filter(|&ch| ch == '"').count()
 }
 
 /// Fuzzily match names `a` and `b`. If they do not match according to the rules
