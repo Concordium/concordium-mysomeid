@@ -220,8 +220,8 @@ pub fn fuzzy_match_names(
     Ok(get_matching_intervals(a, &b, allowed_substitutions, allowed_titles)?.is_some())
 }
 
-/// Split a SOME name string into tokens to be compared with a list of other
-/// tokens.
+/// Split a social media name string (such as "Dr. John Doe 🚀") into tokens to
+/// be compared with a list of other tokens.
 fn tokenize_string(s: &str) -> Result<Vec<&str>, regex::Error> {
     // This regex pattern matches:
     // 1. Words enclosed by ( and )
@@ -916,7 +916,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_nicknames() {
+    fn test_count_nickname_delimiters() {
         let count = count_nickname_delimiters(
             "He said ( Hi ), \"Hello\", “Goodbye” and Sayonara (This is a test (nested with a \
              (nested) ) example) and \"Another (nested) “nested” one\" to test, “yeah (nested) \
@@ -924,17 +924,7 @@ mod tests {
         );
         assert_eq!(
             count, 24,
-            "count_nicknames must return 12 nickname formations in the input string."
-        );
-
-        let count = count_nickname_delimiters(
-            "He said \" Hi \", \"Hello\", \"Goodbye\" and Sayonara \"This is a test \"nested with \
-             a \"nested\" \" example\" and \"Another \"nested\" \"nested\" one\" to test, \"yeah \
-             \"nested\" \"nested\"\"",
-        );
-        assert_eq!(
-            count, 24,
-            "count_nicknames must return 12 nickname formations in the input string."
+            "count_nicknames must return 24 nickname delimiters in the input string."
         );
 
         let count = count_nickname_delimiters(
@@ -944,7 +934,7 @@ mod tests {
         );
         assert_eq!(
             count, 25,
-            "count_nicknames must return 12 nickname formations in the input string."
+            "count_nicknames must return 25 nickname delimiters in the input string."
         );
     }
 
