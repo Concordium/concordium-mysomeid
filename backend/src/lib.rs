@@ -237,10 +237,8 @@ fn tokenize_string(s: &str) -> Result<Vec<&str>, regex::Error> {
 /// Method used to detect if we have invalid formatted some name string with
 /// more than one nickname defined in the string.
 fn count_nickname_delimiters(s: &str) -> usize {
-    s.replace(['(', ')', '“', '”'], "\"")
-        .as_str()
-        .chars()
-        .filter(|&ch| ch == '"')
+    s.chars()
+        .filter(|ch| ['(', ')', '“', '”'].contains(ch))
         .count()
 }
 
