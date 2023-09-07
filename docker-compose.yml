@@ -1,4 +1,26 @@
 services:
+  chrome-ext-builder:
+    build:
+      context: .
+      dockerfile: ./scripts/chrome-ext.Dockerfile
+      args:
+        environment: production
+    volumes:
+      - /chrome-ext-build:/app/packages/chrome-ext/build
+    environment:
+      NODE_ENV: production
+    command: /bin/sh -c "cd packages/chrome-ext && yarn build"
+  web-app:
+    build:
+      context: .
+      dockerfile: ./scripts/web-app.Dockerfile
+      args:
+        environment: production
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
   api:
     build:
       dockerfile: ./backend/scripts/build.Dockerfile

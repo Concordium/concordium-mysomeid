@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "submodules": "git submodule update --init --recursive"
+    "submodules": "git submodule update --init --recursive",
+    "start:web-app": "cd packages/web-app && yarn start",
+    "start:docker:web-app": "docker-compose up --build web-app",
+    "build:chrome-ext": "docker-compose up --build chrome-ext-builder"
   },
   "workspaces": {
     "packages": [

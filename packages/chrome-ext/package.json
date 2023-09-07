@@ -1,5 +1,5 @@
 {
-  "name": "mysomeid",
+  "name": "@mysomeid/chrome-ext",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
