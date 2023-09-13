@@ -1,2 +1,7 @@
 .*
+!/.env.
+!/.env.production
+!/.env.testnet
+!/.env.staging
+!/.env.development
 **/target

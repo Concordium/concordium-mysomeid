@@ -23,12 +23,20 @@ pipeline {
                 // NODE_ENV = "production"
             }
             steps {
-                dir('packages/chrome-ext') {
+                dir('./') {
                     sh '''\
-                        yarn install
-                        yarn build
+                        docker build \
+                            -f scripts/chrome-ext.Dockerfile \
+                            -t chrome-ext-builder \
+                            --build-arg environment \
+                            --no-cache \
+                            .
+                        docker run \
+                            -v $(pwd)/chrome-ext-build:/app/packages/chrome-ext/build \
+                            chrome-ext-builder \
+                            /bin/sh -c "cd packages/chrome-ext && yarn build"
                     '''.stripIndent()
-                    zip(zipFile: 'out.zip', archive: false, dir: './build')
+                    zip(zipFile: 'out.zip', archive: false, dir: './chrome-ext-build')
                 }
             }
             post {
@@ -44,7 +52,7 @@ pipeline {
         }
         stage('push') {
             steps {
-                sh 'aws s3 cp "packages/chrome-ext/out.zip" "${OUTFILE}" --grants=read=uri=http://acs.amazonaws.com/groups/global/AllUsers'
+                sh 'aws s3 cp "./out.zip" "${OUTFILE}" --grants=read=uri=http://acs.amazonaws.com/groups/global/AllUsers'
             }
         }
     }

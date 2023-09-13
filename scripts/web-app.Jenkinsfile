@@ -16,10 +16,10 @@ pipeline {
                 image_name = "${image_repo}:${environment}-${image_tag}"
             }
             steps {
-                dir('packages/web-app') {
+                dir('./') {
                     sh '''\
                         docker build \
-                            -f Dockerfile \
+                            -f scripts/web-app.Dockerfile \
                             -t "${image_name}" \
                             --build-arg environment \
                             --no-cache \

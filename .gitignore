@@ -18,6 +18,12 @@ packages/test-suite/volume
 
 packages/web-app/build/*
 
+chrome-ext-build
+
+out.zip
+
+\.*
+
 */build/*
 
 packages/chrome-ext-shared/lib
