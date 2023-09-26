@@ -23,7 +23,7 @@ use concordium::{
     common::{self, VERSION_0},
     id::{
         constants::{ArCurve, AttributeKind},
-        id_proof_types::{Statement, ProofVersion},
+        id_proof_types::{ProofVersion, Statement},
         types::AccountCredentialWithoutProofs,
     },
     smart_contracts::{common as concordium_std, common::AccountAddress},
