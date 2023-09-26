@@ -1,6 +1,6 @@
 [package]
 name = "backend"
-version = "1.0.8"
+version = "1.0.9"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -42,6 +42,6 @@ percent-encoding = "2.2.0"
 regex = "1"
 unicode-segmentation = "1.9.0"
 
-concordium-rust-sdk = {version = "2", path = "../deps/concordium-rust-sdk"}
+concordium-rust-sdk = {version = "3", path = "../deps/concordium-rust-sdk"}
 key_derivation = { path = "../deps/concordium-rust-sdk/concordium-base/rust-src/key_derivation"}
 emojis = "0.6.0"

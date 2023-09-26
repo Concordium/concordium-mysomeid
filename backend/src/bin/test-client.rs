@@ -5,7 +5,7 @@ use concordium::{
     common::{Versioned, VERSION_0},
     id::{
         constants::{ArCurve, AttributeKind, IpPairing},
-        id_proof_types::{Statement, StatementWithContext},
+        id_proof_types::{Statement, StatementWithContext, ProofVersion},
         types::{
             account_address_from_registration_id, AttributeTag, IdRecoveryRequest,
             IdentityObjectV1, IpInfo,
@@ -119,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let challenge = [0u8; 32]; // TODO: :)
     let proof = statement
-        .prove(&global_context, &challenge, &data.id_object.alist, &cc)
+        .prove(ProofVersion::Version1, &global_context, &challenge, &data.id_object.alist, &cc)
         .context("Unable to prove.")?;
 
     let first_name = data
