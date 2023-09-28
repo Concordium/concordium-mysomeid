@@ -4,6 +4,7 @@ ARG environment
 WORKDIR /app
 
 COPY ./package.json .
+COPY ./yarn.lock .
 COPY ./packages/chrome-ext-shared /app/packages/chrome-ext-shared
 COPY ./packages/web-app /app/packages/web-app
 
