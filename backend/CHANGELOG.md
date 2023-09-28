@@ -1,5 +1,9 @@
 # Changelog mysomeid backend and test tools
 
+## 1.0.9
+
+- Update concordium-rust-sdk to version 3.0.1.
+
 ## 1.0.7
 
 - Revise name matching, allowing titles, emojis, abbreviated middle names, and nicknames.

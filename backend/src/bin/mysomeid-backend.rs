@@ -23,7 +23,7 @@ use concordium::{
     common::{self, VERSION_0},
     id::{
         constants::{ArCurve, AttributeKind},
-        id_proof_types::Statement,
+        id_proof_types::{ProofVersion, Statement},
         types::AccountCredentialWithoutProofs,
     },
     smart_contracts::{common as concordium_std, common::AccountAddress},
@@ -789,6 +789,7 @@ async fn verify_proof_worker(
         return Err(Error::InvalidRequest("The requested account does not have a matching credential.".into()));
     };
     let result = statement.verify(
+        ProofVersion::Version1,
         &challenge.challenge,
         &crypto_params,
         proof.credential.as_ref(),
@@ -1277,6 +1278,7 @@ async fn mint_nft(
         return Err(Error::InvalidRequest("The requested account does not have a matching credential.".into()));
     };
     let result = statement.verify(
+        ProofVersion::Version1,
         &private.challenge.challenge,
         &crypto_params,
         private.proof.credential.as_ref(),
